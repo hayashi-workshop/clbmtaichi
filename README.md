@@ -138,15 +138,15 @@ The simulation dumps .vtr file for Paraview.
 
 ## More fundamentals / the state-of-the arts of LBM open libs.
 
+YouTube lectures (highly recommended)
+1. [Short lecture by Prof. Kruger](https://www.youtube.com/watch?v=jfk4feD7rFQ)
+2. [Great lecture series by TUBS-IRMB](https://www.youtube.com/@tubs-irmb6980/videos)
+
 Readers those who need a solution for practical problems are recommended visiting
 1. [lbmpy](https://pycodegen.pages.i10git.cs.fau.de/lbmpy/)
 2. [VirtualFluids](https://zenodo.org/records/10535097)
 3. [Palabos](https://palabos.unige.ch/get-started/lattice-boltzmann/what-lattice-boltzmann)
 4. [OpenLB](https://www.openlb.net/)
-
-YouTube lectures (highly recommended)
-1. [Short lecture by Prof. Kruger](https://www.youtube.com/watch?v=jfk4feD7rFQ)
-2. [Great lecture series by TUBS-IRMB](https://www.youtube.com/@tubs-irmb6980/videos)
 
 
 ## Acknowledgments
