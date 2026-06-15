@@ -2,8 +2,11 @@
 
 # this class uses trimesh to handle mesh data
 # install the following if not yet inplemented
+#
 #pip install 'trimesh[easy]'
 #pip install networkx
+#
+# See https://github.com/mikedh/trimesh
 
 import taichi as ti
 
