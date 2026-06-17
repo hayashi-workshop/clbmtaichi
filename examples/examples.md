@@ -215,7 +215,7 @@ Here, the isosurfaces represent Q-criterion, $Q = (|\Omega|^2 - |S|^2)/2$. In pa
 ### Marching cube
 
 - MarchingCube class: [`lb_utils/marching_cube.py`](../lb_utils/marching_cube.py)
-- Surface extraction example [`examples/mcube_extra_surface.py`](./examples/mcube_extra_surface.py)
+- Surface extraction example [`examples/mcube_extra_surface.py`](./mcube_extra_surface.py)
 
 <img src="../img/extract_surface.png" width=300></img>
 
@@ -232,7 +232,7 @@ PYTHONPATH=. python examples/mcube_extract_surface.py
 
 ### Extract Q-criterion isosurfaces using marching cube
 
-Compute and export Q-criterion [`examples/mcube_stanford_bunny.py`](./examples/mcube_stanford_bunny.py)
+Compute and export Q-criterion [`examples/mcube_stanford_bunny.py`](./mcube_stanford_bunny.py)
 
 <video src="https://github.com/user-attachments/assets/7befea58-1075-4156-aa99-1c69275f05b4" width="600" autoplay loop muted playsinline></video>
 
