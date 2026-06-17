@@ -198,3 +198,29 @@ PYTHONPATH=. python examples/stanford_bunny.py
 (241, 121, 121); length_scale = 60; offset = (50, 0, 30) (corner edige of model bounding box); (u, Re) = (0.1, 40000)
 
 <img src="../img/stanford_bunny_vtk.png" width=600></img>
+
+
+
+## Extracting isosurfaces
+
+### Marching cube
+
+- MarchingCube class: [`lb_utils/marching_cube.py`](../lb_utils/marching_cube.py)
+- Surface extraction example [`examples/mcube_extra_surface.py`](./examples/mcube_extra_surface.py)
+
+<img src="../img/extract_surface.png" width=300></img>
+
+
+### Extract Q-criterion isosurfaces using marching cube
+
+Compute and export Q-criterion [`examples/mcube_stanford_bunny.py`](./examples/mcube_stanford_bunny.py)
+
+<video src="https://github.com/user-attachments/assets/7befea58-1075-4156-aa99-1c69275f05b4" width="600" autoplay loop muted playsinline></video>
+
+
+
+
+
+
+
+
