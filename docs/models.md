@@ -10,7 +10,7 @@ D2Q9 ($f_{0}$-$f_{8}$) and D3Q27 ($f_{0}$-$f_{26}$) models are supported.
 The macroscopic variables, the density and momentum, are the 0th and 1st-order moments of the velocity distribution function $f$: 
 
 $$
-\rho = \sum_{q=0}^{Q-1} f_{q},~~~~$\rho \mathbf{u}$ = \sum_{q=0}^{Q-1} \mathbf{c}_{q} f_{q}
+\rho = \sum_{q=0}^{Q-1} f_{q},~~~~\rho \mathbf{u} = \sum_{q=0}^{Q-1} \mathbf{c}_{q} f_{q}
 $$
 
 where $Q = 9$ or $Q = 27$. 
