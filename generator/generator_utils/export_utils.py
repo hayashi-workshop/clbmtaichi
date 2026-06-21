@@ -301,7 +301,7 @@ class TypeWriter:
         for name, expr in zip(macro_keys, reduced_macro): 
             if name =='rho':
                 rho_expr = expr
-                density_shift = sp.Integer(1) if self.drho_mode else sp.Integer(0)
+                density_shift = sp.Integer(1) if self.drho_mode == 'drho' else sp.Integer(0)
                 self.buffer.append(f"{idt[bi+2]}{name} = {self._clean_div_terms(str(expr + density_shift))} # real (un-shifted) density\n")
             else:
                 self.buffer.append(f"{idt[bi+2]}{name} = {self._clean_div_terms(str(expr))}\n")

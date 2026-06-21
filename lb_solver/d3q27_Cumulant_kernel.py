@@ -59,7 +59,7 @@ class ModelConfig:
             xm6 = f19 + f21 - f22 + f7 - f8 + xm5
             xm7 = f11 - f12 + f23 - f24
             xm8 = f15 - f16 - f25 + f26
-            rho = xm3 + 1 # real (un-shifted) density
+            rho = xm3 # real (un-shifted) density
             u = xm4*(-f10 - f14 - f2 - f26 + xm0 + xm6 + xm7)
             v = xm4*(-f18 - f23 - f4 - f9 + xm1 + xm6 + xm8)
             w = xm4*(-f13 - f17 - f21 - f6 + xm2 + xm5 + xm7 + xm8)

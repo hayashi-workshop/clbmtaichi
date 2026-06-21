@@ -37,7 +37,7 @@ class ModelConfig:
             xm2 = f0 + f3 + f4 + f5 + f7 + xm0 + xm1
             xm3 = 1/xm2
             xm4 = f5 - f7
-            rho = xm2 + 1 # real (un-shifted) density
+            rho = xm2 # real (un-shifted) density
             u = xm3*(-f3 - f6 + xm0 + xm4)
             v = xm3*(-f4 - f8 + xm1 + xm4)
             inv_rho = 1.0 / rho
