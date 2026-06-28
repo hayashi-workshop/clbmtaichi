@@ -9,28 +9,32 @@
 import taichi as ti
 import taichi.math as tm
 
+#weights = ti.types.vector(9, float)([4.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0])
+c = (ti.Vector([0, 0]), ti.Vector([1, 0]), ti.Vector([0, 1]), ti.Vector([-1, 0]), ti.Vector([0, -1]), ti.Vector([1, 1]), ti.Vector([-1, 1]), ti.Vector([-1, -1]), ti.Vector([1, -1]))
+
 @ti.data_oriented
 class ModelConfig:
-    def __init__(self):
-        #self.weights = ti.types.vector(9, float)([4.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0])
-        self.c = (ti.Vector([0, 0]), ti.Vector([1, 0]), ti.Vector([0, 1]), ti.Vector([-1, 0]), ti.Vector([0, -1]), ti.Vector([1, 1]), ti.Vector([-1, 1]), ti.Vector([-1, -1]), ti.Vector([1, -1]))
+    def __init__(self, mode="pull"):
         self.density_shift = 0.0
         self._set_rational()
+        self.pop = 1 if mode == "push" else 0 # pull or push
+        print(f"mode: {mode} - pop {self.pop}")
 
 
     @ti.kernel
     def col_stream_core(self, lbm: ti.template(), f_pre: ti.template(), f_post: ti.template()):
-        for I in ti.grouped(lbm.rho):
-            # Streaming & Fetch (pull algorithm)
-            f0 = f_pre[I - self.c[0]][0]
-            f1 = f_pre[I - self.c[1]][1]
-            f2 = f_pre[I - self.c[2]][2]
-            f3 = f_pre[I - self.c[3]][3]
-            f4 = f_pre[I - self.c[4]][4]
-            f5 = f_pre[I - self.c[5]][5]
-            f6 = f_pre[I - self.c[6]][6]
-            f7 = f_pre[I - self.c[7]][7]
-            f8 = f_pre[I - self.c[8]][8]
+        for i, j in ti.ndrange((ti.static(self.pop), ti.static(lbm.nd[0] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[1] - self.pop))):
+            I = ti.Vector([i, j])
+            # Fetch f
+            f0 = f_pre[I + c[0]*ti.static(self.pop-1)][0]
+            f1 = f_pre[I + c[1]*ti.static(self.pop-1)][1]
+            f2 = f_pre[I + c[2]*ti.static(self.pop-1)][2]
+            f3 = f_pre[I + c[3]*ti.static(self.pop-1)][3]
+            f4 = f_pre[I + c[4]*ti.static(self.pop-1)][4]
+            f5 = f_pre[I + c[5]*ti.static(self.pop-1)][5]
+            f6 = f_pre[I + c[6]*ti.static(self.pop-1)][6]
+            f7 = f_pre[I + c[7]*ti.static(self.pop-1)][7]
+            f8 = f_pre[I + c[8]*ti.static(self.pop-1)][8]
 
             xm0 = f1 + f8
             xm1 = f2 + f6
@@ -97,15 +101,15 @@ class ModelConfig:
             chimera_m_post_0_2 = m02_post - m22_post
             chimera_m_post_m1_2 = -m12_post * 0.5 + m22_post * 0.5
             chimera_m_post_1_2 = m12_post * 0.5 + m22_post * 0.5
-            f_post[I][0] = chimera_m_post_0_0 - chimera_m_post_0_2
-            f_post[I][1] = chimera_m_post_1_0 - chimera_m_post_1_2
-            f_post[I][2] = chimera_m_post_0_1 * 0.5 + chimera_m_post_0_2 * 0.5
-            f_post[I][3] = chimera_m_post_m1_0 - chimera_m_post_m1_2
-            f_post[I][4] = -chimera_m_post_0_1 * 0.5 + chimera_m_post_0_2 * 0.5
-            f_post[I][5] = chimera_m_post_1_1 * 0.5 + chimera_m_post_1_2 * 0.5
-            f_post[I][6] = chimera_m_post_m1_1 * 0.5 + chimera_m_post_m1_2 * 0.5
-            f_post[I][7] = -chimera_m_post_m1_1 * 0.5 + chimera_m_post_m1_2 * 0.5
-            f_post[I][8] = -chimera_m_post_1_1 * 0.5 + chimera_m_post_1_2 * 0.5
+            f_post[I + c[0]*ti.static(self.pop)][0] = chimera_m_post_0_0 - chimera_m_post_0_2
+            f_post[I + c[1]*ti.static(self.pop)][1] = chimera_m_post_1_0 - chimera_m_post_1_2
+            f_post[I + c[2]*ti.static(self.pop)][2] = chimera_m_post_0_1 * 0.5 + chimera_m_post_0_2 * 0.5
+            f_post[I + c[3]*ti.static(self.pop)][3] = chimera_m_post_m1_0 - chimera_m_post_m1_2
+            f_post[I + c[4]*ti.static(self.pop)][4] = -chimera_m_post_0_1 * 0.5 + chimera_m_post_0_2 * 0.5
+            f_post[I + c[5]*ti.static(self.pop)][5] = chimera_m_post_1_1 * 0.5 + chimera_m_post_1_2 * 0.5
+            f_post[I + c[6]*ti.static(self.pop)][6] = chimera_m_post_m1_1 * 0.5 + chimera_m_post_m1_2 * 0.5
+            f_post[I + c[7]*ti.static(self.pop)][7] = -chimera_m_post_m1_1 * 0.5 + chimera_m_post_m1_2 * 0.5
+            f_post[I + c[8]*ti.static(self.pop)][8] = -chimera_m_post_1_1 * 0.5 + chimera_m_post_1_2 * 0.5
 
             # update arrays of macroscopic vars
             lbm.rho[I] = xm2

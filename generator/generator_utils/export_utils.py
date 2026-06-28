@@ -106,25 +106,39 @@ class TypeWriter:
         weight_strs = [f"{float(w)}" if w.is_Integer else f"{w.as_numer_denom()[0]}.0 / {w.as_numer_denom()[1]}.0" for w in weights]
         vec_strs = [f"[{', '.join(map(str, v))}]" for v in vectors]
         vec_idx_strs = [f"ti.Vector([{', '.join(map(str, v))}])" for v in vectors]
+        f.write(f"{idt[0]}#weights = ti.types.vector({num_pops}, float)([{', '.join(weight_strs)}])\n") # - #
+        f.write(f"{idt[0]}c = ({', '.join(vec_idx_strs)})\n\n") # - #
 
         f.write(f"{idt[0]}@ti.data_oriented\n")
         f.write(f"{idt[0]}class ModelConfig:\n")
-        f.write(f"{idt[1]}def __init__(self):\n")
-        f.write(f"{idt[2]}#self.weights = ti.types.vector({num_pops}, float)([{', '.join(weight_strs)}])\n")
-        f.write(f"{idt[2]}self.c = ({', '.join(vec_idx_strs)})\n")
+        f.write(f"{idt[1]}def __init__(self, mode=\"pull\"):\n")
 
         density_shift = 0.0 if self.drho_mode == 'rho' else 1.0
         f.write(f"{idt[2]}self.density_shift = {density_shift}\n")
 
         f.write(f"{idt[2]}self._set_rational()\n")
 
+        f.write(f"{idt[2]}self.pop = 1 if mode == \"push\" else 0 # pull or push\n") # - #
+        f.write(f"{idt[2]}print(f\"mode: {{mode}} - pop {{self.pop}}\")\n") # - #
+
+
         f.write(f"\n\n{idt[bi]}@ti.kernel\n")
         f.write(f"{idt[bi]}def col_stream_core(self, {class_name}: ti.template(), f_pre: ti.template(), f_post: ti.template()):\n") # function begins
-        
-        f.write(f"{idt[bi+1]}for I in ti.grouped({class_name}.rho):\n")
-        f.write(f"{idt[bi+2]}# Streaming & Fetch (pull algorithm)\n")
+
+        #f.write(f"{idt[bi+1]}for I in ti.grouped({class_name}.rho):\n")
+        #f.write(f"{idt[bi+2]}# Streaming & Fetch (pull algorithm)\n")
+
+        if dim == 2:
+            f.write(f"{idt[bi+1]}for i, j in ti.ndrange((ti.static(self.pop), ti.static(lbm.nd[0] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[1] - self.pop))):")
+            f.write(f"\n{idt[bi+2]}I = ti.Vector([i, j])\n")
+        else: # dim == 3
+            f.write(f"{idt[bi+1]}for i, j, k in ti.ndrange((ti.static(self.pop), ti.static(lbm.nd[0] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[1] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[2] - self.pop))):")
+            f.write(f"\n{idt[bi+2]}I = ti.Vector([i, j, k])\n")
+
+        f.write(f"{idt[bi+2]}# Fetch f\n") # - #
         for idx, vec in enumerate(vectors):
-            f.write(f"{idt[bi+2]}f{idx} = {old_name}[I - self.c[{idx}]][{idx}]\n")
+#            f.write(f"{idt[bi+2]}f{idx} = {old_name}[I - self.c[{idx}]][{idx}]\n")
+            f.write(f"{idt[bi+2]}f{idx} = {old_name}[I + c[{idx}]*ti.static(self.pop-1)][{idx}]\n")
         f.write("\n")
 
     def _export_common_closer(self, f):
@@ -172,8 +186,8 @@ class TypeWriter:
     def _export_f_new_list(self, f, class_name, new_name):
         idt, bi = self.idt, self.bi
         for idx in range(len(f)):
-            self.buffer.append(f"{idt[bi+2]}{new_name}[I][{idx}] = {f[idx]}\n")
-
+#            self.buffer.append(f"{idt[bi+2]}{new_name}[I][{idx}] = {f[idx]}\n")
+            self.buffer.append(f"{idt[bi+2]}{new_name}[I + c[{idx}]*ti.static(self.pop)][{idx}] = {f[idx]}\n")
 
     def _export_bgk_code(self):
         idt, bi = self.idt, self.bi
@@ -230,7 +244,8 @@ class TypeWriter:
 
         self.buffer.append(f"{idt[bi+2]}# Collision/relaxation\n")
         for q in range(num_pops):
-            self.buffer.append(f"{idt[bi+2]}{new_name}[I][{q}] = {self._clean_div_terms(str(f_new_list[f_keys[q]]))}\n")
+#            self.buffer.append(f"{idt[bi+2]}{new_name}[I][{q}] = {self._clean_div_terms(str(f_new_list[f_keys[q]]))}\n")
+            self.buffer.append(f"{idt[bi+2]}{new_name}[I + c[{q}]*ti.static(self.pop)][{q}] = {self._clean_div_terms(str(f_new_list[f_keys[q]]))}\n")
 
         self.buffer.append(f"\n{idt[bi+2]}# Update arrays of macroscopic vars\n")
         self._export_macrovars(macro_keys[0], macro_keys[1:dim+1], class_name)
@@ -281,7 +296,8 @@ class TypeWriter:
             self.buffer.append(f"{idt[bi+2]}{safe_var} = {expr_str.replace('x', 'inv_x')}\n")
             
         for idx, final_expr in enumerate(inv_reduced):
-            self.buffer.append(f"{idt[bi+2]}{new_name}[I][{idx}] = {self._clean_div_terms(str(final_expr)).replace('x', 'inv_x')}\n")
+#            self.buffer.append(f"{idt[bi+2]}{new_name}[I][{idx}] = {self._clean_div_terms(str(final_expr)).replace('x', 'inv_x')}\n")
+            self.buffer.append(f"{idt[bi+2]}{new_name}[I + c[{idx}]*ti.static(self.pop)][{idx}] = {self._clean_div_terms(str(final_expr)).replace('x', 'inv_x')}\n")
 
         self.buffer.append(f"\n{idt[bi+2]}# 4) Update arrays of macroscopic vars\n")
         self.buffer.append(f"{idt[bi+2]}lbm.rho[I] = rho # <- note: actual value stored here is rho - density_shift\n")
@@ -331,7 +347,8 @@ class TypeWriter:
 
         for f_idx in sorted(f_post_map.keys()):
             expr = f_post_map[f_idx]
-            self.buffer.append(self._clean_div_terms(f"{idt[bi+2]}{new_name}[I][{f_idx}] = {expr}\n"))
+#            self.buffer.append(self._clean_div_terms(f"{idt[bi+2]}{new_name}[I][{f_idx}] = {expr}\n"))
+            self.buffer.append(self._clean_div_terms(f"{idt[bi+2]}{new_name}[I + c[{f_idx}]*ti.static(self.pop)][{f_idx}] = {expr}\n"))
 
         self.buffer.append(f"\n{idt[bi+2]}# update arrays of macroscopic vars\n")
         self.buffer.append(f"{idt[bi+2]}{class_name}.rho[I] = {self._clean_div_terms(str(rho_expr))}\n")

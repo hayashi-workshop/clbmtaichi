@@ -8,28 +8,32 @@
 import taichi as ti
 import taichi.math as tm
 
+#weights = ti.types.vector(9, float)([4.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0])
+c = (ti.Vector([0, 0]), ti.Vector([1, 0]), ti.Vector([0, 1]), ti.Vector([-1, 0]), ti.Vector([0, -1]), ti.Vector([1, 1]), ti.Vector([-1, 1]), ti.Vector([-1, -1]), ti.Vector([1, -1]))
+
 @ti.data_oriented
 class ModelConfig:
-    def __init__(self):
-        #self.weights = ti.types.vector(9, float)([4.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0])
-        self.c = (ti.Vector([0, 0]), ti.Vector([1, 0]), ti.Vector([0, 1]), ti.Vector([-1, 0]), ti.Vector([0, -1]), ti.Vector([1, 1]), ti.Vector([-1, 1]), ti.Vector([-1, -1]), ti.Vector([1, -1]))
+    def __init__(self, mode="pull"):
         self.density_shift = 1.0
         self._set_rational()
+        self.pop = 1 if mode == "push" else 0 # pull or push
+        print(f"mode: {mode} - pop {self.pop}")
 
 
     @ti.kernel
     def col_stream_core(self, lbm: ti.template(), f_pre: ti.template(), f_post: ti.template()):
-        for I in ti.grouped(lbm.rho):
-            # Streaming & Fetch (pull algorithm)
-            f0 = f_pre[I - self.c[0]][0]
-            f1 = f_pre[I - self.c[1]][1]
-            f2 = f_pre[I - self.c[2]][2]
-            f3 = f_pre[I - self.c[3]][3]
-            f4 = f_pre[I - self.c[4]][4]
-            f5 = f_pre[I - self.c[5]][5]
-            f6 = f_pre[I - self.c[6]][6]
-            f7 = f_pre[I - self.c[7]][7]
-            f8 = f_pre[I - self.c[8]][8]
+        for i, j in ti.ndrange((ti.static(self.pop), ti.static(lbm.nd[0] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[1] - self.pop))):
+            I = ti.Vector([i, j])
+            # Fetch f
+            f0 = f_pre[I + c[0]*ti.static(self.pop-1)][0]
+            f1 = f_pre[I + c[1]*ti.static(self.pop-1)][1]
+            f2 = f_pre[I + c[2]*ti.static(self.pop-1)][2]
+            f3 = f_pre[I + c[3]*ti.static(self.pop-1)][3]
+            f4 = f_pre[I + c[4]*ti.static(self.pop-1)][4]
+            f5 = f_pre[I + c[5]*ti.static(self.pop-1)][5]
+            f6 = f_pre[I + c[6]*ti.static(self.pop-1)][6]
+            f7 = f_pre[I + c[7]*ti.static(self.pop-1)][7]
+            f8 = f_pre[I + c[8]*ti.static(self.pop-1)][8]
 
             # CSE expressions of macroscopic variables and f_eq
             x0 = f1 + f8
@@ -62,15 +66,15 @@ class ModelConfig:
             x27 = x20 + x24
             x28 = x7 - x9
             # Collision/relaxation
-            f_post[I][0] = f0 + lbm.omega[1]*(-f0 - 4*x17*x5 * self.INV_9 - 4 * self.INV_9)
-            f_post[I][1] = f1 + lbm.omega[1]*(-f1 + x5*(x18 + x21) * self.INV_9 - self.INV_9)
-            f_post[I][2] = f2 + lbm.omega[1]*(-f2 + x5*(x10*x19 + x24 + 1) * self.INV_9 - self.INV_9)
-            f_post[I][3] = f3 + lbm.omega[1]*(-f3 + x5*(x21 + x25) * self.INV_9 - self.INV_9)
-            f_post[I][4] = f4 + lbm.omega[1]*(-f4 + x5*(3*x10*x11 - x16 - x22) * self.INV_9 - self.INV_9)
-            f_post[I][5] = f5 + lbm.omega[1]*(-f5 + x5*(x18 + 9*x26**2 * 0.5 + x27) * self.INV_36 - self.INV_36)
-            f_post[I][6] = f6 + lbm.omega[1]*(-f6 + x5*(x25 + x27 + 9*x28**2 * 0.5) * self.INV_36 - self.INV_36)
-            f_post[I][7] = f7 + lbm.omega[1]*(-f7 + x5*(-x17 - x18 - x22 + 9*x26**2 * 0.5) * self.INV_36 - self.INV_36)
-            f_post[I][8] = f8 + lbm.omega[1]*(-f8 + x5*(x18 + x20 - x22 + x23 + 9*x28**2 * 0.5) * self.INV_36 - self.INV_36)
+            f_post[I + c[0]*ti.static(self.pop)][0] = f0 + lbm.omega[1]*(-f0 - 4*x17*x5 * self.INV_9 - 4 * self.INV_9)
+            f_post[I + c[1]*ti.static(self.pop)][1] = f1 + lbm.omega[1]*(-f1 + x5*(x18 + x21) * self.INV_9 - self.INV_9)
+            f_post[I + c[2]*ti.static(self.pop)][2] = f2 + lbm.omega[1]*(-f2 + x5*(x10*x19 + x24 + 1) * self.INV_9 - self.INV_9)
+            f_post[I + c[3]*ti.static(self.pop)][3] = f3 + lbm.omega[1]*(-f3 + x5*(x21 + x25) * self.INV_9 - self.INV_9)
+            f_post[I + c[4]*ti.static(self.pop)][4] = f4 + lbm.omega[1]*(-f4 + x5*(3*x10*x11 - x16 - x22) * self.INV_9 - self.INV_9)
+            f_post[I + c[5]*ti.static(self.pop)][5] = f5 + lbm.omega[1]*(-f5 + x5*(x18 + 9*x26**2 * 0.5 + x27) * self.INV_36 - self.INV_36)
+            f_post[I + c[6]*ti.static(self.pop)][6] = f6 + lbm.omega[1]*(-f6 + x5*(x25 + x27 + 9*x28**2 * 0.5) * self.INV_36 - self.INV_36)
+            f_post[I + c[7]*ti.static(self.pop)][7] = f7 + lbm.omega[1]*(-f7 + x5*(-x17 - x18 - x22 + 9*x26**2 * 0.5) * self.INV_36 - self.INV_36)
+            f_post[I + c[8]*ti.static(self.pop)][8] = f8 + lbm.omega[1]*(-f8 + x5*(x18 + x20 - x22 + x23 + 9*x28**2 * 0.5) * self.INV_36 - self.INV_36)
             lbm.rho[I] = x2 # <- note: actual value stored here is rho - density_shift
             lbm.vel[I][0] = x7
             lbm.vel[I][1] = x9

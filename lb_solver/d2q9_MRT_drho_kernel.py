@@ -8,28 +8,32 @@
 import taichi as ti
 import taichi.math as tm
 
+#weights = ti.types.vector(9, float)([4.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0])
+c = (ti.Vector([0, 0]), ti.Vector([1, 0]), ti.Vector([0, 1]), ti.Vector([-1, 0]), ti.Vector([0, -1]), ti.Vector([1, 1]), ti.Vector([-1, 1]), ti.Vector([-1, -1]), ti.Vector([1, -1]))
+
 @ti.data_oriented
 class ModelConfig:
-    def __init__(self):
-        #self.weights = ti.types.vector(9, float)([4.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0, 1.0 / 36.0])
-        self.c = (ti.Vector([0, 0]), ti.Vector([1, 0]), ti.Vector([0, 1]), ti.Vector([-1, 0]), ti.Vector([0, -1]), ti.Vector([1, 1]), ti.Vector([-1, 1]), ti.Vector([-1, -1]), ti.Vector([1, -1]))
+    def __init__(self, mode="pull"):
         self.density_shift = 1.0
         self._set_rational()
+        self.pop = 1 if mode == "push" else 0 # pull or push
+        print(f"mode: {mode} - pop {self.pop}")
 
 
     @ti.kernel
     def col_stream_core(self, lbm: ti.template(), f_pre: ti.template(), f_post: ti.template()):
-        for I in ti.grouped(lbm.rho):
-            # Streaming & Fetch (pull algorithm)
-            f0 = f_pre[I - self.c[0]][0]
-            f1 = f_pre[I - self.c[1]][1]
-            f2 = f_pre[I - self.c[2]][2]
-            f3 = f_pre[I - self.c[3]][3]
-            f4 = f_pre[I - self.c[4]][4]
-            f5 = f_pre[I - self.c[5]][5]
-            f6 = f_pre[I - self.c[6]][6]
-            f7 = f_pre[I - self.c[7]][7]
-            f8 = f_pre[I - self.c[8]][8]
+        for i, j in ti.ndrange((ti.static(self.pop), ti.static(lbm.nd[0] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[1] - self.pop))):
+            I = ti.Vector([i, j])
+            # Fetch f
+            f0 = f_pre[I + c[0]*ti.static(self.pop-1)][0]
+            f1 = f_pre[I + c[1]*ti.static(self.pop-1)][1]
+            f2 = f_pre[I + c[2]*ti.static(self.pop-1)][2]
+            f3 = f_pre[I + c[3]*ti.static(self.pop-1)][3]
+            f4 = f_pre[I + c[4]*ti.static(self.pop-1)][4]
+            f5 = f_pre[I + c[5]*ti.static(self.pop-1)][5]
+            f6 = f_pre[I + c[6]*ti.static(self.pop-1)][6]
+            f7 = f_pre[I + c[7]*ti.static(self.pop-1)][7]
+            f8 = f_pre[I + c[8]*ti.static(self.pop-1)][8]
 
             # 1) Forward transformation from f to raw moment
             x0 = f5 + f8
@@ -88,15 +92,15 @@ class ModelConfig:
             inv_x9 = -inv_x4
             inv_x10 = -m22_post * 0.25
             inv_x11 = inv_x6 - inv_x7
-            f_post[I][0] = m00_post - m02_post - m20_post + m22_post
-            f_post[I][1] = m20_post * 0.5 + inv_x1 + inv_x2
-            f_post[I][2] = m02_post * 0.5 + inv_x1 + inv_x3
-            f_post[I][3] = m20_post * 0.5 - inv_x0 - inv_x2
-            f_post[I][4] = m02_post * 0.5 - inv_x0 - inv_x3
-            f_post[I][5] = inv_x4 + inv_x5 + inv_x8
-            f_post[I][6] = -inv_x10 - inv_x8 - inv_x9
-            f_post[I][7] = inv_x11 + inv_x5 + inv_x9
-            f_post[I][8] = -inv_x10 - inv_x11 - inv_x4
+            f_post[I + c[0]*ti.static(self.pop)][0] = m00_post - m02_post - m20_post + m22_post
+            f_post[I + c[1]*ti.static(self.pop)][1] = m20_post * 0.5 + inv_x1 + inv_x2
+            f_post[I + c[2]*ti.static(self.pop)][2] = m02_post * 0.5 + inv_x1 + inv_x3
+            f_post[I + c[3]*ti.static(self.pop)][3] = m20_post * 0.5 - inv_x0 - inv_x2
+            f_post[I + c[4]*ti.static(self.pop)][4] = m02_post * 0.5 - inv_x0 - inv_x3
+            f_post[I + c[5]*ti.static(self.pop)][5] = inv_x4 + inv_x5 + inv_x8
+            f_post[I + c[6]*ti.static(self.pop)][6] = -inv_x10 - inv_x8 - inv_x9
+            f_post[I + c[7]*ti.static(self.pop)][7] = inv_x11 + inv_x5 + inv_x9
+            f_post[I + c[8]*ti.static(self.pop)][8] = -inv_x10 - inv_x11 - inv_x4
 
             # 4) Update arrays of macroscopic vars
             lbm.rho[I] = rho # <- note: actual value stored here is rho - density_shift

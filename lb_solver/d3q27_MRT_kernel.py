@@ -8,46 +8,50 @@
 import taichi as ti
 import taichi.math as tm
 
+#weights = ti.types.vector(27, float)([8.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0])
+c = (ti.Vector([0, 0, 0]), ti.Vector([1, 0, 0]), ti.Vector([-1, 0, 0]), ti.Vector([0, 1, 0]), ti.Vector([0, -1, 0]), ti.Vector([0, 0, 1]), ti.Vector([0, 0, -1]), ti.Vector([1, 1, 0]), ti.Vector([-1, -1, 0]), ti.Vector([1, -1, 0]), ti.Vector([-1, 1, 0]), ti.Vector([1, 0, 1]), ti.Vector([-1, 0, -1]), ti.Vector([1, 0, -1]), ti.Vector([-1, 0, 1]), ti.Vector([0, 1, 1]), ti.Vector([0, -1, -1]), ti.Vector([0, 1, -1]), ti.Vector([0, -1, 1]), ti.Vector([1, 1, 1]), ti.Vector([-1, -1, -1]), ti.Vector([1, 1, -1]), ti.Vector([-1, -1, 1]), ti.Vector([1, -1, 1]), ti.Vector([-1, 1, -1]), ti.Vector([1, -1, -1]), ti.Vector([-1, 1, 1]))
+
 @ti.data_oriented
 class ModelConfig:
-    def __init__(self):
-        #self.weights = ti.types.vector(27, float)([8.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 2.0 / 27.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 54.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0, 1.0 / 216.0])
-        self.c = (ti.Vector([0, 0, 0]), ti.Vector([1, 0, 0]), ti.Vector([-1, 0, 0]), ti.Vector([0, 1, 0]), ti.Vector([0, -1, 0]), ti.Vector([0, 0, 1]), ti.Vector([0, 0, -1]), ti.Vector([1, 1, 0]), ti.Vector([-1, -1, 0]), ti.Vector([1, -1, 0]), ti.Vector([-1, 1, 0]), ti.Vector([1, 0, 1]), ti.Vector([-1, 0, -1]), ti.Vector([1, 0, -1]), ti.Vector([-1, 0, 1]), ti.Vector([0, 1, 1]), ti.Vector([0, -1, -1]), ti.Vector([0, 1, -1]), ti.Vector([0, -1, 1]), ti.Vector([1, 1, 1]), ti.Vector([-1, -1, -1]), ti.Vector([1, 1, -1]), ti.Vector([-1, -1, 1]), ti.Vector([1, -1, 1]), ti.Vector([-1, 1, -1]), ti.Vector([1, -1, -1]), ti.Vector([-1, 1, 1]))
+    def __init__(self, mode="pull"):
         self.density_shift = 0.0
         self._set_rational()
+        self.pop = 1 if mode == "push" else 0 # pull or push
+        print(f"mode: {mode} - pop {self.pop}")
 
 
     @ti.kernel
     def col_stream_core(self, lbm: ti.template(), f_pre: ti.template(), f_post: ti.template()):
-        for I in ti.grouped(lbm.rho):
-            # Streaming & Fetch (pull algorithm)
-            f0 = f_pre[I - self.c[0]][0]
-            f1 = f_pre[I - self.c[1]][1]
-            f2 = f_pre[I - self.c[2]][2]
-            f3 = f_pre[I - self.c[3]][3]
-            f4 = f_pre[I - self.c[4]][4]
-            f5 = f_pre[I - self.c[5]][5]
-            f6 = f_pre[I - self.c[6]][6]
-            f7 = f_pre[I - self.c[7]][7]
-            f8 = f_pre[I - self.c[8]][8]
-            f9 = f_pre[I - self.c[9]][9]
-            f10 = f_pre[I - self.c[10]][10]
-            f11 = f_pre[I - self.c[11]][11]
-            f12 = f_pre[I - self.c[12]][12]
-            f13 = f_pre[I - self.c[13]][13]
-            f14 = f_pre[I - self.c[14]][14]
-            f15 = f_pre[I - self.c[15]][15]
-            f16 = f_pre[I - self.c[16]][16]
-            f17 = f_pre[I - self.c[17]][17]
-            f18 = f_pre[I - self.c[18]][18]
-            f19 = f_pre[I - self.c[19]][19]
-            f20 = f_pre[I - self.c[20]][20]
-            f21 = f_pre[I - self.c[21]][21]
-            f22 = f_pre[I - self.c[22]][22]
-            f23 = f_pre[I - self.c[23]][23]
-            f24 = f_pre[I - self.c[24]][24]
-            f25 = f_pre[I - self.c[25]][25]
-            f26 = f_pre[I - self.c[26]][26]
+        for i, j, k in ti.ndrange((ti.static(self.pop), ti.static(lbm.nd[0] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[1] - self.pop)), (ti.static(self.pop), ti.static(lbm.nd[2] - self.pop))):
+            I = ti.Vector([i, j, k])
+            # Fetch f
+            f0 = f_pre[I + c[0]*ti.static(self.pop-1)][0]
+            f1 = f_pre[I + c[1]*ti.static(self.pop-1)][1]
+            f2 = f_pre[I + c[2]*ti.static(self.pop-1)][2]
+            f3 = f_pre[I + c[3]*ti.static(self.pop-1)][3]
+            f4 = f_pre[I + c[4]*ti.static(self.pop-1)][4]
+            f5 = f_pre[I + c[5]*ti.static(self.pop-1)][5]
+            f6 = f_pre[I + c[6]*ti.static(self.pop-1)][6]
+            f7 = f_pre[I + c[7]*ti.static(self.pop-1)][7]
+            f8 = f_pre[I + c[8]*ti.static(self.pop-1)][8]
+            f9 = f_pre[I + c[9]*ti.static(self.pop-1)][9]
+            f10 = f_pre[I + c[10]*ti.static(self.pop-1)][10]
+            f11 = f_pre[I + c[11]*ti.static(self.pop-1)][11]
+            f12 = f_pre[I + c[12]*ti.static(self.pop-1)][12]
+            f13 = f_pre[I + c[13]*ti.static(self.pop-1)][13]
+            f14 = f_pre[I + c[14]*ti.static(self.pop-1)][14]
+            f15 = f_pre[I + c[15]*ti.static(self.pop-1)][15]
+            f16 = f_pre[I + c[16]*ti.static(self.pop-1)][16]
+            f17 = f_pre[I + c[17]*ti.static(self.pop-1)][17]
+            f18 = f_pre[I + c[18]*ti.static(self.pop-1)][18]
+            f19 = f_pre[I + c[19]*ti.static(self.pop-1)][19]
+            f20 = f_pre[I + c[20]*ti.static(self.pop-1)][20]
+            f21 = f_pre[I + c[21]*ti.static(self.pop-1)][21]
+            f22 = f_pre[I + c[22]*ti.static(self.pop-1)][22]
+            f23 = f_pre[I + c[23]*ti.static(self.pop-1)][23]
+            f24 = f_pre[I + c[24]*ti.static(self.pop-1)][24]
+            f25 = f_pre[I + c[25]*ti.static(self.pop-1)][25]
+            f26 = f_pre[I + c[26]*ti.static(self.pop-1)][26]
 
             # 1) Forward transformation from f to raw moment
             x0 = f19 + f21 + f23 + f25
@@ -270,33 +274,33 @@ class ModelConfig:
             inv_x73 = inv_x58 + inv_x60
             inv_x74 = inv_x54 + inv_x64
             inv_x75 = inv_x49 + inv_x50 + inv_x66 + inv_x69
-            f_post[I][0] = m000_post - m002_post - m020_post + m022_post - m200_post + m202_post + m220_post - m222_post
-            f_post[I][1] = m200_post * 0.5 + inv_x1 + inv_x4 + inv_x5
-            f_post[I][2] = m200_post * 0.5 - inv_x0 - inv_x5 - inv_x7
-            f_post[I][3] = m020_post * 0.5 + inv_x10 + inv_x4 + inv_x9
-            f_post[I][4] = m020_post * 0.5 - inv_x10 - inv_x7 - inv_x8
-            f_post[I][5] = m002_post * 0.5 + inv_x1 + inv_x11 + inv_x2 + inv_x9
-            f_post[I][6] = m002_post * 0.5 - inv_x0 - inv_x11 - inv_x6 - inv_x8
-            f_post[I][7] = inv_x12 + inv_x17 + inv_x20 + inv_x24
-            f_post[I][8] = inv_x16 + inv_x20 + inv_x25 + inv_x26
-            f_post[I][9] = -inv_x24 - inv_x25 - inv_x27
-            f_post[I][10] = -inv_x12 - inv_x14 - inv_x26 - inv_x27
-            f_post[I][11] = inv_x17 + inv_x28 + inv_x31 + inv_x35
-            f_post[I][12] = inv_x16 + inv_x31 + inv_x36 + inv_x37
-            f_post[I][13] = -inv_x35 - inv_x36 - inv_x38
-            f_post[I][14] = -inv_x14 - inv_x28 - inv_x37 - inv_x38
-            f_post[I][15] = inv_x41 + inv_x43 + inv_x45
-            f_post[I][16] = inv_x41 + inv_x46 + inv_x47
-            f_post[I][17] = -inv_x43 - inv_x46 - inv_x48
-            f_post[I][18] = -inv_x45 - inv_x47 - inv_x48
-            f_post[I][19] = inv_x53 + inv_x56 + inv_x59
-            f_post[I][20] = -inv_x53 - inv_x62 - inv_x65
-            f_post[I][21] = -inv_x56 - inv_x62 - inv_x68
-            f_post[I][22] = inv_x59 + inv_x65 + inv_x68
-            f_post[I][23] = -inv_x70 - inv_x71 - inv_x72
-            f_post[I][24] = inv_x70 + inv_x73 + inv_x74
-            f_post[I][25] = inv_x71 + inv_x73 + inv_x75
-            f_post[I][26] = -inv_x72 - inv_x74 - inv_x75
+            f_post[I + c[0]*ti.static(self.pop)][0] = m000_post - m002_post - m020_post + m022_post - m200_post + m202_post + m220_post - m222_post
+            f_post[I + c[1]*ti.static(self.pop)][1] = m200_post * 0.5 + inv_x1 + inv_x4 + inv_x5
+            f_post[I + c[2]*ti.static(self.pop)][2] = m200_post * 0.5 - inv_x0 - inv_x5 - inv_x7
+            f_post[I + c[3]*ti.static(self.pop)][3] = m020_post * 0.5 + inv_x10 + inv_x4 + inv_x9
+            f_post[I + c[4]*ti.static(self.pop)][4] = m020_post * 0.5 - inv_x10 - inv_x7 - inv_x8
+            f_post[I + c[5]*ti.static(self.pop)][5] = m002_post * 0.5 + inv_x1 + inv_x11 + inv_x2 + inv_x9
+            f_post[I + c[6]*ti.static(self.pop)][6] = m002_post * 0.5 - inv_x0 - inv_x11 - inv_x6 - inv_x8
+            f_post[I + c[7]*ti.static(self.pop)][7] = inv_x12 + inv_x17 + inv_x20 + inv_x24
+            f_post[I + c[8]*ti.static(self.pop)][8] = inv_x16 + inv_x20 + inv_x25 + inv_x26
+            f_post[I + c[9]*ti.static(self.pop)][9] = -inv_x24 - inv_x25 - inv_x27
+            f_post[I + c[10]*ti.static(self.pop)][10] = -inv_x12 - inv_x14 - inv_x26 - inv_x27
+            f_post[I + c[11]*ti.static(self.pop)][11] = inv_x17 + inv_x28 + inv_x31 + inv_x35
+            f_post[I + c[12]*ti.static(self.pop)][12] = inv_x16 + inv_x31 + inv_x36 + inv_x37
+            f_post[I + c[13]*ti.static(self.pop)][13] = -inv_x35 - inv_x36 - inv_x38
+            f_post[I + c[14]*ti.static(self.pop)][14] = -inv_x14 - inv_x28 - inv_x37 - inv_x38
+            f_post[I + c[15]*ti.static(self.pop)][15] = inv_x41 + inv_x43 + inv_x45
+            f_post[I + c[16]*ti.static(self.pop)][16] = inv_x41 + inv_x46 + inv_x47
+            f_post[I + c[17]*ti.static(self.pop)][17] = -inv_x43 - inv_x46 - inv_x48
+            f_post[I + c[18]*ti.static(self.pop)][18] = -inv_x45 - inv_x47 - inv_x48
+            f_post[I + c[19]*ti.static(self.pop)][19] = inv_x53 + inv_x56 + inv_x59
+            f_post[I + c[20]*ti.static(self.pop)][20] = -inv_x53 - inv_x62 - inv_x65
+            f_post[I + c[21]*ti.static(self.pop)][21] = -inv_x56 - inv_x62 - inv_x68
+            f_post[I + c[22]*ti.static(self.pop)][22] = inv_x59 + inv_x65 + inv_x68
+            f_post[I + c[23]*ti.static(self.pop)][23] = -inv_x70 - inv_x71 - inv_x72
+            f_post[I + c[24]*ti.static(self.pop)][24] = inv_x70 + inv_x73 + inv_x74
+            f_post[I + c[25]*ti.static(self.pop)][25] = inv_x71 + inv_x73 + inv_x75
+            f_post[I + c[26]*ti.static(self.pop)][26] = -inv_x72 - inv_x74 - inv_x75
 
             # 4) Update arrays of macroscopic vars
             lbm.rho[I] = rho # <- note: actual value stored here is rho - density_shift
