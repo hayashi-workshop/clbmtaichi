@@ -27,6 +27,11 @@ jobs:
           make html
           cd ../
 
+      - name: List files before deploy
+        run: |
+          echo "Checking contents of publish folder:"
+          ls -R docs/buid/html
+          
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
