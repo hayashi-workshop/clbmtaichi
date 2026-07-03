@@ -23,13 +23,18 @@ jobs:
 
       - name: Build Sphinx
         run: |
-          cd "$GITHUB_WORKSPACE/docs"
-          pwd
-          ls -F
+          cd docs
           make html
+          cd ../
 
+      - name: List files before deploy
+        run: |
+          echo "Checking contents of publish folder:"
+          ls -R docs/build/html
+          
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/build/html
+          publish_dir: docs/build/html
+          force_orphan: true
