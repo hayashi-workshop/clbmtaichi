@@ -24,6 +24,8 @@ jobs:
       - name: Build Sphinx
         run: |
           cd "$GITHUB_WORKSPACE/docs"
+          pwd
+          ls -F
           make html
 
       - name: Deploy to GitHub Pages
