@@ -93,6 +93,38 @@ jupyter notebook cumulant_moment_exprs.ipynb
 
 Here, some examples are exhibited for quick look. Please see [other examples](docs/examples.md).
 
+#### Lid-driven cavity flows
+
+```
+cd $REPO_PATH
+PYTHONPATH=. python examples/cavity2d.py
+```
+
+Lattice points: 401x201; Re=500000; u=0.1
+The top wall is moving right. 
+
+<img src="img/cavity2d.png" width="401"><img>
+
+#### Flow past a cylinder/sphere
+
+```
+cd $REPO_PATH
+PYTHONPATH=. python examples/object2d.py
+```
+Lattice points: 1201x301; Re=100000; u=0.01
+
+<img src="img/object2d.png" width="1201"><img>
+
+
+```
+cd $REPO_PATH
+PYTHONPATH=. python examples/object3d.py
+```
+Lattice points: 241x61x61; Re=10000; u=0.1
+The simulation dumps .vtr file for Paraview. 
+
+<img src="img/object3d.png" width="482"><img>
+
 #### (Tentative) Nested grid
 
 Nested grid examples 
@@ -116,51 +148,6 @@ PYTHONPATH=. python examples/nested.py
 3 level 3D test example `nd0 = (361,121,121)`, `nd1 = (240, 160, 160)`, `nd2 = (300, 220, 220)` (26M nodes run on A100). 
 
 <img src="img/nested3d_vtk.png" width="800"><img>
-
-#### Lid-driven cavity flows
-
-```
-cd $REPO_PATH
-PYTHONPATH=. python examples/cavity2d.py
-```
-
-Lattice points: 401x201; Re=500000; u=0.1
-The top wall is moving right. 
-
-<img src="img/cavity2d.png" width="401"><img>
-
-
-```
-cd $REPO_PATH
-PYTHONPATH=. python examples/cavity3d.py
-```
-Lattice points: 101x201x21; Re=5000; u=0.1
-The top wall is moving right. The four panels show vorticity components in xy (lower-left), xz (upper-left), zy (lower-right), and yz (upper-right) palnes. 
-
-<img src="img/cavity3d.png" width="122"><img>
-
-
-#### Flow past a cylinder/sphere
-
-```
-cd $REPO_PATH
-PYTHONPATH=. python examples/object2d.py
-```
-Lattice points: 1201x301; Re=100000; u=0.01
-
-<img src="img/object2d.png" width="1201"><img>
-
-
-
-
-```
-cd $REPO_PATH
-PYTHONPATH=. python examples/object3d.py
-```
-Lattice points: 241x61x61; Re=10000; u=0.1
-The simulation dumps .vtr file for Paraview. 
-
-<img src="img/object3d.png" width="482"><img>
 
 
 ## More fundamentals / the state-of-the arts of LBM open libs.
