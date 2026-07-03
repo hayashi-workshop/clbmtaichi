@@ -23,7 +23,8 @@ jobs:
 
       - name: Build Sphinx
         run: |
-          cd docs && make html
+          cd "$GITHUB_WORKSPACE/docs"
+          make html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
