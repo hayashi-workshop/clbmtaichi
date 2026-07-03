@@ -74,12 +74,12 @@ python main.py run --nd 1001 301 --Re 1000 --render velocity
 ```
 
 
-### Docs
+### [Documentation](https://hayashi-workshop.github.io/clbmtaichi/)
 
-- [Examples](docs/examples.md)
-- Notes of [LB equations](docs/models.md)
-- [Kernel description](docs/kernels.md)
-- Some coding tips are listed [here](docs/tips.md)
+- Examples
+- Notes of LB equations
+- Kernel description
+- Some coding tips
 - Cumulants and moment expressions can be derived in an interactive way via [Jupyter Notebook](generator/cumulant_moment_exprs.ipynb). Open this notebook in your environment with `sympy`:
 
 ```bash
