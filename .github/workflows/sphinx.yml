@@ -23,11 +23,13 @@ jobs:
 
       - name: Build Sphinx
         run: |
-          sphinx-build -c docs/ -b html docs/ public/
+          cd docs
+          make html
+          cd ../
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
+          publish_dir: docs/build/html
           force_orphan: true
