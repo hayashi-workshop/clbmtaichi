@@ -5,7 +5,7 @@ For cumulants and moments, see also [Jupynoter Notebook](https://github.com/haya
 
 ## Discrete velocity
 
-D2Q9 ($f_{0}$-$f_{8}$) and D3Q27 ($f_{0}$-$f_{26}$) models are supported.
+D2Q9 ($f_{0}$, ..., $f_{8}$) and D3Q27 ($f_{0}$, ..., $f_{26}$) models are supported.
 
 The macroscopic variables, the density and momentum, are the 0th and 1st-order moments of the velocity distribution function $f$: 
 
