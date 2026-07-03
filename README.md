@@ -91,7 +91,7 @@ jupyter notebook cumulant_moment_exprs.ipynb
 
 ### Examples
 
-Here, some examples are exhibited for quick look. Please see [other examples](docs/examples.md).
+Here, some examples are exhibited for quick look. Please see other examples in the documentation page.
 
 #### Lid-driven cavity flows
 
