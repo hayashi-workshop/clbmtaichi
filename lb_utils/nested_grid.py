@@ -4,6 +4,8 @@
 #     Geier, M., A. Greiner, and J. G. Korvink. 2009. Bubble Functions for the Lattice Boltzmann Method and Their Application to Grid Refinement. The European Physical Journal. Special Topics 171 (1): 173-79.
 #     https://www.youtube.com/@tubs-irmb6980/videos
 # 
+#     quadratic pressure interpolation is introduced in 
+#     Geier, Martin, Konstantin Kutscher, Martin Schonherr, Anna Wellmann, Soren Peters, Hussein Alihussein, Jan Linxweiler, and Manfred Krafczyk. 2025. VirtualFluids - Open Source Parallel LBM Solver. Computer Physics Communications 317: 109810.
 #
 #   [+ +] 
 #   [+ +] Fine   nodes updated by interpolation from 4 Coase nodes
