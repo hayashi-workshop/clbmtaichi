@@ -93,26 +93,6 @@ jupyter notebook cumulant_moment_exprs.ipynb
 
 Here, some examples are exhibited for quick look. Please see [other examples](docs/examples.md).
 
-#### (Tentative) 2D nested grid
-
-2D nested grid example has been added in `lb_utils/nested_grid.py`. Try `examples/nested.py`
-
-```bash
-cd $REPO_PATH
-PYTHONPATH=. python examples/nested.py
-```
-
-`nested.pvd` file will appear in `output/nested` directory. Open it with Paraview. 
-
-The implementation is ongoing. The related module files are tentative and will be replaced. 
-
-4 level nested grids surrounding a cylindrical object. The numbers of nodes are `nd0 = (801, 201)`, `(400, 280)`, `(440, 320)`, `(580, 480)` from level 0 to 3, and the grid boundaries are represented with the white boxes. 20 nodes are adopted to the cylinder raidus at level 0, while 160 nodes at level 3. Communication between grids at different levels is based on the bubble function proposed in [Geier2009]. 
-
-[Geier2009] Geier et al. 2009. The European Physical Journal. Special Topics 171(1): 173-79.
-
-<img src="img/nested_vtk.png" width="800"><img>
-
-
 #### Lid-driven cavity flows
 
 ```
@@ -125,17 +105,6 @@ The top wall is moving right.
 
 <img src="img/cavity2d.png" width="401"><img>
 
-
-```
-cd $REPO_PATH
-PYTHONPATH=. python examples/cavity3d.py
-```
-Lattice points: 101x201x21; Re=5000; u=0.1
-The top wall is moving right. The four panels show vorticity components in xy (lower-left), xz (upper-left), zy (lower-right), and yz (upper-right) palnes. 
-
-<img src="img/cavity3d.png" width="122"><img>
-
-
 #### Flow past a cylinder/sphere
 
 ```
@@ -147,8 +116,6 @@ Lattice points: 1201x301; Re=100000; u=0.01
 <img src="img/object2d.png" width="1201"><img>
 
 
-
-
 ```
 cd $REPO_PATH
 PYTHONPATH=. python examples/object3d.py
@@ -157,6 +124,30 @@ Lattice points: 241x61x61; Re=10000; u=0.1
 The simulation dumps .vtr file for Paraview. 
 
 <img src="img/object3d.png" width="482"><img>
+
+#### (Tentative) Nested grid
+
+Nested grid examples 
+- `examples/nested.py`
+- `examples/nested3d.py`
+[!NOTE] 3D nested grid example may be too heavy on laptops. A100 gpu was used for the 3D example below. 
+ 
+```bash
+cd $REPO_PATH
+PYTHONPATH=. python examples/nested.py
+```
+
+`nested.pvd` file will appear in `output/nested` directory. Open it with Paraview. 
+
+4 level nested grids surrounding a cylindrical object. The numbers of nodes are `nd0 = (801, 201)`, `nd1 = (400, 280)`, `nd2 = (440, 320)`, `nd3 = (580, 480)` from level 0 to 3, and the grid boundaries are represented with the white boxes. 20 nodes are adopted to the cylinder raidus at level 0, while 160 nodes at level 3. Communication between grids at different levels is based on the bubble function proposed in [Geier2009]. 
+
+[Geier2009] Geier et al. 2009. The European Physical Journal. Special Topics 171(1): 173-79.
+
+<img src="img/nested_vtk.png" width="800"><img>
+
+3 level 3D test example `nd0 = (361,121,121)`, `nd1 = (240, 160, 160)`, `nd2 = (300, 220, 220)` (26M nodes run on A100). 
+
+<img src="img/nested3d_vtk.png" width="800"><img>
 
 
 ## More fundamentals / the state-of-the arts of LBM open libs.
