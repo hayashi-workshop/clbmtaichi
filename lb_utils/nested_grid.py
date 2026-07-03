@@ -107,14 +107,7 @@ import taichi.math as tm
 import os
 import io
 import numpy as np
-
-from lb_utils.nested_utils.nested_interpolation import compute_cumulants
-from lb_utils.nested_utils.nested_interpolation import compute_interpolation_coeffs
-from lb_utils.nested_utils.nested_interpolation import backtrans_c_to_f
-
-from lb_utils.nested_utils.nested_interpolation import interpolation_FtoC
-from lb_utils.nested_utils.nested_interpolation import interpolation_CtoF
-
+import importlib
 
 @ti.data_oriented
 class GridManager:
@@ -123,6 +116,19 @@ class GridManager:
     def __init__(self, root, bc_manager, config):
         self.bc_manager = bc_manager
         self.config = config
+
+        # import bubble function module ---> #
+        dim = len(root.nd)
+        Q = 3**dim
+        drho_mode   = "rho" if config.density_shift == 0 else "drho"
+        module_path = f"lb_utils.nested_utils.nested_bubble_d{dim}q{Q}_{drho_mode}"
+        module      = importlib.import_module(module_path)
+
+        self.compute_interpolation_coeffs = module.compute_interpolation_coeffs
+        self.backtrans_c_to_f             = module.backtrans_c_to_f
+        self.interpolation_FtoC           = module.interpolation_FtoC
+        self.interpolation_CtoF           = module.interpolation_CtoF
+        # <---
 
         self.tree = {}     # grid tree dict
                            #
@@ -268,7 +274,8 @@ class GridManager:
 
         for gl_idx in gls_idx:       # sweep all leaves belonging to gr
             gl = self.grid[gl_idx]   # pick leaf
-            offset = ti.Vector( [self.offset[gl_idx][0], self.offset[gl_idx][1], 0] )
+            off_z = 0 if gr.dim == 2 else self.offset[gl_idx][2]
+            offset = ti.Vector( [self.offset[gl_idx][0], self.offset[gl_idx][1], off_z] )
             f_root_tag, _ = gr.swap(self.stepLocal[idx]     ) # root target [pick pre-collision f]
             f_leaf_tag, _ = gl.swap(self.stepLocal[gl_idx]  ) # leaf target [pick pre-collision f]
 
@@ -278,9 +285,9 @@ class GridManager:
 
     @ti.func
     def _FineToCoarse_core(self, f_root_tag, f_leaf_tag, omega_root, omega_leaf, Ir, Il):
-        u_coeffs, v_coeffs, rho_coeffs = compute_interpolation_coeffs(f_leaf_tag, Il, omega_leaf) # omega_{F} in reconstruction on Fine nodes
-        u, v, rho, c20, c02, c11 = interpolation_FtoC(u_coeffs, v_coeffs, rho_coeffs, omega_root) # omega_{C} in injection onto Coarse nodes
-        backtrans_c_to_f(f_root_tag, Ir, rho, u, v, c20, c02, c11) # injection
+        coeffs = self.compute_interpolation_coeffs(f_leaf_tag, Il, omega_leaf) # omega_{F} in reconstruction on Fine nodes
+        macrovars, cumulants = self.interpolation_FtoC(coeffs, omega_root) # omega_{C} in injection onto Coarse nodes
+        self.backtrans_c_to_f(f_root_tag, Ir, macrovars, cumulants) # injection
 
 
     @ti.kernel
@@ -293,52 +300,53 @@ class GridManager:
         # - - -o- - - 
         #    + | +
         #      |
-        for il, jl in ti.ndrange(gl.nd[0], gl.nd[1]):
-            x_sweep = (il >= 4) and (il <= gl.nd[0] - 6) and ((il - 4) % 2 == 0)
-            if x_sweep: # lower sweep
-                if jl == 4:  
-                    Ir = ti.Vector([offset[0] + (il)//2, offset[1] + 2], dt=ti.i32) # target on Coarse (root)  
-                    Il = ti.Vector([il, jl], dt=ti.i32) # source on Fine (leaf) (lower-left corner)
-                    self._FineToCoarse_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il)
+        for Il in ti.grouped(gl.rho):
+            in_valid_range = True
+            for i in ti.static(range(gl.dim)): ## all nodes must not be in halo 
+                if Il[i] < 4 or Il[i] > gl.nd[i] - 6:
+                    in_valid_range = False
+                    
+            is_even_coord = True
+            for i in ti.static(range(gl.dim)): # fine nodes of odd indices are skipped
+                if Il[i] % 2 != 0:
+                    is_even_coord = False
 
-                elif jl == gl.nd[1] - 6: # upper sweep  
-                    Ir = ti.Vector([offset[0] + (il)//2, offset[1] + (gl.nd[1] - 6)//2], dt=ti.i32) # target on Coarse (root)
-                    Il = ti.Vector([il, jl], dt=ti.i32) # source on Fine (leaf) (lower-left corner)
-                    self._FineToCoarse_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il)
+            is_boundary = False
+            for i in ti.static(range(gl.dim)): # check whether one of the indices on interpolation boundary
+                if Il[i] == 4 or Il[i] == gl.nd[i] - 6:
+                    is_boundary = True
+            
+            if in_valid_range and is_even_coord and is_boundary: # provilege of getting into the core
+                Ir = ti.Vector.zero(ti.i32, gl.dim)
+                for i in ti.static(range(gl.dim)):
+                    Ir[i] = offset[i] + (Il[i]) // 2 # target on Coarse (root)  
 
-            y_sweep = (jl >= 6) and (jl <= gl.nd[1] - 8) and ((jl - 6) % 2 == 0)  
-            if y_sweep:
-                if il == 4: # left sweep  
-                    Ir = ti.Vector([offset[0] + 2, offset[1] + (jl)//2], dt=ti.i32) # target on Coarse (root)
-                    Il = ti.Vector([il, jl], dt=ti.i32) # source on Fine (leaf) (lower-left corner)
-                    self._FineToCoarse_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il)
-
-                elif il == gl.nd[0] - 6: # right sweep  
-                    Ir = ti.Vector([offset[0] + (gl.nd[0] - 6)//2, offset[1] + (jl)//2], dt=ti.i32) # target on Coarse (root)
-                    Il = ti.Vector([il, jl], dt=ti.i32) # source on Fine (leaf) (lower-left corner)
-                    self._FineToCoarse_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il)
+                self._FineToCoarse_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il)
 
 
     @ti.func
     def _CoarseToFine_core(self, f_root_tag, f_leaf_tag, omega_root, omega_leaf, Ir, Il_mm):
-        Il_pm = ti.Vector([Il_mm[0]+1, Il_mm[1]  ], dt=ti.i32)
-        Il_pp = ti.Vector([Il_mm[0]+1, Il_mm[1]+1], dt=ti.i32)
-        Il_mp = ti.Vector([Il_mm[0]  , Il_mm[1]+1], dt=ti.i32)
+        
         # get coeffs on Coarse nodes
-        u_coeffs, v_coeffs, rho_coeffs = compute_interpolation_coeffs(f_root_tag, Ir, omega_root) # omega_{C} in reconstruction on Coarse nodes
+        coeffs = self.compute_interpolation_coeffs(f_root_tag, Ir, omega_root) # omega_{C} in reconstruction on Coarse nodes
 
-        # injection onto Fine nodes
-        u, v, rho, c20, c02, c11 = interpolation_CtoF(u_coeffs, v_coeffs, rho_coeffs, omega_leaf, -0.25, -0.25) # omega_{F} in injection onto Fine nodes
-        backtrans_c_to_f(f_leaf_tag, Il_mm, rho, u, v, c20, c02, c11) # injection # (m,m) # 
+        dim = Il_mm.n
+        num_vertices = 1 << dim # bit shift
+        for vertex in range(num_vertices): ## sweep vertices I_mm, I_pm, I_pp, I_mp in 2D
+            Il = ti.Vector.zero(ti.i32, Il_mm.n)
+            for i in ti.static(range(Il_mm.n)):
+                if i < dim:
+                    shift_bit = (vertex >> i) & 1
+                    Il[i] = Il_mm[i] + shift_bit
 
-        u, v, rho, c20, c02, c11 = interpolation_CtoF(u_coeffs, v_coeffs, rho_coeffs, omega_leaf,  0.25, -0.25) # omega_{F} in injection onto Fine nodes
-        backtrans_c_to_f(f_leaf_tag, Il_pm, rho, u, v, c20, c02, c11) # injection # (p,m) # 
+            coords = ti.Vector.zero(ti.f32, Il_mm.n) # fine node cooredinates for interpolation function (-0.25, -0.25), (0.25, -0.25), ...
+            for i in ti.static(range(Il_mm.n)):
+                if i < dim:
+                    bit = (vertex >> i) & 1
+                    coords[i] = -0.25 if bit == 0 else 0.25
 
-        u, v, rho, c20, c02, c11 = interpolation_CtoF(u_coeffs, v_coeffs, rho_coeffs, omega_leaf,  0.25,  0.25) # omega_{F} in injection onto Fine nodes
-        backtrans_c_to_f(f_leaf_tag, Il_pp, rho, u, v, c20, c02, c11) # injection # (p,p) # 
-
-        u, v, rho, c20, c02, c11 = interpolation_CtoF(u_coeffs, v_coeffs, rho_coeffs, omega_leaf, -0.25,  0.25) # omega_{F} in injection onto Fine nodes
-        backtrans_c_to_f(f_leaf_tag, Il_mp, rho, u, v, c20, c02, c11) # injection # (m,p) # 
+            macrovars, cumulants = self.interpolation_CtoF(coeffs, omega_leaf, coords) # omega_{F} in injection onto Fine nodes
+            self.backtrans_c_to_f(f_leaf_tag, Il, macrovars, cumulants) # injection # (m,m) # 
 
 
     @ti.kernel
@@ -350,23 +358,17 @@ class GridManager:
         # | + + |  (m,p) (p,p)
         # | + + |  (m,m) (p,m)
         # o - - o        
-        for ir, jr in ti.ndrange( (offset[0], offset[0] + (gl.nd[0]-4)//2 + 1),    
-                                  (offset[1], offset[1] + (gl.nd[1]-4)//2 + 1) ):  
+        #sizes = [(gl.nd[i] - 4) // 2 + 1 for i in ti.static(range(gl.dim))]
+        #ranges = [(offset[i], offset[i] + sizes[i]) for i in ti.static(range(gl.dim))]
+        for Il_mm in ti.grouped(gl.rho):
+            is_boundary = False
+            for i in ti.static(range(gl.dim)):
+                if (Il_mm[i] == 1) or (Il_mm[i] == gl.nd[i] - 3):
+                    is_boundary = True
+
+            if is_boundary:
+                Ir = ti.Vector.zero(ti.i32, gl.dim)
+                for i in ti.static(range(gl.dim)):
+                    Ir[i] = (Il_mm[i] - 1) // 2 + offset[i]
             
-            if jr == offset[1] or jr == offset[1] + (gl.nd[1]-4)//2:  
-                Ir = ti.Vector([ir, jr], dt=ti.i32)
-                il = (ir - offset[0])*2 + 1 # target indices on leaf  
-                jl = 1  
-                if jr == offset[1] + (gl.nd[1]-4)//2:  
-                    jl = gl.nd[1] - 3  
-                Il_mm = ti.Vector([il, jl], dt=ti.i32)
-                self._CoarseToFine_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il_mm)
-                
-            elif ir == offset[0] or ir == offset[0] + (gl.nd[0]-4)//2: # elif prevents overlapping for x sweep  
-                Ir = ti.Vector([ir, jr], dt=ti.i32)
-                jl = (jr - offset[1])*2 + 1
-                il = 1
-                if ir == offset[0] + (gl.nd[0]-4)//2:
-                    il = gl.nd[0] - 3
-                Il_mm = ti.Vector([il, jl], dt=ti.i32)
                 self._CoarseToFine_core(f_root_tag, f_leaf_tag, gr.omega[1], gl.omega[1], Ir, Il_mm)

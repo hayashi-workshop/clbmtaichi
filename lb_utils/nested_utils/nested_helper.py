@@ -188,20 +188,32 @@ def save_vtk(tree, step, root_dir=None):
             lbm = tree.grid[idx]
             u_np = lbm.vel.get_scalar_field(0).to_numpy()
             v_np = lbm.vel.get_scalar_field(1).to_numpy()
-
             x = np.arange(lbm.nx)
             y = np.arange(lbm.ny)
-
             if level > 0:
-                u_np = u_np[3:-3, 3:-3].ravel(order='F') # remove halo
-                v_np = v_np[3:-3, 3:-3].ravel(order='F')
                 x = x[3:-3]
                 y = y[3:-3]
-
             x = (x - 0.5) / 2**level + tree.offset_glb[idx][0]
             y = (y - 0.5) / 2**level + tree.offset_glb[idx][1]
-            z = np.zeros(1)
-            w_np = np.zeros_like(u_np)
+
+            if lbm.dim == 2:
+                if level > 0:
+                    u_np = u_np[3:-3, 3:-3].ravel(order='F') # remove halo
+                    v_np = v_np[3:-3, 3:-3].ravel(order='F')
+
+                w_np = np.zeros_like(u_np)
+                z = np.zeros(1)
+            else:
+                w_np = lbm.vel.get_scalar_field(2).to_numpy()
+                z = np.arange(lbm.nz)
+
+                if level > 0:
+                    u_np = u_np[3:-3, 3:-3, 3:-3].ravel(order='F') # remove halo
+                    v_np = v_np[3:-3, 3:-3, 3:-3].ravel(order='F')
+                    w_np = w_np[3:-3, 3:-3, 3:-3].ravel(order='F')
+                    z = z[3:-3]
+
+                z = (z - 0.5) / 2**level + tree.offset_glb[idx][2]
 
             filename = f"step_{step:06d}"
             filename_abs = output_dir + "/" + filename
