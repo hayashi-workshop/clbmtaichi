@@ -15,7 +15,7 @@ Features of the code are:
 
 ### Environment
 
-The codes within this repository were developed using Macbook Air Apple Silicon M2 2022, and an Anaconda virtual environment was used. 
+The codes within this repository were developed using Macbook Air Apple Silicon M2 2022, and an Anaconda virtual environment was used. The portability of the code was confirmed for `cuda` on RTX A4500@Ubuntu and A100@Google Colab ([!NOTE] taichi rendering is not available on colab). 
 
 
 ### Prepare virtual environment
@@ -33,7 +33,6 @@ ti
 ```
 shows `[Taichi] version 1.7.4, llvm 15.0.7, osx, python 3.10.20`
 
-The portability of the code was confirmed for `cuda` on RTX A4500. 
 
 ### Clone repository and install required packages
 
