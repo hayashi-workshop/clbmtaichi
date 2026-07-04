@@ -3,6 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. meta::
+   :description: [Taichi-accelerated cumulant LBM simulator]
+
 clbmtaichi documentation
 ========================
 
@@ -11,7 +14,19 @@ clbmtaichi documentation
    :caption: Contents:
 
    examples
-   models
+   models/index
    kernels
-   tips
    nested
+   tips
+   reference
+
+.. admonition:: Note
+   :class: note
+
+   This documentation gives some simulation examples and model descriptions, but currenly no detailed code manual.   
+
+
+.. figure:: https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_vtk.png
+   :width: 100%
+   :align: center
+   :alt: nested.png

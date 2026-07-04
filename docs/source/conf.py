@@ -17,6 +17,7 @@ extensions = [
     'myst_parser',
     'sphinx.ext.mathjax',
     'sphinxcontrib.bibtex',
+    'sphinx_copybutton',
 ]
 
 bibtex_bibfiles = ['refs.bib']
@@ -64,3 +65,6 @@ myst_enable_extensions = [
     "amsmath",
     "dollarmath",
 ]
+
+math_numfig = True
+numfig = True
