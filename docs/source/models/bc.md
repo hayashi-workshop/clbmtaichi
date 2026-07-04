@@ -34,10 +34,10 @@ where $f_{bc}^{eq}$ is calculated for the boundary values of the macroscopic var
 #     |         |         |         |         |
 #     |         |         |         |         |    
 # j=1 o - - - - o - - - -(o)- - - - o - - - - o
-#     |         | \       |         |         |
-#     |         |   \     |         |         |
-#     |         |     \   |         |         |
-#     |         |  f5   \ |         |         |    
+#     |         | \       ||        |         |
+#     |         |   \     ||f-f^{eq}|         |
+#     |         |     \   ||        |         |
+#     |         |  f5   \ |v        |         |    
 # j=0 o - - - - o - - - -[o]- - - - o - - - - o
 #   i=2       i=3       i=4       i=5       i=6...
 ```
