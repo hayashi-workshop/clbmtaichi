@@ -16,7 +16,10 @@ author = 'Kosuke Hayashi'
 extensions = [
     'myst_parser',
     'sphinx.ext.mathjax',
+    'sphinxcontrib.bibtex',
 ]
+
+bibtex_bibfiles = ['refs.bib']
 
 templates_path = ['_templates']
 exclude_patterns = []
