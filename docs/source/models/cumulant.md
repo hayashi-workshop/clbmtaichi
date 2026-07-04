@@ -99,7 +99,7 @@ $$
 $C_{201}$ is the density scaled cumulant $\rho c_{201}$, not the generating function. 
 ```
 
-The forth and higher are different. Use [notebook](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb) to confirm transformation results. 
+The fourth and higher are different. Use [notebook](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb) to confirm transformation results. 
 
 
 ## Algorithm 
