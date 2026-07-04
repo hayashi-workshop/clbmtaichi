@@ -10,7 +10,7 @@ PYTHONPATH=. python examples/object2d.py
 Use `PYTHONPATH=.` to solve the library paths for examples/*.py launched from root dir. 
 
 <div style="max-width: 100%; margin: 1em auto;">
-  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object2d.png">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object2d.png">
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object2d.mp4" type="video/mp4">
   </video>
 </div>
@@ -24,7 +24,7 @@ PYTHONPATH=. python examples/object3d.py
 ```
 
 <div style="max-width: 50%; margin: 1em auto;">
-  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object3d.png">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object3d.png">
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object3d.mp4" type="video/mp4">
   </video>
 </div>
@@ -38,7 +38,7 @@ PYTHONPATH=. python examples/cavity2d.py
 ```
 
 <div style="max-width: 50%; margin: 1em auto;">
-  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d.png">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d.png">
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d.mp4" type="video/mp4">
   </video>
 </div>
@@ -89,7 +89,7 @@ PYTHONPATH=. python examples/cavity2d_std.py
 ```
 
 <div style="max-width: 30%; margin: 1em auto;">
-  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_std.png">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_std.png">
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_std.mp4" type="video/mp4">
   </video>
 </div>
@@ -168,7 +168,7 @@ PYTHONPATH=. python examples/mlups_main.py
 1201x201; Re=5000; u=0.01, Cumulant ($\delta \rho$ mode)
 
 <div style="max-width: 100%; margin: 1em auto;">
-  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/bumpy.png">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/bumpy.png">
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/bumpy.mp4" type="video/mp4">
   </video>
 </div>
@@ -206,7 +206,7 @@ The narrow gaps between the object and the wall causes strong vortical motion, f
 [JC1998] Johansen and Colella. Journal of Computational Physics, 147(1):60–85, 1998.
 
 <div style="max-width: 100%; margin: 1em auto;">
-  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1.png">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1.png">
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1.mp4" type="video/mp4">
   </video>
 </div>
