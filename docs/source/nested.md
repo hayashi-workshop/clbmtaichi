@@ -2,7 +2,7 @@
 
 This page introduces the bubble-fucntion{cite:p}`Geier2009` based nested grid implementation. The interpolation code in `clbmtaichi` is generated using `sympy` script `generator/nested_bubble_generator.py`, which is linked from the key equations given below. 
 
-## Interpolation function
+## Grid overlapping and time marching
 
 The distribution functions are exchanged between grids of neighboring levels. The coarse grid fill fine nodes `[+]`, while the fine grid correct the coarse node value `(o)`; see the following ascii art: 
 
@@ -65,6 +65,9 @@ The coase grid proceeds onece, the fince grid proceeds twice, and then the coars
 #   - interpolation between neighboring level grids (0 <-> 1)
 ```
 
+## Interpolation function
+
+### 2D case 
 
 Four `o` nodes reconstruct the profiles of the macroscopic variables and cumulants within the nodes, and then $f$ of four `[+]` surrounded by the `o`s are updated by making use of the reconstructed profiles. Four `+` reconstruct the profiles of the variables, and then $f$ of one `(o)` are updated. 
 
