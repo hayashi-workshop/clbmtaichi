@@ -27,13 +27,6 @@ conda create -n taichi_env python=3.10 -y
 conda activate taichi_env
 ```
 
-In the virtual environment ([!NOTE] after installation of Taichi), 
-```
-ti
-```
-shows `[Taichi] version 1.7.4, llvm 15.0.7, osx, python 3.10.20`
-
-
 ### Clone repository and install required packages
 
 
@@ -46,18 +39,16 @@ export REPO_PATH=$(pwd)
 pip install -r requirements.txt
 ```
 
-After installation, I recommend taking a glance at Taichi sample gallery. 
+```
+ti
+```
+shows `[Taichi] version 1.7.4, llvm 15.0.7, osx, python 3.10.20`. I recommend taking a glance at Taichi gallery. 
 
 ```bash
 ti gallery
 ```
 
-You will find von Karman vortex stream by Dr. Wang on the gallery tile. Clicking the sambnail invokes the simulation and the corresponding example code will appear in the terminal. In my environment, the Taichi example files can be found in 
-
-```bash
-cd /opt/anaconda3/envs/taichi_env/lib/python3.1/site-packages/taichi/examples/simulation
-```
-
+You will find von Karman vortex stream by Dr. Wang on the gallery tile. Clicking the sambnail invokes the simulation and the corresponding example code will appear in the terminal. 
 
 ## Run simulator
 
