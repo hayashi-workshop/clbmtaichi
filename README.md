@@ -15,7 +15,7 @@ Features of the code are:
 
 ### Environment
 
-The codes within this repository were developed using Macbook Air Apple Silicon M2 2022, and an Anaconda virtual environment was used. 
+The codes within this repository were developed using Macbook Air Apple Silicon M2 2022, and an Anaconda virtual environment was used. The portability of the code was confirmed for `cuda` on RTX A4500@Ubuntu and A100@Google Colab ([!NOTE] taichi rendering is not available on colab). 
 
 
 ### Prepare virtual environment
@@ -26,14 +26,6 @@ Anaconda virtual environment can be recommended to prevent affecting your syste.
 conda create -n taichi_env python=3.10 -y
 conda activate taichi_env
 ```
-
-In the virtual environment ([!NOTE] after installation of Taichi), 
-```
-ti
-```
-shows `[Taichi] version 1.7.4, llvm 15.0.7, osx, python 3.10.20`
-
-The portability of the code was confirmed for `cuda` on RTX A4500. 
 
 ### Clone repository and install required packages
 
@@ -47,18 +39,16 @@ export REPO_PATH=$(pwd)
 pip install -r requirements.txt
 ```
 
-After installation, I recommend taking a glance at Taichi sample gallery. 
+```
+ti
+```
+shows `[Taichi] version 1.7.4, llvm 15.0.7, osx, python 3.10.20`. I recommend taking a glance at Taichi gallery. 
 
 ```bash
 ti gallery
 ```
 
-You will find von Karman vortex stream by Dr. Wang on the gallery tile. Clicking the sambnail invokes the simulation and the corresponding example code will appear in the terminal. In my environment, the Taichi example files can be found in 
-
-```bash
-cd /opt/anaconda3/envs/taichi_env/lib/python3.1/site-packages/taichi/examples/simulation
-```
-
+You will find von Karman vortex stream by Dr. Wang on the gallery tile. Clicking the sambnail invokes the simulation and the corresponding example code will appear in the terminal. 
 
 ## Run simulator
 
