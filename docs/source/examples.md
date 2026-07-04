@@ -9,6 +9,13 @@ PYTHONPATH=. python examples/object2d.py
 
 Use `PYTHONPATH=.` to solve the library paths for examples/*.py launched from root dir. 
 
+<div style="max-width: 100%; margin: 1em auto;">
+  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object2d.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object2d.mp4" type="video/mp4">
+  </video>
+</div>
+
+
 ## Flow past a sphere
 
 ```bash
@@ -16,12 +23,26 @@ cd $REPO_PATH
 PYTHONPATH=. python examples/object3d.py
 ```
 
+<div style="max-width: 50%; margin: 1em auto;">
+  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object3d.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/object3d.mp4" type="video/mp4">
+  </video>
+</div>
+
+
 ## Lid-driven catity
 
 ```bash
 cd $REPO_PATH
 PYTHONPATH=. python examples/cavity2d.py
 ```
+
+<div style="max-width: 50%; margin: 1em auto;">
+  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d.mp4" type="video/mp4">
+  </video>
+</div>
+
 
 ```bash
 cd $REPO_PATH
@@ -67,7 +88,11 @@ Save the file; then,
 PYTHONPATH=. python examples/cavity2d_std.py
 ```
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_std.png" width=201><img>
+<div style="max-width: 30%; margin: 1em auto;">
+  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_std.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_std.mp4" type="video/mp4">
+  </video>
+</div>
 
 
 ## Change boundary condition
@@ -142,8 +167,11 @@ PYTHONPATH=. python examples/mlups_main.py
 
 1201x201; Re=5000; u=0.01, Cumulant ($\delta \rho$ mode)
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/bumpy.png" width=1201><img>
-
+<div style="max-width: 100%; margin: 1em auto;">
+  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/bumpy.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/bumpy.mp4" type="video/mp4">
+  </video>
+</div>
 
 ## Using Paraview
 
@@ -173,12 +201,15 @@ PYTHONPATH=. python examples/JCprob1.py
 
 A star-like shape in [JC1998] as embedded solid boundary. See [examples/JCprob1.py](https://github.com/hayashi-workshop/clbmtaichi/blob/main/examples/JCprob1.py). 
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1.png"><img>
-
 The narrow gaps between the object and the wall causes strong vortical motion, for which the naive outlet boundary treatment can be dangerous and simulations may face a challenge for stability! 
 
 [JC1998] Johansen and Colella. Journal of Computational Physics, 147(1):60–85, 1998.
 
+<div style="max-width: 100%; margin: 1em auto;">
+  <video class="responsive-video" controls poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1.mp4" type="video/mp4">
+  </video>
+</div>
 
 ### Stanford bunny
 
