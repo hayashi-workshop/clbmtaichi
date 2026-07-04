@@ -74,7 +74,7 @@ python main.py run --nd 1001 301 --Re 1000 --render velocity
 ```
 
 
-### [Documentation](https://hayashi-workshop.github.io/clbmtaichi/)
+## [Documentation](https://hayashi-workshop.github.io/clbmtaichi/)
 
 - Examples
 - Notes of LB equations
