@@ -1,5 +1,10 @@
 # Boundary condition
 
+```{admonition} @github
+[`lb_utils/bc_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_utils/bc_kernel.py)
+[`lb_utils/bback_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_utils/bback_kernel.py)
+```
+
 The boundary condition implemented here is the same as in [LBM_Taichi](https://github.com/hietwll/LBM_Taichi), that is, Guo's extrapolation method{cite:p}`Guo2002`{cite:p}`Cheng2022` (`lb_utils/bc_kernel.py`): 
 
 ```{math}

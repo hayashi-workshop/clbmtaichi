@@ -1,5 +1,8 @@
 # Streaming step
 
+```{admonition} @github : see fetch and write steps of $f$ in kernel files
+[`lb_solver/`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/)
+```
 
 ## Operator splitting
 
@@ -19,6 +22,13 @@ The $*$ decoration denotes the post-collision distribution.
 
 ## Pull/Push scheme
 
+```{important}
+The pull (push) scheme should be used with Guo's (bounce-back) boundary condition. These boundary conditions are defined, respectively, in  
+
+- `lb_utils/bc_kernel.py` (Guo's bc)
+- `lb_utils/bback_kernel.py` ((delayed) bounce-back)
+```
+
 In collision-streaming kernel (Taichi kernel `col_stream_core`), streaming and collision are conducted in the same `for` loop since invoking Taichi kernel and fetching/writing distribution functions twice deteriorate simulation performce. 
 
 The pull scheme is as follows: 
@@ -35,11 +45,4 @@ The `ModelConfig` employs the pull scheme as default. You can choose the push by
 
 ```python
 config = ModelConfig(mode="push")
-```
-
-```{important}
-The pull (push) scheme should be used with Guo's (bounce-back) boundary condition. These boundary conditions are defined, respectively, in  
-
-- `lb_utils/bc_kernel.py` (Guo's bc)
-- `lb_utils/bback_kernel.py` ((delayed) bounce-back)
 ```

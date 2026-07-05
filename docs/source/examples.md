@@ -1,5 +1,9 @@
 # Examples
 
+```{admonition} @github
+[`examples/`](https://github.com/hayashi-workshop/clbmtaichi/tree/main/examples)
+```
+
 ## Flow past a cylinder
 
 ```bash

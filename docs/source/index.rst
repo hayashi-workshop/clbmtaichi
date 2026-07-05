@@ -9,6 +9,11 @@
 clbmtaichi documentation
 ========================
 
+.. admonition:: github repository
+
+   find project@ `github <https://github.com/hayashi-workshop/clbmtaichi/blob/main/README.md>`_
+
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
@@ -20,11 +25,9 @@ clbmtaichi documentation
    tips
    reference
 
-.. admonition:: Note
-   :class: note
+.. raw:: html
 
-   This documentation gives some simulation examples and model descriptions, but currenly no detailed code manual.   
-
+   <br>
 
 .. figure:: https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_vtk.png
    :width: 100%

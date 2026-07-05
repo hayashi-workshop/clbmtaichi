@@ -1,5 +1,9 @@
 # LB models
 
+```{admonition} @github
+[`lb_solver/lbm_lib.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/lbm_lib.py)
+```
+
 ## Lattice Boltzmann equation
 Lattice Boltzmann solvers are based on the following lattice Boltzmann equation: 
 

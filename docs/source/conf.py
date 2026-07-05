@@ -32,7 +32,7 @@ exclude_patterns = []
 
 html_theme = 'furo'
 html_theme_options = {
-    "footer_icons": [
+        "footer_icons": [
         {
             "name": "GitHub",
             "url": "https://github.com/hayashi-workshop/clbmtaichi",

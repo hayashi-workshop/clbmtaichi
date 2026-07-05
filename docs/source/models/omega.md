@@ -1,12 +1,16 @@
 # Relaxation rates
 
+```{seealso} 
+[`lb_solver/lbm_lib.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/lbm_lib.py)
+```
+
 ## BGK
 
 - `omega[1]` for $\omega$
 
 ## TRT
 
-- `omega[1]` and `omega[2]` for $\omega_{+}$ and $omega_{-}$
+- `omega[1]` and `omega[2]` for $\omega_{+}$ and $\omega_{-}$
 
 The value of $\omega_{-}$ will be initially set to one if you do not specify the value. 
 

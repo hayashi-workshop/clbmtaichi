@@ -1,5 +1,10 @@
 # Nested grid
 
+```{admonition} @github
+[`lb_utils/nested_grid.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_utils/nested_grid.py)
+[`lb_utils/nested_utils/`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_utils/nested_utils/)
+```
+
 This page introduces the bubble-fucntion{cite:p}`Geier2009` based nested grid implementation. The interpolation code in `clbmtaichi` is generated using `sympy` script `generator/nested_bubble_generator.py`, which is linked from the key equations given below. 
 
 ## Grid overlapping and time marching

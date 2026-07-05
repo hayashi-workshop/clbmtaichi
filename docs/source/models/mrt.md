@@ -1,5 +1,12 @@
 # MRT
 
+```{admonition} @github
+[`lb_solver/d2q9_MRT_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_MRT_kernel.py)
+[`lb_solver/d2q9_MRT_drho_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_MRT_drho_kernel.py)
+[`lb_solver/d3q27_MRT_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_MRT_kernel.py)
+[`lb_solver/d3q27_MRT_drho_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_MRT_drho_kernel.py)
+```
+
 ## Multi-relaxation time model
 
 [The collision proceeds in the moment space](https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/cumulant_generator.py#L251) rather than the $f$ space:
@@ -63,6 +70,11 @@ print(m20.rhs)
 The MRT introduced here differs from the well-known DHumieres's implementation {cite:p}`DHumieres`, in which Gram-Schmidt orthogonalization is the key idea to connecting each moment to physical quantities. See discssion in {cite:p}`Geier2015`.
 ```
 
+```{caution}
+The caluclation of $m^{eq}$ above was found not to include $u^{2} v^{2} w^{2}$ term at $(2,2,2)$, which is in {cite:p}`Geier2015`, Eq. (C.20). 
+```
+
+
 ## Back transformation from $m$ to $f$
 
 The back transformation is given simply by 
@@ -103,7 +115,6 @@ However, since each moment appears multiple times in the $f$ expression, naive c
 &f_{ i j 1} = \frac{  m_{ij|1} + m_{ij|2} }{2} 
 \end{aligned}
 ```
-
 
 
 ## Density-fluctuation mode
@@ -159,19 +170,20 @@ for name in m_eq_dict.keys():
     display(Eq(sp.Symbol(name), m_eq_dict[name]))
 ```
 
-```{caution}
-The caluclation of $m^{eq}$ above was found not to include $u^{2} v^{2} w^{2}$ term at $(2,2,2)$, which is in {cite:p}`Geier2015`, Eq. (C.20). 
-```
-
 
 ## Transformation matrix
 
 ```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
 
 ```python
-moment_d3q27.M
+import itertools
 
-moment_d3q27.M_inv
+dim = 3
+vectors = create_vectors(dim=dim)
+
+all_orders = list(itertools.product((0, 1, 2), repeat=dim))
+moment_orders = sorted(all_orders, key=lambda x: (sum(x), -x[0]))
+M, M_inv = create_trans_matrix(moment_orders, vectors) 
 ```
 
 $$

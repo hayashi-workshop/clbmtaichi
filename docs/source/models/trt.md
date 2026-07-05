@@ -1,5 +1,12 @@
 # TRT
 
+```{admonition} @github
+[`lb_solver/d2q9_TRT_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_TRT_kernel.py)
+[`lb_solver/d2q9_TRT_drho_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_TRT_drho_kernel.py)
+[`lb_solver/d3q27_TRT_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_TRT_kernel.py)
+[`lb_solver/d3q27_TRT_drho_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_TRT_drho_kernel.py)
+```
+
 ## Two-relaxation time model
 
 [The two-relaxation time collision model](https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/cumulant_generator.py#L188) {cite:p}`Ginzburg2008` attempts to reduce errors by introducing an additional relaxation rate. The LBE of TRT is similar to that of BGK, while the relaxation is applied in a different manner, that is, 
@@ -10,7 +17,7 @@
 f_{i} (t + \Delta t, \mathbf{x} + \mathbf{c}_{i} \Delta t) = f_{i} (t, \mathbf{x}) - \omega^{+} ( f_{i}^{+} - f_{i}^{eq+} ) - \omega^{-} ( f_{i}^{-} - f_{i}^{eq-} )
 ```
 
-where $\bar{i}$ represents the index of the direction opposite to $i$. 
+where $\bar{i}$ represents the index of [the direction opposite to $i$](https://github.com/hayashi-workshop/clbmtaichi/blob/c9e6d53609b93901daaef06c0d13dccf0fb81319/generator/cumulant_generator.py#L209). 
 
 ```{math}
 :label: eq:eq_f_trt
@@ -21,6 +28,20 @@ f_{i}^{+} = \frac{f_{i} + f_{\bar{i}}}{2},~~~~f_{i}^{-} = \frac{f_{i} - f_{\bar{
 ```{seealso}
 {cite:p}`Seta2014` Theoretical study on removal of boundary error (velocity slip) using TRT
 ```
+
+```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
+
+Find $\bar{i}$ for $i$: 
+
+```python 
+opp_map = {} # search opposite (-) direction
+for i, v in enumerate(create_vectors(dim=2)):
+    opp_v = tuple(-c for c in v) # c -> -c
+    opp_map[i] = vectors.index(opp_v) # get index for -c
+
+print(opp_map)
+```
+
 
 For density-fluctuation mode, 
 

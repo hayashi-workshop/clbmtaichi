@@ -1,5 +1,12 @@
 # Cumulant
 
+```{admonition} @github
+[`lb_solver/d2q9_Cumulant_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_Cumulant_kernel.py)
+[`lb_solver/d2q9_Cumulant_drho_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_Cumulant_drho_kernel.py)
+[`lb_solver/d3q27_Cumulant_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_Cumulant_kernel.py)
+[`lb_solver/d3q27_Cumulant_drho_kernel.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_Cumulant_drho_kernel.py)
+```
+
 ## Generating functions 
 
 The cumulant collision operator was proposed in {cite:p}`Geier2015`, the milestone paper. See also {cite:p}`Yamamoto2025` which discusses a role of trancated terms in SGS viscosity. 
