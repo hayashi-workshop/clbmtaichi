@@ -311,3 +311,45 @@ PYTHONPATH=. python examples/nested.py
 On Macbook Pro M2 16GB, adding the next level `nd3 = (400, 320, 320)` failed with `segmentation fault`. This example was actually run on A100@Google Colab. 
 
 Taichi GGUI is currently not supported for 3D nested grid. The result should be dumped via `pyevtk` to visualize it with Paraview. Or, you can put single grid to `FluidRenderer`, which can be used to render single 3D grid as in `examples/cavity3d.py`. 
+
+
+## Google Colab Workflow
+
+- Open new colab notebook `ipynb`.
+- Choose a GPU runtime. 
+- Copy and paste the following command line in the first cell. 
+
+```bash
+!git clone https://github.com/hayashi-workshop/clbmtaichi.git
+%cd clbmtaichi/
+!pip install -r requirements.txt
+!pip install 'trimesh[easy]'
+!pip install networkx
+```
+
+- Open `File` in the side menu. 
+- Go down the directory tree to `example/`.
+- (file editing below can be replaced with file upload from your local file)
+- Double click an example you want to run. It will be open on the right side of the browser. 
+- Comment out Taichi GGUI related lines in the example script (search by `render`). The time loop usually have `while running`, but this should also be `while step < step_end:`. 
+- Add `save_vtk` in or end of the time loop to dump the results. 
+- Run!
+
+
+- The following code will compress `output/` to facilitate downloading the results. 
+
+```python
+import shutil
+from google.colab import files
+
+directory_name = 'output/nested' # change the directory name for your case
+zip_filename = 'nested_result.zip'
+
+shutil.make_archive(zip_filename.replace('.zip', ''), 'zip', directory_name)
+```
+
+- Then, 
+
+```python
+files.download(zip_filename)
+```
