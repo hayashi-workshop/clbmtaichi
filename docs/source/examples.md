@@ -278,3 +278,36 @@ Frequent export of velocity data may occupy a large disk space. In this example,
 
 The above examples are all for the combination of pull streaming/Guo's boundary condition. Applications of push streaming with the (delayed) bounce-back scheme can be found in examples named `_bb.py`
 
+
+## Nested grid (tentative)
+
+```{caution}
+Only push/bounce-back combination is allowed for the nested grid algorithm implemented. Push is slower than pull. Further study is required. 
+```
+
+### 2D nested grids
+
+```bash
+cd $REPO_PATH
+PYTHONPATH=. python examples/nested.py
+```
+
+<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_vtk.png" width=600></img>
+
+4 level nested grids surrounding a cylindrical object. The numbers of nodes are `nd0 = (801, 201)`, `nd1 = (400, 280)`, `nd2 = (440, 320)`, `nd3 = (580, 480)` from level 0 to 3, and the grid boundaries are represented with the white boxes. 20 nodes are adopted to the cylinder raidus at level 0, while 160 nodes at level 3. Communication between grids at different levels is based on the bubble function proposed in {cite:p}`Geier2009`. In 2D, Taichi GGUI is run for level 0; higher level grids inject their values into the canvas at level 0. 
+
+
+
+### 3D nested grids
+
+```{danger}
+3D simulation with nested grids could be heavy, inducing high memory pressure. Please try a small grid setting (maybe begin with onyl 2 levels) while considering your environment. 
+```
+
+<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested3d_vtk.png" width=600></img>
+
+3 levels are used to simulate a flow about a sphere. The domain sizes are `nd0 = (361, 121, 121)`, `nd1 = (240, 160, 160)`, and `nd2 = (300, 220, 220)`: 26M nodes in total. The sphere radius at level 0 is 15, while it is 60 at level 3. 
+
+On Macbook Pro M2 16GB, adding the next level `nd3 = (400, 320, 320)` failed with `segmentation fault`. This example was actually run on A100@Google Colab. 
+
+Taichi GGUI is currently not supported for 3D nested grid. The result should be dumped via `pyevtk` to visualize it with Paraview. Or, you can put single grid to `FluidRenderer`, which can be used to render single 3D grid as in `examples/cavity3d.py`. 
