@@ -353,3 +353,5 @@ shutil.make_archive(zip_filename.replace('.zip', ''), 'zip', directory_name)
 ```python
 files.download(zip_filename)
 ```
+
+Cloned and dumped files will be deleted when sessions are terminated. Consider to mount google drive to keep them. 
