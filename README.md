@@ -93,7 +93,7 @@ PYTHONPATH=. python examples/cavity2d.py
 ```
 
 Lattice points: 401x201; Re=500000; u=0.1
-The top wall is moving right. Vorticity countors.
+The top wall is moving right. Colored by vorticity.
 
 <video src="https://github.com/user-attachments/assets/75ba0d98-f497-4de8-8404-b5bc0a117191" width="400" autoplay loop muted playsinline></video>
 
