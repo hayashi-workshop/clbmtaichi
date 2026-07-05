@@ -11,7 +11,7 @@ clbmtaichi documentation
 
 .. admonition:: github repository
 
-   find project@ `github <https://github.com/hayashi-workshop/clbmtaichi/blob/main/README.md>`_
+   find the project@ `github <https://github.com/hayashi-workshop/clbmtaichi/blob/main/README.md>`_
 
 
 .. toctree::
