@@ -333,7 +333,7 @@ Taichi GGUI is currently not supported for 3D nested grid. The result should be 
 - Double click an example you want to run. It will be open on the right side of the browser. 
 - Comment out Taichi GGUI related lines in the example script (search by `render`). The time loop usually have `while running`, but this should also be `while step < step_end:`. 
 - Add `save_vtk` in or end of the time loop to dump the results. 
-- Run!
+- Run! `PYTHONPATH=. python examples/yourfile.py`
 
 
 - The following code will compress `output/` to facilitate downloading the results. 
