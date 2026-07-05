@@ -208,7 +208,7 @@ which scales the velocity gradient computed at the fine grid to that at the coas
 J_{F} = \frac{\partial x_{F}}{\partial x_{C}} = \frac{1}{2}
 ```
 
-[The backward transformation](https://github.com/hayashi-workshop/clbmtaichi/blob/002a5a6bb09900f84165c1ae5f0f06808e2adbff/generator/nested_bubble_generator.py#L708) from $c \rightarrow \kappa \rightarrow m \rightarrow f$ completes the procedure. 
+The cumulant $c_{22}$ is assumed to be zero (@equilibrium). Thus, [the backward transformation](https://github.com/hayashi-workshop/clbmtaichi/blob/002a5a6bb09900f84165c1ae5f0f06808e2adbff/generator/nested_bubble_generator.py#L708) from $c \rightarrow \kappa \rightarrow m \rightarrow f$ completes the procedure. 
 
 
 ### 3D case
