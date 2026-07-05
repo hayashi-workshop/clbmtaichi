@@ -53,6 +53,7 @@ html_theme_options = {
 }
 
 html_static_path = ['_static']
+html_extra_path = ['extra']
 
 # -- document source 
 souce_suffix = {
