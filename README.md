@@ -10,6 +10,8 @@ Features of the code are:
 - Model pool: BGK, TRT, non-orthogonal MRT, Cumulant
 - D2Q9 and D3Q27 discrete velocity models
 
+More details can be found in [Documentation@Github Pages](https://hayashi-workshop.github.io/clbmtaichi/)
+
 
 ## Installation
 
@@ -91,9 +93,9 @@ PYTHONPATH=. python examples/cavity2d.py
 ```
 
 Lattice points: 401x201; Re=500000; u=0.1
-The top wall is moving right. 
+The top wall is moving right. Vorticity countors.
 
-https://github.com/user-attachments/assets/75ba0d98-f497-4de8-8404-b5bc0a117191
+<video src="https://github.com/user-attachments/assets/75ba0d98-f497-4de8-8404-b5bc0a117191" width="400" autoplay loop muted playsinline></video>
 
 
 #### Flow past a cylinder/sphere
@@ -114,7 +116,7 @@ PYTHONPATH=. python examples/object3d.py
 Lattice points: 241x61x61; Re=10000; u=0.1
 The simulation dumps .vtr file for Paraview. 
 
-https://github.com/user-attachments/assets/64e4b846-f5e1-4d66-8e84-982042861dc8
+<video src="https://github.com/user-attachments/assets/64e4b846-f5e1-4d66-8e84-982042861dc8" width="241" autoplay loop muted playsinline></video>
 
 
 #### (Tentative) Nested grid
