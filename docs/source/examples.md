@@ -292,7 +292,11 @@ cd $REPO_PATH
 PYTHONPATH=. python examples/nested.py
 ```
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_vtk.png" width=600></img>
+<div style="max-width: 80%; margin: 1em auto;">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_vtk_poster.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_vtk.mp4" type="video/mp4">
+  </video>
+</div>
 
 4 level nested grids surrounding a cylindrical object. The numbers of nodes are `nd0 = (801, 201)`, `nd1 = (400, 280)`, `nd2 = (440, 320)`, `nd3 = (580, 480)` from level 0 to 3, and the grid boundaries are represented with the white boxes. 20 nodes are adopted to the cylinder raidus at level 0, while 160 nodes at level 3. Communication between grids at different levels is based on the bubble function proposed in {cite:p}`Geier2009`. In 2D, Taichi GGUI is run for level 0; higher level grids inject their values into the canvas at level 0. 
 
