@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install sphinx myst-parser furo sphinxcontrib-bibtex sphinxcontrib-bibtex sphinx-copybutton
+          pip install sphinx myst-parser furo sphinxcontrib-bibtex sphinxcontrib-bibtex sphinx-copybutton sphinx-togglebutton
           if [ -f docs/requirements.txt ]; then pip install -r docs/requirements.txt; fi
 
       - name: Build Sphinx
