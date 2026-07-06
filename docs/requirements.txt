@@ -1,0 +1,11 @@
+#conda create -n sphinx python=3.10 -y
+#conda activate sphinx
+pip install sphinx
+pip install myst-parser
+pip install sphinx-autobuild
+pip install sphinx-book-theme
+pip install pydata-sphinx-theme
+pip install furo
+pip install sphinxcontrib-bibtex
+pip install sphinx-copybutton
+pip install sphinx-togglebutton
