@@ -18,6 +18,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
+    'sphinx_togglebutton',
 ]
 
 bibtex_bibfiles = ['refs.bib']
