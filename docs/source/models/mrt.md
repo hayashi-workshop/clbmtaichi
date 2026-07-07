@@ -142,7 +142,7 @@ The sixth-order moment:
 m_{222}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
 ```
 
-## Collision
+## Collision in moment space
 
 The formulation 
 ```{math}
