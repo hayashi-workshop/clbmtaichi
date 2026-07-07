@@ -255,37 +255,6 @@ moment_d2q9.M@sp.Matrix(weights)
 
 One additional pattern $1/27$ at the order $(0,0,0)$ appers in D3Q27. 
 
-## Equilibrium moments
-
-
-```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
-
-
-```python
-import itertools
-from generator_utils.common_utils import create_feq_list
-dim = 3
-rho = sp.Symbol('rho')
-vel = sp.symbols(['u', 'v', 'w'][:dim])
-vectors = create_vectors(dim=dim)
-weights = [calculate_weight(v) for v in vectors]
-high_order_subs = { # eliminating fourth-order tems u^4 from m_eq...
-            vel[0]**4: 0, vel[1]**4: 0, vel[2]**4: 0,
-            vel[0]**5: 0, vel[1]**5: 0, vel[2]**5: 0,
-            vel[0]**6: 0, vel[1]**6: 0, vel[2]**6: 0
-        }
-
-all_orders = list(itertools.product((0, 1, 2), repeat=dim))
-moment_orders = sorted(all_orders, key=lambda x: (sum(x), -x[0]))
-mom_names = ["m" + "".join(map(str, order)) for order in moment_orders]
-feq_list_4th = create_feq_list(dim, rho, vel, vectors, weights, trunc=4)
-m_eq_computed = moment_d3q27.M * sp.Matrix(feq_list_4th)
-m_eq_dict = {name: sp.expand(expr) for name, expr in zip(mom_names, m_eq_computed)}
-for name in m_eq_dict.keys():
-    m_eq_dict[name] = sp.expand(m_eq_dict[name]).subs(high_order_subs)
-    display(Eq(sp.Symbol(name), m_eq_dict[name]))
-```
-
 
 ## Transformation matrix
 
