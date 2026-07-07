@@ -74,6 +74,122 @@ The MRT introduced here differs from the well-known DHumieres's implementation {
 The caluclation of $m^{eq}$ above was found not to include $u^{2} v^{2} w^{2}$ term at $(2,2,2)$, which is in {cite:p}`Geier2015`, Eq. (C.20). 
 ```
 
+## Equilibrium moment $m_{eq}$
+
+The conserved quantities (density and momentum): 
+```{math} 
+:label: eq:eq_conserved_moments
+
+m_{000}^{eq} = \rho,~~m_{100}^{eq} = \rho u,~~m_{010}^{eq} = \rho v,~~m_{001}^{eq} = \rho w
+```
+
+The second-order moments: 
+```{math}
+:label: eq:eq_2nd_order_moments
+
+m_{200}^{eq} = \rho u^{2} + \rho c_{s}^{2},~~
+m_{020}^{eq} = \rho v^{2} + \rho c_{s}^{2},~~
+m_{002}^{eq} = \rho w^{2} + \rho c_{s}^{2}
+```
+
+The other second-order moments: 
+```{math} 
+:label: eq:eq_2nd_order_moments_others
+
+m_{110}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq}}{m_{000}^{eq}},~~
+m_{101}^{eq} = \frac{m_{100}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+m_{011}^{eq} = \frac{m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+```
+
+The third-order moments:
+```{math} 
+:label: eq:eq_3rd_order_moments
+
+m_{210}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq}}{m_{000}^{eq}},~~
+m_{201}^{eq} = \frac{m_{200}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+m_{120}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq}}{m_{000}^{eq}},~~
+m_{102}^{eq} = \frac{m_{100}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{021}^{eq} = \frac{m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+m_{012}^{eq} = \frac{m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{111}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
+```
+
+The fourth-order moments:
+```{math} 
+:label: eq:eq_4th_order_moments
+
+m_{220}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq}}{m_{000}^{eq}},~~
+m_{202}^{eq} = \frac{m_{200}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{022}^{eq} = \frac{m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{211}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{121}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{112}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
+```
+
+The fifth-order moments:
+```{math} 
+:label: eq:eq_5th_order_moments
+
+m_{221}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{212}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{122}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
+```
+
+The sixth-order moment: 
+```{math} 
+:label: eq:eq_6th_order_moment
+
+m_{222}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
+```
+
+## Collision
+
+The formulation 
+```{math}
+m^{*} = (1 - \omega) m + m^{eq}
+```
+is applied to $110$, $101$, $011$, $211$, $121$, $112$, $221$, $212$, $122$, $222$. 
+
+With $200$s, for shear 
+```{math} 
+:label: eq:eq_MRT_col_shear
+
+\begin{split}
+m_{200}^{*} - m_{020}^{*} = (1 - \omega_{1}) (m_{200} - m_{020}) + (m_{200}^{eq} - m_{020}^{eq}) \\
+m_{200}^{*} - m_{002}^{*} = (1 - \omega_{1}) (m_{200} - m_{002}) + (m_{200}^{eq} - m_{002}^{eq}) \\
+\end{split}
+```
+and for bulk 
+```{math} 
+:label: eq:eq_MRT_col_bulk
+
+m_{200}^{*} + m_{020}^{*} + m_{002}^{*}
+ = (1 - \omega_{2})(m_{200} + m_{020} + m_{002}) + (m_{200}^{eq} + m_{020}^{eq} + m_{002}^{eq}) 
+```
+Then, the other moments are relaxed as 
+```{math} 
+:label: eq:eq_MRT_col_dev
+
+\begin{split}
+&m_{120}^{*} + m_{102}^{*} = (1-\omega_{3})(m_{120} + m_{102}) + (m_{120}^{eq} + m_{102}^{eq}) \\
+&m_{120}^{*} - m_{102}^{*} = (1-\omega_{4})(m_{120} - m_{102}) + (m_{120}^{eq} - m_{102}^{eq}) \\
+&m_{210}^{*} + m_{012}^{*} = (1-\omega_{3})(m_{210} + m_{012}) + (m_{210}^{eq} + m_{012}^{eq}) \\
+&m_{210}^{*} - m_{012}^{*} = (1-\omega_{4})(m_{210} - m_{012}) + (m_{210}^{eq} - m_{012}^{eq}) \\
+&m_{201}^{*} + m_{021}^{*} = (1-\omega_{3})(m_{201} + m_{021}) + (m_{201}^{eq} + m_{021}^{eq}) \\
+&m_{201}^{*} - m_{021}^{*} = (1-\omega_{4})(m_{201} - m_{021}) + (m_{201}^{eq} - m_{021}^{eq}) 
+\end{split}
+```
+and 
+```{math} 
+:label: eq:eq_MRT_col_devdev
+
+\begin{split}
+&m_{220}^{*} - 2 m_{202}^{*} + m_{022}^{*} = (1-\omega_{6}) (m_{220} - 2 m_{202} + m_{022}) + (m_{220}^{eq} - 2 m_{202}^{eq} + m_{022}^{eq}) \\
+&m_{220}^{*} + m_{202}^{*} - 2 m_{022}^{*} = (1-\omega_{6}) (m_{220} + m_{202} - 2 m_{022}) + (m_{220}^{eq} + m_{202}^{eq} - m_{022}^{eq}) \\
+&m_{220}^{*} + m_{202}^{*} + m_{022}^{*} = (1-\omega_{7}) (m_{220} + m_{202} + m_{022}) + (m_{220}^{eq} + m_{202}^{eq} + m_{022}^{eq}) 
+\end{split}
+```
+
 
 ## Back transformation from $m$ to $f$
 
@@ -82,7 +198,7 @@ The back transformation is given simply by
 ```{math}
 :label: eq:eq_backtransformation_f_m
 
-f = M^{-1} m
+f^{*} = M^{-1} m^{*}
 ```
 
 ```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)

@@ -26,7 +26,8 @@ bibtex_bibfiles = ['refs.bib']
 templates_path = ['_templates']
 exclude_patterns = []
 
-
+togglebutton_hint = "open footnote"
+togglebutton_hint_hide = "hide"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
