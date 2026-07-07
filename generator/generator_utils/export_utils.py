@@ -256,8 +256,9 @@ class TypeWriter:
         dim, num_pops, collision_model, vectors, weights = self.default_pack
         class_name, old_name, new_name                   = self.misc_pack
 
-        rr, inv_rr, vel_names, moment_set = self.code_bundle
+        rr, meq_rr, inv_rr, vel_names, moment_set = self.code_bundle # <--- updated from rr, inv_rr, vel_names, moment_set = self.code_bundle
         replacements    , reduced     = rr
+        meq_replacements, meq_reduced = meq_rr # <--- updated 
         inv_replacements, inv_reduced = inv_rr
         m_eq_dict, moment_orders, mom_names, M_post = moment_set
 
@@ -273,6 +274,7 @@ class TypeWriter:
             self.buffer.append(f"{idt[bi+2]}{d_name} = m{''.join(mom_code)} * inv_rho\n")
             
         self.buffer.append(f"\n{idt[bi+2]}# Equilibrium moments (m_eq)\n")
+        '''
         skip_eq_moms = {"m20", "m02", "m200", "m020", "m002"}
         for name, expr in m_eq_dict.items():
             if name in skip_eq_moms: 
@@ -281,6 +283,14 @@ class TypeWriter:
                 if sum(int(c) for c in name[1:]) <= 1: 
                     continue
             self.buffer.append(f"{idt[bi+2]}{name}_eq = {self._clean_div_terms(str(expr))}\n")
+        '''
+        # ---> updated
+        for var_sym, expr_sym in meq_replacements:
+            self.buffer.append(f"{idt[bi+2]}{var_sym} = {self._clean_div_terms(str(expr_sym))}\n")
+
+        for name, expr in zip(m_eq_dict.keys(), meq_reduced):
+            self.buffer.append(f"{idt[bi+2]}{name}_eq = {self._clean_div_terms(str(expr))}\n")
+        # <--- updated
 
         self.buffer.append(f"\n{idt[bi+2]}# 2) Collision/relaxation in moment space\n")
         for o in moment_orders:

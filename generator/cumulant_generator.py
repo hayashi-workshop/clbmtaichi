@@ -251,27 +251,84 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
     elif collision_model == "MRT":        
         u, v = vel_syms[0], vel_syms[1] # eliminate 4th order terms (u^4) generated from more accurate Gauss-Hermite approximation in f_eq
         w = vel_syms[2] if len(vel_syms) > 2 else sp.Integer(0) 
-        high_order_subs = { # eliminating fourth-order tems u^4 from m_eq...
-            u**4: 0, v**4: 0, w**4: 0,
-            u**5: 0, v**5: 0, w**5: 0,
-            u**6: 0, v**6: 0, w**6: 0
-        }
+        #high_order_subs = { # eliminating fourth-order tems u^4 from m_eq...
+        #    u**4: 0, v**4: 0, w**4: 0,
+        #    u**5: 0, v**5: 0, w**5: 0,
+        #    u**6: 0, v**6: 0, w**6: 0
+        #}
         M, M_inv = create_trans_matrix(moment_orders, vectors) # >>> Setting up transformation matrix from f to m
 
-        feq_list_4th = create_feq_list(dim, rho, vel_syms, vectors, weights, trunc=4) # constructing f_eq: (NOTE) f_eq generator retains 4th order (u^4) to derive correct m_eq (set trunc = 4)
-        if drho_mode == 'drho':
+        # ---> updated feq is feq, not expand as 1 + drho at this phase
+        feq_list_2nd = create_feq_list(dim, rho, vel_syms, vectors, weights, trunc=2) # constructing f_eq
+        # < --- updated
+
+        # v--- [previous version] we do not need to use 4th order feq
+        #feq_list_4th = create_feq_list(dim, rho, vel_syms, vectors, weights, trunc=4) # constructing f_eq: (NOTE) f_eq generator retains 4th order (u^4) to derive correct m_eq (set trunc = 4)
+        #if drho_mode == 'drho':
             # note: rho -> 1 + drho
             #              for coding simplicity, drho is written as rho
-            feq_list_4th = [ feq.xreplace({rho: density_shift + rho}) for feq in feq_list_4th ]
+        #    feq_list_4th = [ feq.xreplace({rho: density_shift + rho}) for feq in feq_list_4th ]
 
         # phase 1: constructing symbolic equations #
 
         # generating equilibrium moments meq = M feq
-        m_eq_computed = M * sp.Matrix(feq_list_4th) - M * sp.Matrix(weights) * density_shift # subtract M w in 'drho' mode
-        m_eq_dict = {name: sp.expand(expr) for name, expr in zip(mom_names, m_eq_computed)}
 
-        for name in m_eq_dict.keys():
-            m_eq_dict[name] = sp.expand(m_eq_dict[name]).subs(high_order_subs)
+        # v--- [previous version] incomplete moment reconstruction
+        #m_eq_computed = M * sp.Matrix(feq_list_4th) - M * sp.Matrix(weights) * density_shift # subtract M w in 'drho' mode
+        #m_eq_dict = {name: sp.expand(expr) for name, expr in zip(mom_names, m_eq_computed)}
+        #
+        #for name in m_eq_dict.keys():
+        #    m_eq_dict[name] = sp.expand(m_eq_dict[name]).subs(high_order_subs)
+
+        # ---> updated
+        m_eq_computed = M * sp.Matrix(feq_list_2nd) # feq may be okay for 2nd order
+        m_eq_dict = {name: sp.expand(expr) for name, expr in zip(mom_names, m_eq_computed)} # convert from sp.Matrix to dict
+
+        W_vec_mat  = M * sp.Matrix(weights) * density_shift # subtract M w in 'drho' mode
+        W_vec_dict = {name: sp.expand(expr) for name, expr in zip(mom_names, W_vec_mat)} # convert from sp.Matrix to dict
+
+        # construction of moments m11, m21, m12, m22
+        # 2D case
+        # m11^eq = m10^eq * m01^eq / rho
+        # m21^eq = m20^eq * m01^eq / rho
+        # m12^eq = m10^eq * m02^eq / rho
+        # m22^eq = m20^eq * m02^eq / rho
+        #
+        # 3D case example
+        # m210^eq = m200^eq * m010^eq / rho
+        # m101^eq = m100^eq * m001^eq / rho
+        # m111^eq = m100^eq * m010^eq * m001^eq / rho^2
+        # m222^eq = m200^eq * m020^eq * m002^eq / rho^2
+        #
+        for o, name in zip(moment_orders, mom_names): 
+            partial_order_list = []
+            for i in range(dim):
+                val = o[i]
+                if val in [1, 2]: # capture nonzero suffix in m_{alpha beta gamma}
+                    partial_order_tmp = [0] * dim
+                    partial_order_tmp[i] = val
+                    partial_order = tuple(partial_order_tmp)
+
+                    partial_order_list.append(partial_order)
+            
+            if len(partial_order_list) > 1: # skip m10, m01, m20, m02
+                m_product = sp.Integer(1)/ ( rho ** (len(partial_order_list) - 1) ) # 1/rho or 1/rho^2
+                for p_order in partial_order_list:
+                    num_str = "".join(map(str, p_order))
+                    partial_m_name = f"m{num_str}"
+                    # e.g.) m21^eq = m20^eq * m01^eq / rho
+                    #       m222^eq = m200^eq * m020^eq * m002^eq / rho^2
+                    m_product *= m_eq_dict[partial_m_name] 
+
+                m_eq_dict[name] = m_product # overwrite dict component
+            
+            m_eq_dict[name] = sp.expand( sp.simplify(m_eq_dict[name]) ) # expand eliminates rho in denominator
+
+        for o, name in zip(moment_orders, mom_names):
+            m_eq_dict[name] = sp.expand( m_eq_dict[name].subs({rho: density_shift + rho}) - W_vec_dict[name] )
+            #print(f"0: {name} {m_eq_dict[name]} {W_vec_dict[name]}") # leftovers for debug
+        # <--- updated
+
 
         # constructing collision/relaxation equations...
         processed_diagonal_2nd = set()
@@ -328,15 +385,30 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
                         current_omega = omega_config[om_syms[10]]
                     elif total_order == 5: # 221, 212, 122
                         current_omega = omega_config[om_syms[9]]
+                    # ---> updated: moved from lower part
+                    elif total_order == 4 and min_order == 0: # 220, 202, 022 # no reason to repeat three times, but...
+                        m220_eq = sp.Symbol('m220_eq') # added 
+                        m202_eq = sp.Symbol('m202_eq') # added
+                        m022_eq = sp.Symbol('m022_eq') # added
+                        cross1_post = (M_raw[(2,2,0)] - 2 * M_raw[(2,0,2)] +     M_raw[(0,2,2)]) * (1.0 - omega_config[om_syms[6]]) + (m220_eq - 2 * m202_eq +     m022_eq)*omega_config[om_syms[6]] # meq corrected
+                        cross2_post = (M_raw[(2,2,0)] +     M_raw[(2,0,2)] - 2 * M_raw[(0,2,2)]) * (1.0 - omega_config[om_syms[6]]) + (m220_eq +     m202_eq - 2 * m022_eq)*omega_config[om_syms[6]] # meq corrected
+                        cross3_post = (M_raw[(2,2,0)] +     M_raw[(2,0,2)]     + M_raw[(0,2,2)]) * (1.0 - omega_config[om_syms[7]]) + (m220_eq +     m202_eq     + m022_eq)*omega_config[om_syms[7]] # meq corrected
+                        M_post[(2,2,0)] = (   cross1_post + cross2_post + cross3_post ) / 3
+                        M_post[(2,0,2)] = ( - cross1_post               + cross3_post ) / 3
+                        M_post[(0,2,2)] = (               - cross2_post + cross3_post ) / 3
+                        processed_diagonal_3a4.update(["m220","m202","m022"])
+                    # <--- updated
                     elif total_order == 4: # 211, 121, 112
                         current_omega = omega_config[om_syms[8]]
                     elif total_order == 3:
                         if min_order == 1: # 111
                             current_omega = omega_config[om_syms[5]] 
                         else: # 120, 102, 210, 012, 201, 021
-                            m120_eq, m102_eq = m_eq_dict["m120"], m_eq_dict["m102"]
-                            m210_eq, m012_eq = m_eq_dict["m210"], m_eq_dict["m012"]
-                            m201_eq, m021_eq = m_eq_dict["m201"], m_eq_dict["m021"]
+                            # ---> updated
+                            m120_eq, m102_eq = sp.Symbol('m120_eq'), sp.Symbol('m102_eq') #m_eq_dict["m120"], m_eq_dict["m102"]
+                            m210_eq, m012_eq = sp.Symbol('m210_eq'), sp.Symbol('m012_eq') #m_eq_dict["m210"], m_eq_dict["m012"]
+                            m201_eq, m021_eq = sp.Symbol('m201_eq'), sp.Symbol('m021_eq') #m_eq_dict["m201"], m_eq_dict["m021"]
+                            # <--- updated
                             sum1_post  = (1 - omega_config[om_syms[3]]) * (M_raw[(1,2,0)] + M_raw[(1,0,2)]) + (m120_eq + m102_eq)
                             sum2_post  = (1 - omega_config[om_syms[3]]) * (M_raw[(2,1,0)] + M_raw[(0,1,2)]) + (m210_eq + m012_eq)
                             sum3_post  = (1 - omega_config[om_syms[3]]) * (M_raw[(2,0,1)] + M_raw[(0,2,1)]) + (m201_eq + m021_eq)
@@ -357,15 +429,6 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
                         else: # 200, 020, 002
                             processed_diagonal_3a4.update(["m200","m020","m002"])
 
-                    elif total_order == 4 and min_order == 0: # 220, 202, 022
-                        cross1_post = (M_raw[(2,2,0)] - 2 * M_raw[(2,0,2)] +     M_raw[(0,2,2)]) * (1.0 - omega_config[om_syms[6]])
-                        cross2_post = (M_raw[(2,2,0)] +     M_raw[(2,0,2)] - 2 * M_raw[(0,2,2)]) * (1.0 - omega_config[om_syms[6]])
-                        cross3_post = (M_raw[(2,2,0)] +     M_raw[(2,0,2)]     + M_raw[(0,2,2)]) * (1.0 - omega_config[om_syms[7]])
-                        M_post[(2,2,0)] = (   cross1_post + cross2_post + cross3_post ) / 3
-                        M_post[(2,0,2)] = ( - cross1_post               + cross3_post ) / 3
-                        M_post[(0,2,2)] = (               - cross2_post + cross3_post ) / 3
-                        processed_diagonal_3a4.update(["m220","m202","m022"])
-
                     if name in processed_diagonal_3a4: 
                         continue
                     else:
@@ -377,7 +440,10 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
         m_post_syms = sp.symbols([f'{name}_post' for name in mom_names]) # computing post-collision f as M^(-1) m
         f_new_expr  = M_inv * sp.Matrix(m_post_syms)
 
-        pipe_exprs.update( {f'feq4th{q}': feq_list_4th[q] for q in range(num_pops)} ) 
+        # ---> updated
+        pipe_exprs.update( {f'feq{q}': feq_list_2nd[q] for q in range(num_pops)} ) 
+        #pipe_exprs.update( {f'feq4th{q}': feq_list_4th[q] for q in range(num_pops)} ) 
+        # <--- updated
         pipe_exprs['M']     = M
         pipe_exprs['M_inv'] = M_inv
         pipe_exprs.update( m_eq_dict )
@@ -397,10 +463,16 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
             m_exprs.append(expr)
 
         replacements, reduced = sp.cse(m_exprs) # applying CSE to forward transformation from f to m
-        inv_replacements, inv_reduced = sp.cse(list(f_new_expr)) # applying CSE to forward transformation from m to f
+        # ---> updated
+        skip_eq_moms = {"m00", "m10", "m01", "m20", "m02", "m000", "m100", "m010", "m001", "m200", "m020", "m002"} # not to be included in kernel
+        m_eq_dict = {k: v for k, v in m_eq_dict.items() if k not in skip_eq_moms}
+        meq_replacements, meq_reduced = sp.cse(m_eq_dict.values()) # applying CSE to forward transformation from f to m
+        # <--- updated
+        inv_replacements, inv_reduced = sp.cse(list(f_new_expr)) # applying CSE to backward transformation from m to f
 
         code_bundle = [
             [replacements, reduced], 
+            [meq_replacements, meq_reduced], # <--- updated
             [inv_replacements, inv_reduced],
             vel_names,
             [m_eq_dict, moment_orders, mom_names, M_post]

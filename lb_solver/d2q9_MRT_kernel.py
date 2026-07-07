@@ -61,12 +61,16 @@ class ModelConfig:
             v = m01 * inv_rho
 
             # Equilibrium moments (m_eq)
-            m11_eq = rho*u*v
-            m21_eq = rho*v * self.INV_3
-            m12_eq = rho*u * self.INV_3
-            m22_eq = rho*u**2 * self.INV_3 + rho*v**2 * self.INV_3 + rho * self.INV_9
-            mP_eq = rho*u**2 + rho*v**2 + 2*rho * self.INV_3
-            mxx_eq = rho*u**2 - rho*v**2
+            x0 = rho*v
+            x1 = rho*u**2
+            x2 = v**2
+            x3 = rho*x2
+            m11_eq = u*x0
+            m21_eq = v*x1 + x0 * self.INV_3
+            m12_eq = rho*u * self.INV_3 + u*x3
+            m22_eq = rho * self.INV_9 + x1*x2 + x1 * self.INV_3 + x3 * self.INV_3
+            mP_eq = 2*rho * self.INV_3 + x1 + x3
+            mxx_eq = x1 - x3
 
             # 2) Collision/relaxation in moment space
             m00_post = m00
