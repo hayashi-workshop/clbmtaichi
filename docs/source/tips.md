@@ -1,5 +1,6 @@
 # Coding tips
 
+
 ## SoA (Structure of Array)
 
 The memory layout of the distribution function is [f0[], f0[], ..., f0[] | f1[], f1[], ..., f1[] | ...] (SoA), not [ f0[], f1[], ..., f8[] | f0[], f1[], ..., f8[]] (AoS). The former is the field-based, and the latter is the node-based layout. 
@@ -36,7 +37,7 @@ The distributions are fetched from the neighbor lattice nodes before collision.
 
 ## Update macroscopic variables in kernel
 
-The macroscopic variables $\rho$ and $\mathbf{u}$ are computed in the collision kernel. They are used to construct the equilibrium distributions and moments. Then, the field values are updated with the computed values, by which there is no need to launch another kernel to update the macros only (launching kernels are costly!). It should be noted that $rho$ and $\rho \mathbf{u}$ are conservative quantities, so that their values do no change during the collision process; justfying the algorithm.
+The macroscopic variables $\rho$ and $\mathbf{u}$ are computed in the collision kernel. They are used to construct the equilibrium distributions and moments. Then, the field values are updated with the computed values, by which there is no need to launch another kernel to update the macros only (launching kernels are costly!). It should be noted that $\rho$ and $\rho \mathbf{u}$ are conservative quantities, so that their values do no change during the collision process; justfying the algorithm.
 
 ```python
         for I in ti.grouped(lbm.rho):
@@ -62,7 +63,7 @@ The macroscopic variables $\rho$ and $\mathbf{u}$ are computed in the collision 
 
 ## Pseudo distribution variable swapping
 
-The speed of a LB simulation is mainly dominated by memory access. Launching kernels should be minimized to prevant deterioration of computation speed. After the collision, the pre-collision distribution is fetched from $f_pre$, and the post-collision distribution is stored into $f_post$. By switching the roles of the arrays for these fields step by step, a data copy between them as preparation for the next time step is not required. 
+The speed of a LB simulation is mainly dominated by memory access. Launching kernels and fetching/writing $f$ (27 $f$s in 3D!) should be minimized to prevant deterioration of computation speed. After the collision, the pre-collision distribution is fetched from $f_{pre}$, and the post-collision distribution is stored into $f_{post}$. By switching the roles of the arrays for these fields step by step, a data copy between them as preparation for the next time step is not required. 
 
 ```python
     def swap(self, step):

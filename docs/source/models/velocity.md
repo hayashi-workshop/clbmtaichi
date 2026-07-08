@@ -48,9 +48,7 @@ where $Q = 9$ and $27$ in D2Q9 and D3Q27, respectively.
 
 ```python
 vector = create_vectors(dim=2)
-display(vector)
-
-[(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]
+display(vector) # result : [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]
 ```
 
 ```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
@@ -98,18 +96,18 @@ In D3Q27, the order of the lattice velocities is defined as 1st velocity, oppsit
 ```python 
 vector = create_vectors(dim=3)
 display(vector)
-
-[(0, 0, 0),
- (1, 0, 0),
- (-1, 0, 0),
- (0, 1, 0),
- (0, -1, 0),
- (0, 0, 1),
- (0, 0, -1),
- (1, 1, 0),
- (-1, -1, 0),
- (1, -1, 0),
- (-1, 1, 0), ...
+    # result
+    #[(0, 0, 0),
+    # (1, 0, 0),
+    # (-1, 0, 0),
+    # (0, 1, 0),
+    # (0, -1, 0),
+    # (0, 0, 1),
+    # (0, 0, -1),
+    # (1, 1, 0),
+    # (-1, -1, 0),
+    # (1, -1, 0),
+    # (-1, 1, 0), ...
 ```
 
 ```

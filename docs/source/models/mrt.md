@@ -70,10 +70,6 @@ print(m20.rhs)
 The MRT introduced here differs from the well-known DHumieres's implementation {cite:p}`DHumieres`, in which Gram-Schmidt orthogonalization is the key idea to connecting each moment to physical quantities. See discssion in {cite:p}`Geier2015`.
 ```
 
-```{caution}
-The caluclation of $m^{eq}$ above was found not to include $u^{2} v^{2} w^{2}$ term at $(2,2,2)$, which is in {cite:p}`Geier2015`, Eq. (C.20). 
-```
-
 ## Equilibrium moment $m_{eq}$
 
 The conserved quantities (density and momentum): 
