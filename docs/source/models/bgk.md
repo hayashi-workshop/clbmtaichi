@@ -36,7 +36,7 @@ and $\tau$ is the relaxation time. The kinematic viscosity is given as a functio
 where $c_{s}$ is the speed of sound, and $c_{s}^{2} = 1/3$ for D2Q9 and D3Q27 velocity models. 
 
 ```{note}
-The Chapman-Enskog expansion drives that the pressure in LBM is $p = c_{s}^{2} \rho$ which is consistent with the definition of speed of sound $c_{s}^{2} = \left. \partial p / \partial \rho \right|_{s}$ for idela gas.
+The Chapman-Enskog expansion derives that the pressure in LBM is $p = c_{s}^{2} \rho$ which is consistent with the definition of speed of sound $c_{s}^{2} = \left. \partial p / \partial \rho \right|_{s}$ for idela gas.
 
 ```
 
@@ -151,6 +151,12 @@ The LB functional form is unchangd under the density shift:
 :label: eq:eq_LBE_bgk_shifted
 
 \widetilde{f}_{i} (t + \Delta t, \mathbf{x} + \mathbf{c}_{i} \Delta t) = \widetilde{f}_{i} (t, \mathbf{x}) - \omega ( \widetilde{f}_{i} - \widetilde{f}_{i}^{eq} )
+```
+
+```{note}
+Further approximation? $\rho = \rho_{0} + \delta \rho$. Products of $\delta \rho$ and $u$ are expected to be small, and therefore $\rho \rightarrow \rho_{0}$ in the second term. This approximation however made simulations unstable in our experience. 
+```{math}
+\widetilde{f}_{i}^{eq} = w_{i} \left( \delta \rho + \rho_{0} \left[ \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ \mathbf{u} \cdot \mathbf{u} }{2 c_{s}^{2}} \right] \right)
 ```
 
 
