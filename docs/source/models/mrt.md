@@ -135,7 +135,7 @@ This code shows you that
 \kappa_{210} = m_{210} - \frac{m_{010} m_{200}}{m_{000}} - \frac{2 m_{100} m_{110}}{m_{000}} + \frac{2 m_{010} m_{100}^{2}}{m_{000}^{2}}
 ```
 
-In equilibrium, the third and fourth terms cancel out, and $C_{210}^{eq} = \kappa_{210}^{eq} = 0$, where $C_{210}$ is the density-scaled cumulant (see the next page). Therefore, 
+In equilibrium, the third and fourth terms cancel out, and $C_{210}^{eq} = \kappa_{210}^{eq} = 0$, where $C_{210}$ is the density-scaled cumulant (see {ref}`cumulant`). Therefore, 
 ```{math}
 m_{210}^{eq} = \frac{m_{010}^{eq} m_{200}^{eq}}{m_{000}^{eq}}
 ```

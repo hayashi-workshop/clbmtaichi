@@ -1,3 +1,4 @@
+(cumulant)=
 # Cumulant
 
 ```{admonition} @github
