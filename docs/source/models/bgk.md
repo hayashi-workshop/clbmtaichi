@@ -136,7 +136,7 @@ The shifted equilibrium disribution function is also defined as
 ```{math}
 :label: eq:eq_shifted_f_eq
 
-\widetilde{f}_{i}^{eq} = f_{i}^{eq} - w_{i} = w_{i} \left( \delta \rho + \rho \left[ \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ (\mathbf{u} \cdot \mathbf{u})^{2} }{2 c_{s}^{2}} \right] \right)
+\widetilde{f}_{i}^{eq} = f_{i}^{eq} - w_{i} = w_{i} \left( \delta \rho + \rho \left[ \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ \mathbf{u} \cdot \mathbf{u} }{2 c_{s}^{2}} \right] \right)
 ```
 
 where 
