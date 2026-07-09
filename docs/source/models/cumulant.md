@@ -11,6 +11,18 @@
 ## Generating functions 
 
 The cumulant collision operator was proposed in {cite:p}`Geier2015`, the milestone paper. See also {cite:p}`Yamamoto2025` which discusses a role of trancated terms in SGS viscosity. 
+```{toggle}
+For statistics, see {cite:t}`Cramer1966`. With the mean $m$, the variation $\sigma^{2}$, and the central moment $\mu_{n}$ of order $n$, cumulants are 
+```{math}
+\begin{split}
+    &\kappa_{1} = m, \\
+    &\kappa_{2} = \mu_{2} = \sigma^{2}, \\
+    &\kappa_{3} = \mu_{3}, \\
+    &\kappa_{4} = \mu_{4} - 3 \mu_{2}^{2}, \\
+    &\kappa_{5} = \mu_{5} - 10 \mu_{2} \mu_{3}, \\
+    &\kappa_{6} = \mu_{6} - 15 \mu_{2} \mu_{4} - 10 \mu_{3}^{2} + 30 \mu_{2}^{3}, 
+\end{split}
+```
 
 Take a glance at [lbmpy tutorial 04](https://pycodegen.pages.i10git.cs.fau.de/lbmpy/notebooks/04_tutorial_cumulant_LBM.html), which is very easy to follow the relationships between the statistics. [Jupyter Notebook](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb) was developed based on the cumulant-moment transformation described in `lbmpy`. [The moment generating function](https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/generator_utils/generating_functions.py#L92) is defined by 
 
