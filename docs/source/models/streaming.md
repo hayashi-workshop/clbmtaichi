@@ -12,8 +12,8 @@ The collision and streaming are split as
 :label: eq:eq_LBE_collision
 
 \begin{aligned}
-&f_{q}^{*} ( t, \mathbf{x} ) = f_{q} ( t, \mathbf{x} ) + \Omega (f) \\
-&f_{q}^{*} (t + \Delta t, \mathbf{x} + \mathbf{c}_{q} \Delta t) = f_{q}^{*} ( t, \mathbf{x} ) 
+&f_{i}^{*} ( t, \mathbf{x} ) = f_{i} ( t, \mathbf{x} ) + \Omega (f) \\
+&f_{i}^{*} (t + \Delta t, \mathbf{x} + \mathbf{c}_{i} \Delta t) = f_{i}^{*} ( t, \mathbf{x} ) 
 \end{aligned}
 ```
 

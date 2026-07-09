@@ -48,7 +48,7 @@ The Chapman-Enskog expansion drives that the pressure in LBM is $p = c_{s}^{2} \
 ```{math}
 :label: eq:eq_f_eq
 
-f_{i}^{eq} = w_{i} \rho \left( 1 + \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ (\mathbf{u} \cdot \mathbf{u})^{2} }{2 c_{s}^{2}} \right)
+f_{i}^{eq} = w_{i} \rho \left( 1 + \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ \mathbf{u} \cdot \mathbf{u} }{2 c_{s}^{2}} \right)
 ```
 
 This is a discrete expression of Maxwelian {cite:p}`Seta2021` and can be derived from the Hermite generating function {cite:p}`Kruger2017`. 

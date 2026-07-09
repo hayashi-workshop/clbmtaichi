@@ -72,6 +72,33 @@ The MRT introduced here differs from the well-known DHumieres's implementation {
 
 ## Equilibrium moment $m_{eq}$
 
+The equilibrium distribution function $f_{i}^{eq}$ in the BGK section was obtained by the second-order approximation. The equilibrium moments $m^{eq}$ up to second order can be obtained by directly transforming $f_{i}^{eq}$ with $M$ as 
+```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
+```python
+dim = 3
+
+vectors = create_vectors(dim) 
+weights = [calculate_weight(v) for v in vectors]
+
+rho = sp.Symbol('rho')
+u   = sp.symbols(['u', 'v', 'w'][:dim]) 
+
+cs2 = sp.Rational(1, 3)
+u_sq_sum = sum(u_i**2 for u_i in u)
+
+feq_list = []
+for idx, vec in enumerate(vectors):
+    c_dot_u = sum(cx * u_i for cx, u_i in zip(vec, u))
+    feq = weights[idx] * rho * (1 + c_dot_u/cs2 + (c_dot_u**2)/(2 * cs2**2) - u_sq_sum/(2 * cs2))
+    feq_list.append( feq ) 
+    
+M = moment_d3q27.M
+
+meq = sp.simplify( M@sp.Matrix(feq_list) )
+display(meq) # result: rho, rho u, rho w, rho v, rho (u^2 + 1/3), ...
+```
+
+
 The conserved quantities (density and momentum): 
 ```{math} 
 :label: eq:eq_conserved_moments
@@ -92,9 +119,25 @@ The other second-order moments:
 ```{math} 
 :label: eq:eq_2nd_order_moments_others
 
-m_{110}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq}}{m_{000}^{eq}},~~
-m_{101}^{eq} = \frac{m_{100}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
-m_{011}^{eq} = \frac{m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+m_{110}^{eq} = \rho u v,~~
+m_{101}^{eq} = \rho u w,~~
+m_{011}^{eq} = \rho v w,~~
+```
+
+
+For the 3rd-order moment, we shall confirm the central moment: 
+```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
+```python
+moment_d3q27.derive_central_moment_from_moment((2,1,0))
+```
+This code shows you that 
+```{math}
+\kappa_{210} = m_{210} - \frac{m_{010} m_{200}}{m_{000}} - \frac{2 m_{100} m_{110}}{m_{000}} + \frac{2 m_{010} m_{100}^{2}}{m_{000}^{2}}
+```
+
+In equilibrium, the third and fourth terms cancel out, and $C_{210}^{eq} = \kappa_{210}^{eq} = 0$, where $C_{210}$ is the density-scaled cumulant (see the next page). Therefore, 
+```{math}
+m_{210}^{eq} = \frac{m_{010}^{eq} m_{200}^{eq}}{m_{000}^{eq}}
 ```
 
 The third-order moments:
@@ -108,6 +151,57 @@ m_{102}^{eq} = \frac{m_{100}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
 m_{021}^{eq} = \frac{m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
 m_{012}^{eq} = \frac{m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
 m_{111}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
+```
+
+We then consider $m_{211}$. 
+```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
+```python
+C = cumulants_d3q27((2,1,1), density_scaling=True).rhs
+
+kappa_subs_dict = {
+    'kappa011': moment_d3q27.derive_central_moment_from_moment((0,1,1)).rhs,
+    'kappa200': moment_d3q27.derive_central_moment_from_moment((2,0,0)).rhs,
+    'kappa101': moment_d3q27.derive_central_moment_from_moment((1,0,1)).rhs,
+    'kappa110': moment_d3q27.derive_central_moment_from_moment((1,1,0)).rhs,
+    'kappa211': moment_d3q27.derive_central_moment_from_moment((2,1,1)).rhs,
+}
+
+C = sp.simplify(C.subs(kappa_subs_dict))
+
+rho = sp.Symbol('rho')
+u, v, w = sp.symbols(['u', 'v', 'w'])
+cs2 = sp.Rational(1,3)
+moment_subs_dict = {
+    'm000': rho,
+    'm100': rho*u,
+    'm010': rho*v,
+    'm001': rho*w,
+    'm110': rho*u*v,
+    'm101': rho*u*w,
+    'm011': rho*v*w,
+    'm111': rho*u*v*w,
+    'm200': rho*(u**2+cs2),
+    'm020': rho*(v**2+cs2),
+    'm002': rho*(w**2+cs2),
+    'm210': rho*(u**2+cs2)*v,
+    'm201': rho*(u**2+cs2)*w,
+    'm120': rho*(v**2+cs2)*u,
+    'm021': rho*(v**2+cs2)*w,
+    'm102': rho*(w**2+cs2)*u,
+    'm012': rho*(w**2+cs2)*v, 
+}
+
+C = sp.simplify(C.subs(moment_subs_dict))
+
+display(C)
+```
+We recognize that 
+```{math}
+C_{211}^{eq} = m_{211}^{eq} - \rho u^{2} v w - \frac{\rho v w}{3}
+```
+However, $C_{211}^{eq} = 0$, and thereofre 
+```{math}
+m_{211}^{eq} = \left( \rho u^{2} + \frac{\rho}{3} \right) v w 
 ```
 
 The fourth-order moments:
@@ -131,7 +225,49 @@ m_{212}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000
 m_{122}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}
 ```
 
-The sixth-order moment: 
+Before considering the highest order, we define the moment subs dict: 
+```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
+```python
+import itertools
+
+moment_orders = itertools.product(range(3), repeat=3)
+
+kappa_subs_dict = {} # for central moment
+for XYZ in moment_orders:
+    key_name = f"kappa{XYZ[0]}{XYZ[1]}{XYZ[2]}"
+    kappa_subs_dict[key_name] = moment_d3q27.derive_central_moment_from_moment(XYZ).rhs
+
+moment_subs_dict.update( # update moment_subs_dict up to 5th order
+    {
+        'm220': rho*(u**2+cs2)*(v**2+cs2),
+        'm202': rho*(u**2+cs2)*(w**2+cs2),
+        'm022': rho*(v**2+cs2)*(w**2+cs2),
+        'm211': rho*(u**2+cs2)*v*w,
+        'm121': rho*(v**2+cs2)*u*w,
+        'm112': rho*(w**2+cs2)*u*v,
+        'm122': rho*(v**2+cs2)*(w**2+cs2)*u,
+        'm212': rho*(u**2+cs2)*(w**2+cs2)*v,
+        'm221': rho*(u**2+cs2)*(v**2+cs2)*w,
+    }
+)
+```
+
+Then, 
+```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
+```python
+C = cumulants_d3q27((2,2,2), density_scaling=True).rhs
+C = sp.simplify(C.subs(kappa_subs_dict))
+C = sp.simplify(C.subs(moment_subs_dict))
+m222 = sp.solve(Eq(sp.Symbol('C222'), C), sp.Symbol('m222'))[0]
+m222 = sp.factor(m222.subs({'C222': 0}))
+```
+You would find 
+```{math}
+m_{222}^{eq} = \rho \left( u^{2} + \frac{1}{3} \right) \left( v^{2} + \frac{1}{3} \right) \left( w^{2} + \frac{1}{3} \right)
+```
+where $C_{222}^{eq} = 0$ was used. 
+
+Thus, the sixth-order moment: 
 ```{math} 
 :label: eq:eq_6th_order_moment
 
@@ -144,7 +280,7 @@ The formulation
 ```{math}
 m^{*} = (1 - \omega) m + m^{eq}
 ```
-is applied to $110$, $101$, $011$, $211$, $121$, $112$, $221$, $212$, $122$, $222$. 
+is applied to $110$, $101$, $011$, $211$, $121$, $112$, $221$, $212$, $122$, $222$. $m_{110}$, $m_{101}$, $m_{011}$ are relaxed with $\omega_{1}$ for shear viscosity. 
 
 With $200$s, for shear 
 ```{math} 
@@ -259,7 +395,7 @@ One additional pattern $1/27$ at the order $(0,0,0)$ appers in D3Q27.
 ```python
 import itertools
 
-dim = 3
+dim = 2
 vectors = create_vectors(dim=dim)
 
 all_orders = list(itertools.product((0, 1, 2), repeat=dim))
@@ -269,13 +405,13 @@ M, M_inv = create_trans_matrix(moment_orders, vectors)
 
 $$
 M = 
-\left[\begin{array}{rrrrrrrrrrrrrrrrrrrrrrrrrrr}1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\0 & 0 & 0 & 0 & 0 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\0 & 0 & 0 & 1 & -1 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\0 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & -1 & -1 & -1 & -1\\0 & 0 & 0 & 0 & 0 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & -1 & -1 & 1 & 1\\0 & 0 & 0 & 1 & 1 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & -1 & 1 & 1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & -1 & -1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & -1 & -1 & -1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\end{array}\right]
+\left[\begin{matrix}1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\0 & 1 & 0 & -1 & 0 & 1 & -1 & -1 & 1\\0 & 0 & 1 & 0 & -1 & 1 & 1 & -1 & -1\\0 & 1 & 0 & 1 & 0 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1\\0 & 0 & 1 & 0 & 1 & 1 & 1 & 1 & 1\\0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1\\0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1\\0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1\end{matrix}\right]
 $$
 
 $$
 M^{-1}
 =
-\left[\begin{array}{rrrrrrrrrrrrrrrrrrrrrrrrrrr}1 & 0 & 0 & 0 & -1 & 0 & 0 & -1 & 0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 1 & 0 & 0 & 1 & 0 & 0 & 0 & -1\\0 & \frac{1}{2} & 0 & 0 & \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{2} & 0 & - \frac{1}{2} & 0 & 0 & - \frac{1}{2} & 0 & - \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & \frac{1}{2} & \frac{1}{2}\\0 & - \frac{1}{2} & 0 & 0 & \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{2} & 0 & \frac{1}{2} & 0 & 0 & - \frac{1}{2} & 0 & - \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & - \frac{1}{2} & \frac{1}{2}\\0 & 0 & 0 & \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & \frac{1}{2} & 0 & - \frac{1}{2} & 0 & 0 & 0 & - \frac{1}{2} & 0 & 0 & 0 & - \frac{1}{2} & 0 & 0 & - \frac{1}{2} & \frac{1}{2} & 0 & 0 & \frac{1}{2}\\0 & 0 & 0 & - \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & \frac{1}{2} & 0 & \frac{1}{2} & 0 & 0 & 0 & \frac{1}{2} & 0 & 0 & 0 & - \frac{1}{2} & 0 & 0 & - \frac{1}{2} & - \frac{1}{2} & 0 & 0 & \frac{1}{2}\\0 & 0 & \frac{1}{2} & 0 & 0 & 0 & 0 & \frac{1}{2} & 0 & 0 & - \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & - \frac{1}{2} & - \frac{1}{2} & 0 & 0 & 0 & 0 & - \frac{1}{2} & 0 & \frac{1}{2} & 0 & \frac{1}{2}\\0 & 0 & - \frac{1}{2} & 0 & 0 & 0 & 0 & \frac{1}{2} & 0 & 0 & \frac{1}{2} & 0 & 0 & 0 & 0 & 0 & \frac{1}{2} & - \frac{1}{2} & 0 & 0 & 0 & 0 & - \frac{1}{2} & 0 & - \frac{1}{2} & 0 & \frac{1}{2}\\0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & - \frac{1}{4} & 0 & 0 & - \frac{1}{4} & 0 & - \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & - \frac{1}{4} & 0 & 0 & \frac{1}{4} & 0 & \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & \frac{1}{4} & 0 & 0 & \frac{1}{4} & 0 & - \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & \frac{1}{4} & 0 & 0 & - \frac{1}{4} & 0 & \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & - \frac{1}{4} & - \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & \frac{1}{4} & \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & \frac{1}{4} & - \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & - \frac{1}{4} & \frac{1}{4} & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{4} & \frac{1}{4} & 0 & - \frac{1}{4} & 0 & 0 & 0 & \frac{1}{4} & - \frac{1}{4} & - \frac{1}{4} & 0 & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{4} & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & - \frac{1}{4} & 0 & - \frac{1}{4} & 0 & 0 & 0 & \frac{1}{4} & \frac{1}{4} & \frac{1}{4} & 0 & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{4} & - \frac{1}{4} & 0 & \frac{1}{4} & 0 & 0 & 0 & \frac{1}{4} & - \frac{1}{4} & \frac{1}{4} & 0 & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{4} & \frac{1}{4} & 0 & \frac{1}{4} & 0 & 0 & 0 & \frac{1}{4} & \frac{1}{4} & - \frac{1}{4} & 0 & - \frac{1}{4}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & \frac{1}{8} & \frac{1}{8} & 0 & \frac{1}{8} & \frac{1}{8} & \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & \frac{1}{8} & \frac{1}{8} & 0 & - \frac{1}{8} & - \frac{1}{8} & - \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & \frac{1}{8} & - \frac{1}{8} & 0 & \frac{1}{8} & - \frac{1}{8} & \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & \frac{1}{8} & - \frac{1}{8} & 0 & - \frac{1}{8} & \frac{1}{8} & - \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & - \frac{1}{8} & \frac{1}{8} & 0 & - \frac{1}{8} & \frac{1}{8} & \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & - \frac{1}{8} & \frac{1}{8} & 0 & \frac{1}{8} & - \frac{1}{8} & - \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & - \frac{1}{8} & - \frac{1}{8} & 0 & - \frac{1}{8} & - \frac{1}{8} & \frac{1}{8} & \frac{1}{8}\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & - \frac{1}{8} & 0 & 0 & 0 & 0 & \frac{1}{8} & 0 & - \frac{1}{8} & - \frac{1}{8} & 0 & \frac{1}{8} & \frac{1}{8} & - \frac{1}{8} & \frac{1}{8}\end{array}\right]
+\left[\begin{matrix}1 & 0 & 0 & -1 & 0 & -1 & 0 & 0 & 1\\0 & \frac{1}{2} & 0 & \frac{1}{2} & 0 & 0 & 0 & - \frac{1}{2} & - \frac{1}{2}\\0 & 0 & \frac{1}{2} & 0 & 0 & \frac{1}{2} & - \frac{1}{2} & 0 & - \frac{1}{2}\\0 & - \frac{1}{2} & 0 & \frac{1}{2} & 0 & 0 & 0 & \frac{1}{2} & - \frac{1}{2}\\0 & 0 & - \frac{1}{2} & 0 & 0 & \frac{1}{2} & \frac{1}{2} & 0 & - \frac{1}{2}\\0 & 0 & 0 & 0 & \frac{1}{4} & 0 & \frac{1}{4} & \frac{1}{4} & \frac{1}{4}\\0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & \frac{1}{4} & - \frac{1}{4} & \frac{1}{4}\\0 & 0 & 0 & 0 & \frac{1}{4} & 0 & - \frac{1}{4} & - \frac{1}{4} & \frac{1}{4}\\0 & 0 & 0 & 0 & - \frac{1}{4} & 0 & - \frac{1}{4} & \frac{1}{4} & \frac{1}{4}\end{matrix}\right]
 $$
 
 ```{admonition} Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
