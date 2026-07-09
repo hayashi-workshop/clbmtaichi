@@ -12,7 +12,7 @@
 
 The cumulant collision operator was proposed in {cite:p}`Geier2015`, the milestone paper. See also {cite:p}`Yamamoto2025` which discusses a role of trancated terms in SGS viscosity. 
 ```{toggle}
-For statistics, see {cite:t}`Cramer1966`. With the mean $m$, the variation $\sigma^{2}$, and the central moment $\mu_{n}$ of order $n$, cumulants are 
+For statistics, see {cite:t}`Cramer1966`. With the mean $m$, the variance $\sigma^{2}$, and the central moment $\mu_{n}$ of order $n$, cumulants are 
 ```{math}
 \begin{split}
     &\kappa_{1} = m, \\
