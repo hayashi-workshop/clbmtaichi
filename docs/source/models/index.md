@@ -35,5 +35,5 @@ For cumulants and moments, see also [Jupynoter Notebook](https://github.com/haya
 ```
 
 ```{seealso}
-{cite:p}`Kruger2017` is a comprehensive reference from fundamentals of physics, math and numerics to practice covering `cuda` coding. Readers, those who are new for LBM, {cite:p}`Seta2021` is highly recommended, but Japanese language edition only! 
+{cite:p}`Kruger2017` is a comprehensive reference from fundamentals of physics, math and numerics to practice covering `cuda` coding. Readers, those who are new to LBM, {cite:p}`Seta2021` is highly recommended, but Japanese language edition only! 
 ```
