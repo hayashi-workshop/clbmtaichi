@@ -9,6 +9,7 @@ Features of the code are:
 - Sympy CSE (Common Subexpression Elimination) optimization
 - Model pool: BGK, TRT, non-orthogonal MRT, Cumulant
 - D2Q9 and D3Q27 discrete velocity models
+- Nested grid
 
 More details can be found in [Documentation@Github Pages](https://hayashi-workshop.github.io/clbmtaichi/)
 
