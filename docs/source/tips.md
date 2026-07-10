@@ -1,5 +1,18 @@
 # Coding tips
 
+## New to Taichi? 
+
+Visit [Taichi Lang official](https://www.taichi-lang.org/) to get started! Key decorators are 
+
+- `@ti.kernel`       (like `__global__` in `cuda`)
+- `@ti.func`         (like `__device__` in `cuda`)
+- `ti.static`        (unroll `if`/`for`)
+- `ti.ndrange`       (efficient `for` loop) 
+- `ti.grouped`       (efficient `for` loop)
+- `ti.data_oriented` (for object-oriented programming with `class`)
+
+If you are new to GPU computing (e.g. CUDA), pay close attention to the descriptions of *Python scope* and *Taichi scope* in `Kernels & Functions` section. 
+
 
 ## SoA (Structure of Array)
 
