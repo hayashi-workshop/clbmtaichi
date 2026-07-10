@@ -2,7 +2,9 @@
 
 ## New to Taichi? 
 
-Visit [Taichi Lang official](https://www.taichi-lang.org/) to get started! Key decorators are 
+Visit [Taichi Lang official](https://www.taichi-lang.org/) to get started! 
+
+Key decorators are 
 
 - `@ti.kernel`       (like `__global__` in `cuda`)
 - `@ti.func`         (like `__device__` in `cuda`)
