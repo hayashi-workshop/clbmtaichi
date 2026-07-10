@@ -72,6 +72,9 @@ f_{i} (t + \Delta t, \mathbf{x} + \mathbf{c}_{i} \Delta t) = f_{i} ( t, \mathbf{
 ```
 where the node coordinate was shifted: $\mathbf{x} \rightarrow \mathbf{x} + \mathbf{c}_{i} \Delta t$.
 
+```{note}
+Why can LBE mimic macroscopic flow behavior? See {cite:p}`Kruger2017`/{cite:p}`Seta2021`, or [Prof. Kruger's online lecture](https://www.youtube.com/watch?v=jfk4feD7rFQ). 
+```
 
 ## Velocity sets 
 
