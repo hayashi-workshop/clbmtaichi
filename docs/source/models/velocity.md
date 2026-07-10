@@ -8,7 +8,7 @@
 
 Preparation of jupyter notebook for Example with [cumulant_moment_exprs.ipynb](https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb)
 
-If you have already clone the repository, 
+If you have already cloned the repository, 
 - `cd generator/`
 - launch notebook by `jupyter notebook cumulant_moment_exprs.ipynb`
 - Then, from notebook menu, `Kernel` > `Restart Kernel and Run All Cells` to load modules on your notebook. 
