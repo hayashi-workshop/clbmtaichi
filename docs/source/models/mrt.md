@@ -67,7 +67,7 @@ print(m20.rhs)
 ```
 
 ```{note}
-The MRT introduced here differs from the well-known DHumieres's implementation {cite:p}`DHumieres`, in which Gram-Schmidt orthogonalization is the key idea to connecting each moment to physical quantities. See discssion in {cite:p}`Geier2015`.
+The MRT introduced here differs from the well-known DHumieres's implementation {cite:p}`DHumieres`, in which Gram-Schmidt orthogonalization is the key idea to connecting each moment to physical quantities. See discussion in {cite:p}`Geier2015`.
 ```
 
 ## Equilibrium moment $m_{eq}$
