@@ -33,3 +33,47 @@ clbmtaichi documentation
    :width: 100%
    :align: center
    :alt: nested.png
+
+Installation
+------------
+Using anaconda virtual environment is highly recommended. Here, we create a new environment ``taichi_env``: 
+
+.. code-block:: bash
+
+   conda create -n taichi_env python=3.10 -y
+
+Activate ``taichi_env``
+
+.. code-block:: bash
+
+   conda activate taichi_env
+
+Clone the repository onto your local machine. 
+
+.. code-block:: bash
+
+   git clone https://github.com/hayashi-workshop/clbmtaichi.git
+
+Get into the cloned repo. 
+
+.. code-block:: bash
+
+   cd clbmtaichi
+
+Export the current directory path as environment variable for convenience. Not mandatory. 
+
+.. code-block:: bash
+
+   export REPO_PATH=$(pwd)
+
+Install requirements (taichi and some basic packages)
+
+.. code-block:: bash
+
+   pip install -r requirements.txt
+
+You are ready to run ``clbmtaichi``!
+
+.. code-block:: bash
+
+   python main.py run
