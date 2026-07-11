@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'clbmtaichi'
-copyright = '2026, Kosuke Hayashi'
+copyright = '2026, Kosuke Hayashi@Kobe University'
 author = 'Kosuke Hayashi'
 
 # -- General configuration ---------------------------------------------------
