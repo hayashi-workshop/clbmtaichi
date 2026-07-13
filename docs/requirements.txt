@@ -9,3 +9,4 @@ furo
 sphinxcontrib-bibtex
 sphinx-copybutton
 sphinx-togglebutton
+myst-nb
