@@ -23,6 +23,7 @@ clbmtaichi documentation
    kernels
    nested
    tips
+   handson_derivation
    reference
 
 .. raw:: html

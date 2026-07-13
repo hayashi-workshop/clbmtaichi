@@ -14,7 +14,8 @@ author = 'Kosuke Hayashi'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'myst_parser',
+#    'myst_parser',
+    'myst_nb',
     'sphinx.ext.mathjax',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
@@ -61,7 +62,10 @@ html_extra_path = ['extra']
 souce_suffix = {
     '.rst' : 'restructuredtext',
     '.md' : 'markdown',
+#    '.ipynb' : 'myst-nb',
 }
+
+nb_execution_mode = "off"
 
 def setup(app):
     app.add_css_file('custom.css')
