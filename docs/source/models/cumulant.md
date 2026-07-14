@@ -149,7 +149,7 @@ Here, $\kappa$ is the central moment defined by
 
 \begin{aligned}
 &m_{ij|\gamma} = \sum_{k=-1,0,1} k^{\gamma} f_{ijk} \\
-&m_{i|\beta \gamma} = \sum_{j=-1,0,1} j^{\beta} m_{ij|\beta} \\
+&m_{i|\beta \gamma} = \sum_{j=-1,0,1} j^{\beta} m_{ij|\gamma} \\
 &m_{\alpha \beta \gamma}  = \sum_{i=-1,0,1} i^{\alpha} m_{i|\beta \gamma}
 \end{aligned}
 ```
