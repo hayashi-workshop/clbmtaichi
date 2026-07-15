@@ -7,7 +7,10 @@ import math
 chimera_name = 'chimera'
 chimera_delimiter = 'c'
 
-def chimera_moment(dim, vectors, pipe_exprs):
+def chimera_moment(dim, vectors, pipe_exprs=None):
+    if pipe_exprs == None:
+        pipe_exprs = {} # register chimera pipeline
+
     # dynamic loop based on vectors
     # dim=3: grouping (v[0], v[1]) and product sum for v[2] (k)
     # dim=2: grouping v[0] and product sum for v[1] (j)
@@ -87,6 +90,27 @@ def create_moment_dictionary(moment_orders, rho):
             C_post[o] = sp.Symbol(f"C{o_name}_post")
     return M_raw, M_post, K_cen, K_post, C_cum, C_post
 
+# ---> added 15 July
+def generate_moment_expr(o, first_chimera, second_chimera):
+    dim = len(o)
+
+    expr_raw = 0
+    if dim == 3:
+        alpha, beta, gamma = o
+        for i_val in [-1, 0, 1]:
+            if (i_val, beta, gamma) in second_chimera:
+                i_pow = 1 if (i_val == 0 and alpha == 0) else (i_val ** alpha)
+                expr_raw += i_pow * second_chimera[(i_val, beta, gamma)]
+    else:  # dim == 2
+        alpha, beta = o
+        for i_val in [-1, 0, 1]:
+            target_key = ((i_val,), beta)
+            if target_key in first_chimera:
+                i_pow = 1 if (i_val == 0 and alpha == 0) else (i_val ** alpha)
+                expr_raw += i_pow * first_chimera[target_key]
+                
+    return sp.simplify(expr_raw)
+# <---
 
 def generate_central_moment_expr(dim, o, rho, vel, m_chimeras, moments): # o is tupple like (2,0,1) expressing order of moment
     # this helper function generates 

@@ -320,6 +320,71 @@ class TypeWriter:
         dim, num_pops, collision_model, vectors, weights = self.default_pack
         class_name, old_name, new_name                   = self.misc_pack
 
+        pipe_clean, pipe_mtof, macro_keys, vel_names = self.code_bundle
+
+        for key, expr in zip(pipe_clean.keys(), pipe_clean.values()):
+            if key == sp.Symbol('inv_rho'):
+                self.buffer.append(f"{idt[bi+2]}{key} = 1.0/rho\n")
+            elif expr == 1/sp.Symbol('rho'):
+                self.buffer.append(f"{idt[bi+2]}{key} = inv_rho\n")
+            else:
+                self.buffer.append(f"{idt[bi+2]}{key} = {self._clean_div_terms(str(expr))}\n")
+
+        # re-order allsignments as 
+        # from macro to post moment, (stored in asignments_other)
+        # then, post f in oder of 0, 1, 2, ... (stored in f_post)
+        f_post_map = {}
+        assignments_other = []
+        for var_sym, expr in zip(pipe_mtof.keys(), pipe_mtof.values()):
+            var_name = var_sym.name
+            if var_name.startswith("f_post_idx_"):
+                f_idx = vectors.index(self._convert_direction_to_idx(dim, var_name))
+                f_post_map[f_idx] = expr # write f_new last. for this, we escape them into f_post_map
+            else:
+                assignments_other.append((var_name, expr))                    
+        
+        skip_moments = ['m00', 'm10', 'm01'] if dim==2 else ['m000', 'm100', 'm010', 'm001']
+        for var_name, expr in assignments_other:
+            if var_name in skip_moments:
+                pass
+            else:
+                self.buffer.append(self._clean_div_terms(f"{idt[bi+2]}{var_name} = {expr}\n"))
+
+        for f_idx in sorted(f_post_map.keys()):
+            expr = f_post_map[f_idx]
+#            self.buffer.append(self._clean_div_terms(f"{idt[bi+2]}{new_name}[I][{f_idx}] = {expr}\n"))
+            self.buffer.append(self._clean_div_terms(f"{idt[bi+2]}{new_name}[I + c[{f_idx}]*ti.static(self.pop)][{f_idx}] = {expr}\n"))
+
+
+        if self.drho_mode == 'drho':
+            self.buffer.append(f"{idt[bi+2]}{class_name}.rho[I] = {'dm'+'0'*dim}\n")
+        else:
+            self.buffer.append(f"{idt[bi+2]}{class_name}.rho[I] = rho\n")
+
+        for d_idx, d_name in enumerate(vel_names):
+            self.buffer.append(f"{idt[bi+2]}{class_name}.vel[I][{d_idx}] = {d_name}\n")
+
+
+    # convert direction in variable name to q index, like '1_1_1' -> 26
+    def _convert_direction_to_idx(self, dim, var_name):
+        parts = var_name.split("_")
+        def parse_v(s):
+            if s == "m1": return -1
+            return int(s)
+        if dim == 2:
+            return (parse_v(parts[3]), parse_v(parts[4])) # (i, j)
+        else:
+            return (parse_v(parts[3]), parse_v(parts[4]), parse_v(parts[5])) # (i, j, k)
+        
+
+
+    # # # # # # # # # # # # # # # # # # #
+
+    def _export_cumulant_code_backup(self): # delete later 
+        idt, bi = self.idt, self.bi
+        dim, num_pops, collision_model, vectors, weights = self.default_pack
+        class_name, old_name, new_name                   = self.misc_pack
+
         all_assignments, rr_macro, macro_keys, vel_names = self.code_bundle
         replacements_macro, reduced_macro                = rr_macro
 
@@ -364,16 +429,3 @@ class TypeWriter:
         self.buffer.append(f"{idt[bi+2]}{class_name}.rho[I] = {self._clean_div_terms(str(rho_expr))}\n")
         for d_idx, d_name in enumerate(vel_names):
             self.buffer.append(f"{idt[bi+2]}{class_name}.vel[I][{d_idx}] = {d_name}\n")
-
-
-    # convert direction in variable name to q index, like '1_1_1' -> 26
-    def _convert_direction_to_idx(self, dim, var_name):
-        parts = var_name.split("_")
-        def parse_v(s):
-            if s == "m1": return -1
-            return int(s)
-        if dim == 2:
-            return (parse_v(parts[3]), parse_v(parts[4])) # (i, j)
-        else:
-            return (parse_v(parts[3]), parse_v(parts[4]), parse_v(parts[5])) # (i, j, k)
-        

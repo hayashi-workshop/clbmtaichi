@@ -23,7 +23,6 @@ from generator.generator_utils.cumulant_utils import back_trans_raw_to_f
 # code generator
 from generator.generator_utils.export_utils import TypeWriter
 
-
 def normalize_omega_config(input_vals, num_params):
     if input_vals is None:
         return [f"lbm.omega[{i}]" for i in range(1, num_params + 1)]    
@@ -144,7 +143,7 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
     print(f"# >>> invoking {collision_model} code generator >>>")
     print(f"# ")
     print(f"# density shift mode :  {density_shift}")
-    if drho_mode == 'drho':
+    if drho_mode == 'drho' and collision_model is not "Cumulant":
         print(f"#                       [rho] in the generated eqs. should read [delta rho] ")
     print(f"# ")
     print(f"# -------------------------------------------------------------------------\n")
@@ -480,12 +479,27 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
 
 
     elif collision_model == "Cumulant":
+        # load generating function module
+        # solve search path for generating_functions.py, in which path begins "from generator_utils."
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+
+        from generator.generator_utils.generating_functions import CumulantGenerator
+        from generator.generator_utils.generating_functions import MomentGenerator
+
+        Cgen = CumulantGenerator(dim)
+        Kgen = MomentGenerator(vectors, is_central_moment=True)
+
         # preparation for drho_mode = 'drho': transformed weight vector : M w
         M, M_inv = create_trans_matrix(moment_orders, vectors) # >>> Setting up transformation matrix from f to m
         w_vec = M * sp.Matrix(weights) * density_shift # M w in 'drho' mode
         order_to_weight = {order: w_vec[i] for i, order in enumerate(moment_orders)}
 
-        # phase 1: constructing symbolic equations #
+
+        # # # # # # # # # # # # # # # # # # # # # # #
+        # phase 1: constructing symbolic equations  #
+        # # # # # # # # # # # # # # # # # # # # # # #
         one = sp.Integer(1)
         orders_2nd = [o for o in moment_orders if sum(o) == 2]
         orders_3rd = [o for o in moment_orders if sum(o) == 3]
@@ -493,26 +507,109 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
         orders_5th = [o for o in moment_orders if sum(o) == 5]
         orders_6th = [o for o in moment_orders if sum(o) == 6]
 
-        first_chimera, second_chimera, v_map, pipe_exprs = chimera_moment(dim, vectors, pipe_exprs) 
+
+        from generator.generator_utils.cumulant_utils import generate_moment_expr
+        from sympy import Eq
+
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        # - * - forward transformation pipeline - * - #
+        #             f -> m -> kappa -> C            #
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        pipe_forward = {}
+
+        # forward: f -> m
+        pipe_exprs_m_chimera = {}
+
+        first_chimera, second_chimera, v_map, pipe_exprs_m_chimera = chimera_moment(dim, vectors) 
         moment_chimera = [first_chimera, second_chimera] # forward transformation from f to central moment/cumulant
+
+        M_raw_expr = {}
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            M_raw_expr[o] = generate_moment_expr(moment_orders[i], first_chimera, second_chimera)
+
+        # forward: m -> kappa
+        K_cen_expr = {}
+
+        kappa_subs_dict = {}
+        cen_names = ["kappa" + "".join(map(str, order)) for order in moment_orders]
+
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+
+            kappa_eq = Kgen.derive_central_moment_from_moment(order=o, expr_with_velocity=True) # get kappa in terms of raw moments from generating fucntion
+            
+            k_sym, expr = kappa_eq.lhs, kappa_eq.rhs
+            K_cen_expr[o] = expr # register kappa expr
+
+            if sum(o) == 2:
+                kappa_subs_dict.update({name: sp.solve(kappa_eq, name)[0]}) # solver for raw moment and add to subs_dict 
+
+            if sum(o) > 2:
+                K_cen_expr[o] = sp.simplify(K_cen_expr[o].subs(kappa_subs_dict)) # replace raw moments with lower order central moments
+                kappa_subs_dict.update({k_sym: K_cen_expr[o]}) # add kappa expression to subs_dict for replacement at the next order
+                kappa_subs_dict.update({name: sp.solve( Eq(k_sym, K_cen_expr[o]), name)[0]}) # solve for raw moment of the same order and add to sub_dict for replacement at the next order
+
+        # ---> replace symbol \kappa_{o} with kappa'o' in equations 
+        # prepare subs map
+        ksym_subs_map = {}
+        for o in moment_orders:
+            o_name = "".join(map(str, o))
+            raw_symbol_str = r"\kappa_{" + o_name + "}"
+            ksym_subs_map.update({sp.Symbol(raw_symbol_str): sp.Symbol(f"kappa{o_name}")})
+
+        for o in moment_orders:
+            K_cen_expr[o] = K_cen_expr[o].subs(ksym_subs_map)
+        # <---
+
+        # forward: kappa -> cumulant
+        C_cum_expr = {}
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            C_eq = Cgen(o, density_scaling=True) # get cumulant
+            C_cum_expr[o] = C_eq.rhs # register cumulant expr
+
+
+        # - * - register forward transformation to pipeline - * - #
+        #       pipeline to be exported to console 
+        pipe_forward = pipe_forward | pipe_exprs_m_chimera
+
+        for o in moment_orders:
+            pipe_forward[M_raw[o]] = M_raw_expr[o] + order_to_weight[o]
+
+        dm = sp.Symbol('dm'+'0'*dim)
+        if drho_mode == 'drho':
+            pipe_forward[dm] = M_raw_expr[(0,0,0)[:dim]]
+
+        for o in moment_orders:
+            if sum(o) > 1:
+                pipe_forward[K_cen[o]] = K_cen_expr[o]
+
+        for o in moment_orders:
+            if sum(o) > 3:
+                pipe_forward[C_cum[o]] = C_cum_expr[o]
+
+
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        # - * -   collision in cumulant space   - * - #
+        #                  C -> C^{*}                 #
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        pipe_collision = {}
 
         # register all 0th and 1st order moments and kappa # -> # like (0,0,0), (0,1,0) and so on
         macro_orders = [(0,0,0), (1,0,0), (0,1,0), (0,0,1)] if dim == 3 else [(0,0), (1,0), (0,1)]
         for o in macro_orders:
             raw_expr, _ = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-            pipe_exprs[M_raw[o]] = raw_expr + order_to_weight[o]
 
         # register all 2nd and 3rd order moments and kappa # -> # like (2,0,0), (2,1,1) and so on
         for o in orders_2nd + orders_3rd:
             raw_expr, cen_expr = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-            pipe_exprs[M_raw[o]] = raw_expr + order_to_weight[o]
-            pipe_exprs[K_cen[o]] = cen_expr
 
         # collision/relaxation process in Cumulant space
         cross_orders_2nd = [o for o in orders_2nd if max(o) == 1]
         for o in cross_orders_2nd:
             relaxation_expr = K_cen[o] + omega_config[om_syms[1]] * (0 - K_cen[o])
-            pipe_exprs[K_post[o]] = sp.simplify(relaxation_expr)
+            pipe_collision[K_post[o]] = sp.simplify(relaxation_expr)
 
         kappa_diag_eq = sp.Rational(1, 3) * rho # isotropic component (pressure): rho * cs**2 = rho / 3
         if dim == 2:
@@ -523,8 +620,8 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
             diff_mode  = K_cen[(2, 0)] - K_cen[(0, 2)]
             diff_post  = diff_mode + omega_config[om_syms[1]] * (0 - diff_mode)
             
-            pipe_exprs[K_post[(2, 0)]] = sp.simplify((trace_post + diff_post) * sp.Rational(1, 2))
-            pipe_exprs[K_post[(0, 2)]] = sp.simplify((trace_post - diff_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(2, 0)]] = sp.simplify((trace_post + diff_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(0, 2)]] = sp.simplify((trace_post - diff_post) * sp.Rational(1, 2))
         else:
             trace_mode = K_cen[(2,0,0)] + K_cen[(0,2,0)] + K_cen[(0,0,2)]
             trace_eq   = 3 * kappa_diag_eq # trace of eqilibrium values: 3 * (rho/3) = rho
@@ -535,14 +632,14 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
             diff2_mode = (K_cen[(2,0,0)] + K_cen[(0,2,0)] - 2 * K_cen[(0,0,2)])
             diff2_post = diff2_mode + omega_config[om_syms[1]] * (0 - diff2_mode)
 
-            pipe_exprs[K_post[(2,0,0)]] = sp.simplify((2 * trace_post + 3 * diff1_post + diff2_post) * sp.Rational(1, 6))
-            pipe_exprs[K_post[(0,2,0)]] = sp.simplify((2 * trace_post - 3 * diff1_post + diff2_post) * sp.Rational(1, 6))
-            pipe_exprs[K_post[(0,0,2)]] = sp.simplify((trace_post - diff2_post) * sp.Rational(1, 3))
+            pipe_collision[K_post[(2,0,0)]] = sp.simplify((2 * trace_post + 3 * diff1_post + diff2_post) * sp.Rational(1, 6))
+            pipe_collision[K_post[(0,2,0)]] = sp.simplify((2 * trace_post - 3 * diff1_post + diff2_post) * sp.Rational(1, 6))
+            pipe_collision[K_post[(0,0,2)]] = sp.simplify((trace_post - diff2_post) * sp.Rational(1, 3))
 
         if dim == 2:
             for o in orders_3rd: # goes to zero equilibria
                 relaxation_expr = K_cen[o] + omega_config[om_syms[3]] * (sp.Integer(0) - K_cen[o])
-                pipe_exprs[K_post[o]] = sp.simplify(relaxation_expr)
+                pipe_collision[K_post[o]] = sp.simplify(relaxation_expr)
         else: 
             # 120, 102, 210, 012, 201, 021
             sum1_post  = (one - omega_config[om_syms[3]]) * (K_cen[(1,2,0)] + K_cen[(1,0,2)])
@@ -551,39 +648,32 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
             diff1_post = (one - omega_config[om_syms[4]]) * (K_cen[(1,2,0)] - K_cen[(1,0,2)])
             diff2_post = (one - omega_config[om_syms[4]]) * (K_cen[(2,1,0)] - K_cen[(0,1,2)])
             diff3_post = (one - omega_config[om_syms[4]]) * (K_cen[(2,0,1)] - K_cen[(0,2,1)])
-            pipe_exprs[K_post[(1,2,0)]] = sp.simplify((sum1_post + diff1_post) * sp.Rational(1, 2))
-            pipe_exprs[K_post[(2,1,0)]] = sp.simplify((sum2_post + diff2_post) * sp.Rational(1, 2))
-            pipe_exprs[K_post[(2,0,1)]] = sp.simplify((sum3_post + diff3_post) * sp.Rational(1, 2))
-            pipe_exprs[K_post[(1,0,2)]] = sp.simplify((sum1_post - diff1_post) * sp.Rational(1, 2))
-            pipe_exprs[K_post[(0,1,2)]] = sp.simplify((sum2_post - diff2_post) * sp.Rational(1, 2))
-            pipe_exprs[K_post[(0,2,1)]] = sp.simplify((sum3_post - diff3_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(1,2,0)]] = sp.simplify((sum1_post + diff1_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(2,1,0)]] = sp.simplify((sum2_post + diff2_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(2,0,1)]] = sp.simplify((sum3_post + diff3_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(1,0,2)]] = sp.simplify((sum1_post - diff1_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(0,1,2)]] = sp.simplify((sum2_post - diff2_post) * sp.Rational(1, 2))
+            pipe_collision[K_post[(0,2,1)]] = sp.simplify((sum3_post - diff3_post) * sp.Rational(1, 2))
 
             # 111 
             o = (1,1,1)
-            pipe_exprs[K_post[o]] = sp.simplify( (one - omega_config[om_syms[5]]) * K_cen[o] )
+            pipe_collision[K_post[o]] = sp.simplify( (one - omega_config[om_syms[5]]) * K_cen[o] )
 
         # cumulant transformation for orders higher than 3
         all_higher_orders = orders_4th + orders_5th + orders_6th
         special_4th_cross = {(2, 2, 0), (2, 0, 2), (0, 2, 2)}
         if dim == 3:
-            for o in special_4th_cross:
-                raw_expr, cen_expr = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-                pipe_exprs[M_raw[o]] = raw_expr + order_to_weight[o]
-                pipe_exprs[K_cen[o]] = cen_expr
-                
-                c_expr, k_post_expr = generate_cumulant_from_central(o, rho, cumulants_pack)
-                pipe_exprs[C_cum[o]] = c_expr
 
             cross1_post = (C_cum[(2,2,0)] - 2 * C_cum[(2,0,2)] + C_cum[(0,2,2)]) * (one - omega_config[om_syms[6]])
             cross2_post = (C_cum[(2,2,0)] + C_cum[(2,0,2)] - 2 * C_cum[(0,2,2)]) * (one - omega_config[om_syms[6]])
             cross3_post = (C_cum[(2,2,0)] + C_cum[(2,0,2)] + C_cum[(0,2,2)]) * (one - omega_config[om_syms[7]])
-            pipe_exprs[C_post[(2,2,0)]] = sp.simplify( (   cross1_post + cross2_post + cross3_post ) * sp.Rational(1, 3) )
-            pipe_exprs[C_post[(2,0,2)]] = sp.simplify( ( - cross1_post               + cross3_post ) * sp.Rational(1, 3) )
-            pipe_exprs[C_post[(0,2,2)]] = sp.simplify( ( - cross2_post               + cross3_post ) * sp.Rational(1, 3) )
+            pipe_collision[C_post[(2,2,0)]] = sp.simplify( (   cross1_post + cross2_post + cross3_post ) * sp.Rational(1, 3) )
+            pipe_collision[C_post[(2,0,2)]] = sp.simplify( ( - cross1_post               + cross3_post ) * sp.Rational(1, 3) )
+            pipe_collision[C_post[(0,2,2)]] = sp.simplify( ( - cross2_post               + cross3_post ) * sp.Rational(1, 3) )
 
             for o in special_4th_cross:
                 _, k_post_expr = generate_cumulant_from_central(o, rho, cumulants_pack)
-                pipe_exprs[K_post[o]] = k_post_expr
+                pipe_collision[K_post[o]] = sp.expand(k_post_expr)
 
         processed = False
         for o in all_higher_orders:
@@ -591,90 +681,183 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
                 if processed:
                     pass
                 else:
-                    raw_expr, cen_expr = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-                    c_expr, k_post_expr = generate_cumulant_from_central(o, rho, cumulants_pack)
+                    _, k_post_expr = generate_cumulant_from_central(o, rho, cumulants_pack)
                     if omega_config[om_syms[6]] == 1.0:
-                        pipe_exprs[C_post[o]] = sp.Integer(0)
+                        pipe_collision[C_post[o]] = sp.Integer(0)
                         pass
                     else:
-                        pipe_exprs[M_raw[o]] = raw_expr + order_to_weight[o]
-                        pipe_exprs[K_cen[o]] = cen_expr
-
-                        pipe_exprs[C_cum[o]] = c_expr
-                        pipe_exprs[C_post[o]] = sp.simplify( (one - omega_config[om_syms[6]]) * C_cum[o] )
-                    pipe_exprs[K_post[o]] = k_post_expr
+                        pipe_collision[C_post[o]] = sp.simplify( (one - omega_config[om_syms[6]]) * C_cum[o] )
+                    pipe_collision[K_post[o]] = sp.expand(k_post_expr)
                 continue
 
             if dim == 3 and o in special_4th_cross:
                 continue
 
-            raw_expr, cen_expr = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-            pipe_exprs[M_raw[o]] = raw_expr + order_to_weight[o]
-            pipe_exprs[K_cen[o]] = cen_expr
-            
-            c_expr, k_post_expr = generate_cumulant_from_central(o, rho, cumulants_pack)
-            pipe_exprs[C_cum[o]] = c_expr
+            _, k_post_expr = generate_cumulant_from_central(o, rho, cumulants_pack)
 
             current_omega = omega_config[om_syms[8]]
             if sum(o) == 5: current_omega = omega_config[om_syms[9]]
             elif sum(o) == 6: current_omega = omega_config[om_syms[10]]
 
-            pipe_exprs[C_post[o]] = sp.simplify( (one - current_omega) * C_cum[o] )
-            pipe_exprs[K_post[o]] = k_post_expr
+            pipe_collision[C_post[o]] = sp.simplify( (one - current_omega) * C_cum[o] )
+            pipe_collision[K_post[o]] = sp.expand(k_post_expr)
 
-        # cleanup for omega = 1 case
-        if dim == 3:
-            for o in all_higher_orders:
-                if o in special_4th_cross:
-                    continue
 
-                current_omega = omega_config[om_syms[8]]
-                if sum(o) == 5: current_omega = omega_config[om_syms[9]]
-                elif sum(o) == 6: current_omega = omega_config[om_syms[10]]
 
-                if current_omega == 1.0:
-                    pipe_exprs[C_post[o]] = sp.Integer(0)
-                    if sum(o) < 6:
-                        pipe_exprs[K_post[o]] = sp.Integer(0) # NOTE: kappa222_post is non zero so keep it
-                    else: # C222_post = 0, therefore m222, kappa222 and C222 are not required
-                        del pipe_exprs[M_raw[o]]
-                        del pipe_exprs[K_cen[o]]
-                        del pipe_exprs[C_cum[o]]
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        # - * - backward transformation pipeline - * -#
+        #             C -> kappa -> m -> f            #
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        pipe_backward = {}
 
         # backward Transformation from c_post to m_post
-        pipe_exprs = back_trans_kappa_to_raw(dim, moment_orders, vel_syms, K_post, M_post, pipe_exprs) # backward transform: kappa to moment
+        pipe_backward = back_trans_kappa_to_raw(dim, moment_orders, vel_syms, K_post, M_post, pipe_backward) # backward transform: kappa to moment
 
         # shift post-collision raw moment to "shifted" raw moment before transforming back to f
         # this process does do nothing if drho_mode is 'rho'
         for o in moment_orders:
-            if M_post[o] in pipe_exprs:
-                    pipe_exprs[M_post[o]] -= order_to_weight[o]
+            if M_post[o] in pipe_backward:
+                pipe_backward[M_post[o]] -= order_to_weight[o]
 
         # backward Transformation from m_post to f_post
-        pipe_exprs, f_post_exprs = back_trans_raw_to_f(dim, v_map, M_post, pipe_exprs) # backward transform: moment to f
+        pipe_mtof = {}
 
-        # phase 2: conversion to LBM code enpowered by CSE
-        cse_target_macro = list(macro_exprs.values())
-        replacements_macro, reduced_macro = sp.cse(cse_target_macro, symbols=sp.symbols('xm0:500'))           
+        pipe_mtof, f_post_exprs = back_trans_raw_to_f(dim, v_map, M_post, pipe_mtof) # backward transform: moment to f
 
-        cleaned_pipe_exprs = {} # clean 0!
-        for k, v in pipe_exprs.items():
-            expr_expanded = sp.expand(v)
-            if expr_expanded == 0 and not k.name.startswith("f_post_idx_"):
-                continue
-            cleaned_pipe_exprs[k] = expr_expanded
-        removed_symbols = {k: sp.Integer(0) for k, v in pipe_exprs.items() if sp.expand(v) == 0 and not k.name.startswith("f_post_idx_")}
-        
-        final_pipe_exprs = {}
-        for k, v in cleaned_pipe_exprs.items():
-            final_pipe_exprs[k] = v.subs(removed_symbols)
+        ######################################### concat pipelines 
+        pipe_exprs = pipe_forward | pipe_collision | pipe_backward | pipe_mtof
 
-        equations = list(final_pipe_exprs.items())
-        replacements, reduced_exprs = sp.cse(equations, symbols=sp.symbols('x0:5000'))
 
-        all_assignments = replacements + reduced_exprs
+        # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        # phase 2: conversion to LBM code enpowered by CSE  #
+        # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-        code_bundle = [all_assignments, [replacements_macro, reduced_macro], macro_keys, vel_names]
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        # - * -Sympy CSE to forward transformation- * #
+        # # # # # # # # # # # # # # # # # # # # # # # #
+
+        # CSE -> only to chimera 
+        chimera1st_targets = {}
+        for suffix, chimera_sym in zip(first_chimera.keys(), first_chimera.values()):
+            chimera1st_targets[chimera_sym] = pipe_exprs_m_chimera[chimera_sym]
+
+        cse_targets_mc = ( list(chimera1st_targets.values()) )
+        replacements_mc, reduced_exprs_mc = sp.cse(cse_targets_mc, symbols=sp.symbols('xm0:500'))
+
+        # CSE -> central moment
+        cse_targets_cm = []
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            cse_targets_cm.append(K_cen_expr[o])
+
+        replacements_cm, reduced_exprs_cm = sp.cse(cse_targets_cm, symbols=sp.symbols('xk0:500'))
+
+        # CSE -> cumulant
+        # first, expand expr to better replacement for 1/rho, 1/rho**2
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            C_cum_expr[o] = sp.expand( C_cum_expr[o] )
+       
+        cse_targets_cl = []
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            cse_targets_cl.append( C_cum_expr[o] )
+
+        replacements_cl, reduced_exprs_cl = sp.cse(cse_targets_cl, symbols=sp.symbols('xc0:500'))
+
+        # # # # CSE-based pipeline # # # #
+        pipe_all = {}
+
+        # [forward] raw moment
+        for var, expr in replacements_mc:
+            pipe_all[var] = expr
+
+        for i, chimera_sym in enumerate(first_chimera.values()):
+            pipe_all[chimera_sym] = reduced_exprs_mc[i]
+
+        for suffix, key in zip(second_chimera.keys(), second_chimera.values()):
+            pipe_all[key] = pipe_exprs_m_chimera[key]
+
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            pipe_all[M_raw[o]] = M_raw_expr[o] + order_to_weight[o]
+
+        if dm in pipe_forward:
+            pipe_all[dm] = pipe_forward[dm]
+
+        pipe_all[rho] = M_raw[(0,0,0)[:dim]]
+
+        # [macroscopic variables]
+        inv_rho = sp.Symbol('inv_rho')
+        pipe_all[inv_rho] = 1.0/rho
+
+        vel_orders = [(1,0,0)[:dim], (0,1,0)[:dim], (0,0,1)[:dim]][:dim]
+        for d in range(dim):
+            pipe_all[vel_syms[d]] = M_raw[vel_orders[d]]*inv_rho
+
+        # [forward] central moment
+        #
+        # non CSE for kappa reconstruction
+        # 
+        # we have to decide Cascading or CSE
+        #                   the former seems better
+        '''
+        for var, expr in replacements_cm:
+            pipe_all[var] = expr
+
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            if sum(o) > 1:
+                pipe_all[K_cen[o]] = reduced_exprs_cm[i]
+        '''
+        for o in moment_orders:
+            if sum(o) > 1:
+                pipe_all[K_cen[o]] = K_cen_expr[o]
+
+        # [forward] cumulant
+        for var, expr in replacements_cl:
+            pipe_all[var] = expr
+
+        for i in range(len(moment_orders)):
+            o, name = moment_orders[i], mom_names[i]
+            if sum(o) > 3:
+                pipe_all[C_cum[o]] = reduced_exprs_cl[i]
+
+        # [collision]
+        for key, expr in zip(pipe_collision.keys(), pipe_collision.values()):
+            pipe_all[key] = expr
+
+        # [backward]
+        for key, expr in zip(pipe_backward.keys(), pipe_backward.values()):
+            pipe_all[key] = expr
+
+        # clean zeros # x = 0 may happen when omega=1 is set; 
+        # trivial zeros are removed in this procedure
+        pipe_clean = pipe_all
+
+        zero_subs_map = {}
+
+        while True:
+            new_zeros_found = False
+            keys_to_remove = []
+
+            for key, expr in pipe_clean.items():
+                substituted_expr = expr.subs(zero_subs_map) # eliminate zeros in expr
+
+                if substituted_expr == 0:
+                    zero_subs_map[key] = 0
+                    keys_to_remove.append(key)
+                    new_zeros_found = True
+                else:
+                    pipe_clean[key] = substituted_expr # store zero-eliminated expr
+
+            for key in keys_to_remove:
+                pipe_clean.pop(key) # remove zero vars
+
+            if not new_zeros_found: # jump out when all zeros have been removed
+                break
+
+        code_bundle = [pipe_clean, pipe_mtof, macro_keys, vel_names]
 
         # -------------------------------------------------------------------------
         # <----------------------------------------------------- model construction

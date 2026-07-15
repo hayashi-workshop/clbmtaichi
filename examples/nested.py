@@ -63,7 +63,7 @@ print(export_tree_info(tree)) # info will be sent to "tree_info.txt"
 
 step, step_end = 0, 10000 # |--- run your simulation ---> #
 while renderer.window.running and step < step_end:
-    for _ in range(100):
+    for _ in range(10):
         tree.run() # recursive run
         step += 1
 
