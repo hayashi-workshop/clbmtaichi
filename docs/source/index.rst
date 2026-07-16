@@ -24,6 +24,7 @@ clbmtaichi documentation
    nested
    tips
    handson_derivation
+   handson_derivation_cumulant
    reference
 
 .. raw:: html
