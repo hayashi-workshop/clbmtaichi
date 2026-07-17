@@ -154,14 +154,15 @@ while renderer.window.running and step < step_end:
 
 ## GPU vs CPU
 
-One of the attractive features of [Taichi](https://www.taichi-lang.org/) is its portability. No need to modify the code to migrate from a gpu to a cpu environment. Apple Silicon M2 used in the code development possesses 8 cpu cores (4 efficient, 4 performance) and 8 gpu cores. `examples/mlups_main.py` compares MLUPS with the M2 gpu and cpu for 100x100x100 cavity flow simulation. 
+One of the attractive features of [Taichi](https://www.taichi-lang.org/) is its portability. No need to modify the code to migrate from a gpu to a cpu environment. Apple Silicon M2 used in the code development possesses 8 cpu cores (4 efficient, 4 performance) and 8 gpu cores. `examples/mlups_main.py` compares MLUPS with the M2 gpu and cpu for 100x100x100 (1M lattice) and 256x256x256 (16.8M lattice) cavity flow simulation. 
 
 ```bash
 cd $REPO_PATH
 PYTHONPATH=. python examples/mlups_main.py
 ```
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups.png" width=400></img>
+<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups.png" width=300></img>
+<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256.png" width=300></img>
 
 
 
@@ -318,7 +319,9 @@ PYTHONPATH=. python examples/nested.py
 
 3 levels are used to simulate a flow about a sphere. The domain sizes are `nd0 = (361, 121, 121)`, `nd1 = (240, 160, 160)`, and `nd2 = (300, 220, 220)`: 26M nodes in total. The sphere radius at level 0 is 15, while it is 60 at level 3. 
 
-On Macbook Pro M2 16GB, adding the next level `nd3 = (400, 320, 320)` failed with `segmentation fault`. This example was actually run on A100@Google Colab. 
+This example was actually run on A100@Google Colab although M2 can also work. 
+
+[!NOTE] On Macbook Pro M2 16GB, adding the next level `nd3 = (400, 320, 320)` failed with `segmentation fault`. 
 
 Taichi GGUI is currently not supported for 3D nested grid. The result should be dumped via `pyevtk` to visualize it with Paraview. Or, you can put single grid to `FluidRenderer`, which can be used to render single 3D grid as in `examples/cavity3d.py`. 
 
@@ -343,7 +346,7 @@ Taichi GGUI is currently not supported for 3D nested grid. The result should be 
 - Double click an example you want to run. It will be open on the right side of the browser. 
 - Comment out Taichi GGUI related lines in the example script (search by `render`). The time loop usually have `while running`, but this should also be `while step < step_end:`. 
 - Add `save_vtk` in or end of the time loop to dump the results. 
-- Run! `PYTHONPATH=. python examples/yourfile.py`
+- Run! `!PYTHONPATH=. python examples/yourfile.py`
 
 
 - The following code will compress `output/` to facilitate downloading the results. 
@@ -365,3 +368,12 @@ files.download(zip_filename)
 ```
 
 Cloned and dumped files will be deleted when sessions are terminated. Consider to mount google drive to keep them. 
+
+
+### MLUPS bench with Colab
+
+`examples/mlups_main.py` does not use GGUI; therefore it runs on Colab without any changes. CPU (Xeon 12 cores (2.20 GHz)) vs. GPU (NVIDIA A100-SXM4-40GB) bench is shown below. 
+
+<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_A100.png" width=300></img>
+<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256_A100.png" width=300></img>
+
