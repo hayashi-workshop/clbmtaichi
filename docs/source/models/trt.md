@@ -56,7 +56,7 @@ the functional form of which is the same as for the standard $\rho$ mode since t
 
 ## Stability control 
 
-TRT application example: `cavity2d.py` with Re=38000, where $\omega_{2} = 1.99999$. BGK breaks at this $Re$. However, the improvement is not remarkable, i.e., even with BGK Re=35000 can be stable for the present condition. 
+TRT application example ($\delta \rho$ mode) : `cavity2d.py` with Re=38000, where $\omega_{2} = 1.99999$. BGK breaks at this $Re$. However, the improvement is not remarkable, i.e., even with BGK Re=35000 can be stable for the present condition. 
 
 <div style="max-width: 100%; margin: 1em auto;">
   <video class="responsive-video" controls playsinline>
