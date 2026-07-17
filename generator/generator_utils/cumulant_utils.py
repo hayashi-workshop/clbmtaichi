@@ -80,14 +80,7 @@ def create_moment_dictionary(moment_orders, rho):
             K_post[o] = sp.Symbol(f"kappa{o_name}_post")
 
         C_cum[o]  = sp.Symbol(f"C{o_name}")
-        if order_sum == 0:
-            C_post[o] = rho
-        elif order_sum == 1:
-            C_post[o] = sp.Rational(0)
-        elif order_sum == 3:
-            C_post[o] = sp.Rational(0)
-        else:
-            C_post[o] = sp.Symbol(f"C{o_name}_post")
+        C_post[o] = sp.Symbol(f"C{o_name}_post")
     return M_raw, M_post, K_cen, K_post, C_cum, C_post
 
 # ---> added 15 July

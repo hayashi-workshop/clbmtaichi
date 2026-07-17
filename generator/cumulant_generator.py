@@ -596,15 +596,6 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
         # # # # # # # # # # # # # # # # # # # # # # # #
         pipe_collision = {}
 
-        # register all 0th and 1st order moments and kappa # -> # like (0,0,0), (0,1,0) and so on
-        macro_orders = [(0,0,0), (1,0,0), (0,1,0), (0,0,1)] if dim == 3 else [(0,0), (1,0), (0,1)]
-        for o in macro_orders:
-            raw_expr, _ = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-
-        # register all 2nd and 3rd order moments and kappa # -> # like (2,0,0), (2,1,1) and so on
-        for o in orders_2nd + orders_3rd:
-            raw_expr, cen_expr = generate_central_moment_expr(dim, o, rho, vel_syms, moment_chimera, moments_pack)
-
         # collision/relaxation process in Cumulant space
         cross_orders_2nd = [o for o in orders_2nd if max(o) == 1]
         for o in cross_orders_2nd:
