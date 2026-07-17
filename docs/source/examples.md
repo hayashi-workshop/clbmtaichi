@@ -269,7 +269,7 @@ PYTHONPATH=. python examples/mcube_extract_surface.py
 
 Compute and export Q-criterion [`examples/mcube_stanford_bunny.py`](https://github.com/hayashi-workshop/clbmtaichi/blob/main/examples/mcube_stanford_bunny.py)
 
-<video src="https://github.com/user-attachments/assets/7befea58-1075-4156-aa99-1c69275f05b4" width="400" autoplay loop muted playsinline></video>
+<video src="https://github.com/user-attachments/assets/7befea58-1075-4156-aa99-1c69275f05b4" width="350" autoplay loop muted playsinline></video>
 
 Frequent export of velocity data may occupy a large disk space. In this example, the marching cube method is used to extract two isosurfaces of Q-criterion to dump the surface (mesh) data rather than velocity volume data. The isosurface extraction is not so slow, but the data transfer from Taichi to Python scope (`to_numpy`) can be the bottole neck. 
 
@@ -278,6 +278,12 @@ Frequent export of velocity data may occupy a large disk space. In this example,
 
 The above examples are all for the combination of pull streaming/Guo's boundary condition. Applications of push streaming with the (delayed) bounce-back scheme can be found in examples named `_bb.py`
 
+`cavity2d_bb.py` with Re=10000000 demonstrates the stability of cumulant lbm. nd=(801, 401) and u=0.1. 
+<div style="max-width: 50%; margin: 1em auto;">
+  <video class="responsive-video" controls playsinline>
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_bb-10000000_comp.mp4" type="video/mp4">
+  </video>
+</div>
 
 ## Nested grid (tentative)
 
