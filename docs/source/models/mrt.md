@@ -364,6 +364,14 @@ However, since each moment appears multiple times in the $f$ expression, naive c
 \end{aligned}
 ```
 
+## Stability control
+
+`examples/JCprob_bb.py` (push+bb) with $Re$ increased to 10,000,000 can be a challenge for numerical stability. All one for $\omega_{i>1}$ could not reach 1000000 steps, while the simulation got stable with $\omega_{i>2} = 1.4$, which dumped high order noises; where $\omega_{2}$ for bulk viscosity was kept at unity. 
+
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1_bb_MRT-10000000.png"></img>
+</div>
+
 
 ## Density-fluctuation mode
 
