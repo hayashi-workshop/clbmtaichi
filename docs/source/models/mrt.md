@@ -373,6 +373,13 @@ However, since each moment appears multiple times in the $f$ expression, naive c
 </div>
 
 
+`examples/nested.py` of Re=1,000,000 using MRT. The large $u$ (0.1) can be a challenge for stable simulation. High dumping for $\omega_{2}$ and over relaxation for higher orders are required; $\omega_{2} = 1.8$ and $\omega_{i>2} = 1.9$ for all (four) grid levels in this example. The figure below shows the predicted velocity field at 50,000 step. 
+
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_MRT-50000.png"></img>
+</div>
+
+
 ## Density-fluctuation mode
 
 The shifted moment is defined by 
