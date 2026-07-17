@@ -143,7 +143,7 @@ def run_generator(collision_model="Cumulant", drho_mode="rho", dimension=3, omeg
     print(f"# >>> invoking {collision_model} code generator >>>")
     print(f"# ")
     print(f"# density shift mode :  {density_shift}")
-    if drho_mode == 'drho' and collision_model is not "Cumulant":
+    if drho_mode == 'drho' and collision_model != "Cumulant":
         print(f"#                       [rho] in the generated eqs. should read [delta rho] ")
     print(f"# ")
     print(f"# -------------------------------------------------------------------------\n")
