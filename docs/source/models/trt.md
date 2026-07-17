@@ -43,7 +43,7 @@ print(opp_map)
 ```
 
 
-For density-fluctuation mode, 
+## Density-fluctuation mode 
 
 ```{math}
 :label: eq:eq_LBE_trt_shifted
@@ -52,3 +52,14 @@ For density-fluctuation mode,
 ```
 
 the functional form of which is the same as for the standard $\rho$ mode since the density shift $f_{i} - w_{i}$ for the $i$ and $\bar{i}$ terms cancel out in $f - f^{eq}$ calculation. 
+
+
+## Stability control 
+
+TRT application example: `cavity2d.py` with Re=38000, where $\omega_{2} = 1.99999$. BGK breaks at this $Re$. However, the improvement is not remarkable, i.e., even with BGK Re=35000 can be stable for the present condition. 
+
+<div style="max-width: 100%; margin: 1em auto;">
+  <video class="responsive-video" controls playsinline>
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_TRT-38000.mp4" type="video/mp4">
+  </video>
+</div>

@@ -279,7 +279,7 @@ Frequent export of velocity data may occupy a large disk space. In this example,
 The above examples are all for the combination of pull streaming/Guo's boundary condition. Applications of push streaming with the (delayed) bounce-back scheme can be found in examples named `_bb.py`
 
 `cavity2d_bb.py` with Re=10000000 demonstrates the stability of cumulant lbm. nd=(801, 401) and u=0.1. 
-<div style="max-width: 50%; margin: 1em auto;">
+<div style="max-width: 100%; margin: 1em auto;">
   <video class="responsive-video" controls playsinline>
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity2d_bb-10000000_comp.mp4" type="video/mp4">
   </video>
