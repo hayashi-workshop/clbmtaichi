@@ -305,7 +305,7 @@ PYTHONPATH=. python examples/nested.py
   </video>
 </div>
 
-4 level nested grids surrounding a cylindrical object. The numbers of nodes are `nd0 = (801, 201)`, `nd1 = (400, 280)`, `nd2 = (440, 320)`, `nd3 = (580, 480)` from level 0 to 3, and the grid boundaries are represented with the white boxes. 20 nodes are adopted to the cylinder raidus at level 0, while 160 nodes at level 3. Communication between grids at different levels is based on the bubble function proposed in {cite:p}`Geier2009`. In 2D, Taichi GGUI is run for level 0; higher level grids inject their values into the canvas at level 0. 
+4 level nested grids surrounding a cylindrical object. Tthe vorticity magnitude is visualized using ParaView. The numbers of nodes are `nd0 = (801, 201)`, `nd1 = (400, 280)`, `nd2 = (440, 320)`, `nd3 = (580, 480)` from level 0 to 3, and the grid boundaries are represented with the white boxes. 20 nodes are adopted to the cylinder raidus at level 0, while 160 nodes at level 3. Communication between grids at different levels is based on the bubble function proposed in {cite:p}`Geier2009`. In 2D, Taichi GGUI is run for level 0; higher level grids inject their values into the canvas at level 0. 
 
 
 

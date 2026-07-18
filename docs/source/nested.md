@@ -276,3 +276,37 @@ which assures the same viscosity at the two levels
 ```
 
 with the acoustic scaling $\Delta x_{C} / \Delta t_{C} = \Delta x_{F} / \Delta t_{F}$. 
+
+
+## Grid configuration example
+
+The extreme setting of $Re$ we used in MRT demo, i.e. Re=10,000,000, is employed here. 
+
+Four Johansen-Collela stars are set with different length scales: 
+- Star 0 is in nd0, level 0 root. The resolution and the position are the same as in `JCprob1.py`. 
+- Star 1 and 2 of half size are resolved by nd1 and nd2, resp, at level 1. The resolutions are therefore the same as Star 0.
+- Star 3 is in nd4, which is nested in nd3. 
+
+```
+# level 0 nd0
+#    |   [Star0 embedded]
+#    |
+#    --- level 1 nd1     nd2    nd3
+#               [Star1] [Star2] |
+#                               |
+#                               --- level 2 nd4
+#                                          [Star3]
+```
+
+
+Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The nested grids correctly work together to capture the veortical structure. Some noise caused around the grid boundaries at the initial stage might be due to the unrealistic initial condition (zero velocity in the entire field). 
+
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_JCprob1_vtk.png"></img>
+</div>
+
+<div style="max-width: 100%; margin: 1em auto;">
+  <video class="responsive-video" controls playsinline poster="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_JCprob1.png">
+    <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_JCprob1.mp4" type="video/mp4">
+  </video>
+</div>

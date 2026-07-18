@@ -93,3 +93,7 @@ The current code sweep all mask nodes, thereby deteriorating the overall speed o
 - If mask is static, store sweep index list. 
 - Taichi SNode (Unfortunately, Metal not supported)
 ```
+
+```{note}
+"delayed" bounce-back gives better stability than "non-delayed" bb at high $Re$. Does "delay" act as artificial viscosity, causing a change in $Re$? Or just a stability difference? Need detailed comparison and validation. 
+```
