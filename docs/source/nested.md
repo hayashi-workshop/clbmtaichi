@@ -299,7 +299,7 @@ Four Johansen-Collela stars are set with different length scales:
 ```
 
 
-Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The nested grids correctly work together to capture the veortical structure. Some noise caused around the grid boundaries at the initial stage might be due to the unrealistic initial condition (zero velocity in the entire field). 
+Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The nested grids work together to capture the veortical structure. Some noise caused around the grid boundaries at the initial stage might be due to the unrealistic initial condition (zero velocity in the entire field). 
 
 <div style="max-width: 100%">
     <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_JCprob1_vtk.png"></img>
