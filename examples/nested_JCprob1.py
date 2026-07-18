@@ -40,8 +40,8 @@ center_list = [ [300, 100], [450., 125.], [600., 75.], [750., 125.] ]
 theta_list = [ 0., 50., 100., 150. ]
 obstacle = NestedObstacleManager(center_list=center_list, radius_list=radius_list, theta_list=theta_list, nd=nd0)
 
-u, Re = 0.01, 10000000.0
-nu = u*nd0[0]/Re; omega = 1/(3*nu + 0.5)
+u, Re = 0.01, 1000000.0
+nu = u*2*radius_list[0]/Re; omega = 1/(3*nu + 0.5)
 
 from lb_solver.d2q9_Cumulant_kernel import ModelConfig
 config = ModelConfig(mode="push") # "push" with bounce-back must be used for nested grid

@@ -280,7 +280,7 @@ with the acoustic scaling $\Delta x_{C} / \Delta t_{C} = \Delta x_{F} / \Delta t
 
 ## Grid configuration example
 
-The nested module is utilized with the cumulant collision kernel for `JCprob1` example. The extreme setting of $Re$ we used in MRT demo, i.e. Re=10,000,000, is employed here. 
+The nested module is utilized with the cumulant collision kernel for `JCprob1` example. The extreme setting of $Re$, i.e. Re=1,000,000, is employed here. 
 
 Four Johansen-Collela stars are set with different length scales: 
 - Star 0 is in nd0, level 0 root. The resolution and the position are the same as in `JCprob1.py`. 

@@ -37,8 +37,8 @@ radius = 20. # cylinder radius
 obstacle = NestedObstacleManager(center_list=[160, 100.5], radius=radius, nd=nd0)
 
 u = 0.1
-Re = 1000000.0
-nu = u*nd0[0]/Re; omega = 1/(3*nu + 0.5)
+Re = 50000.0
+nu = u*2*radius/Re; omega = 1/(3*nu + 0.5)
 
 from lb_solver.d2q9_Cumulant_kernel import ModelConfig
 config = ModelConfig(mode="push") # "push" with bounce-back must be used for nested grid
