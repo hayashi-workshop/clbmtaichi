@@ -310,3 +310,28 @@ Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The n
     <source src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_JCprob1.mp4" type="video/mp4">
   </video>
 </div>
+
+`tree_info.txt` produced at runtime. 
+```
+#[recursive run]
+#
+#run lbm on grid 0 @level 0
+#recursive run -> called grids@level 1 from root grid@level 0
+#    run lbm on grid 1 @level 1
+#    run lbm on grid 2 @level 1
+#    run lbm on grid 3 @level 1
+#    recursive run -> called grids@level 2 from root grid@level 1
+#        run lbm on grid 4 @level 2
+#        run lbm on grid 4 @level 2
+#    grid 3 @level 1 invokes Coarse <-> Fine interpolation with leaves @level 2; leaves [4]
+#
+#    run lbm on grid 1 @level 1
+#    run lbm on grid 2 @level 1
+#    run lbm on grid 3 @level 1
+#    recursive run -> called grids@level 2 from root grid@level 1
+#        run lbm on grid 4 @level 2
+#        run lbm on grid 4 @level 2
+#    grid 3 @level 1 invokes Coarse <-> Fine interpolation with leaves @level 2; leaves [4]
+#
+#grid 0 @level 0 invokes Coarse <-> Fine interpolation with leaves @level 1; leaves [1, 2, 3]
+```
