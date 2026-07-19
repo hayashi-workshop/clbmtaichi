@@ -280,6 +280,8 @@ with the acoustic scaling $\Delta x_{C} / \Delta t_{C} = \Delta x_{F} / \Delta t
 
 ## Grid configuration example
 
+### Multiple subgrids
+
 The nested module is utilized with the cumulant collision kernel for `JCprob1` example. The extreme setting of $Re$, i.e. Re=1,000,000, is employed here. 
 
 Four Johansen-Collela stars are set with different length scales: 
@@ -334,4 +336,156 @@ Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The n
 #    grid 3 @level 1 invokes Coarse <-> Fine interpolation with leaves @level 2; leaves [4]
 #
 #grid 0 @level 0 invokes Coarse <-> Fine interpolation with leaves @level 1; leaves [1, 2, 3]
+```
+
+
+### Deeper nesting example
+
+5 level grids for flow past a flat plate @ Re=1,400,000. Simpler tree than the above but deeper nesting configuration. Vorticity magnitude maps, entire field and magnified view of level 4 (finest). The plate length is 40, while the resolution is 640 nodes at level 4. 
+
+```{danger}
+17M nodes in total. 1 hour on Google Colab A100 for 100,000 steps. [!NOTE] The finest grid needs to run 1,600,000 steps for this global time. 
+```
+
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_plate.png"></img>
+</div>
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_plate_mag.png"></img>
+</div>
+
+`tree_info.txt` produced at runtime. 
+```
+#[tree (level: [grid indices])] {0: [0], 1: [1], 2: [2], 3: [3], 4: [4], 5: []}
+#
+#max level 4
+#number of grids 5
+#
+#[models]
+#<lb_utils.bback_kernel.BounceBackManager object>
+#<lb_solver.d2q9_Cumulant_kernel.ModelConfig object>
+#
+#[grids]
+#grids in tree level 0 ---> [0]
+#omega@level 0 = 1.999983
+#grid index 0
+#root index None
+#leaf index [1]
+#num of nodes (nd) (1001, 401)
+#offset to root [0. 0.]
+#offset to global origin [0. 0.]
+#
+#grids in tree level 1 ---> [1]
+#omega@level 1 = 1.999966
+#grid index 1
+#root index 0
+#leaf index [2]
+#num of nodes (nd) (1500, 600)
+#offset to root (80, 50)
+#offset to global origin [80. 50.]
+#
+#grids in tree level 2 ---> [2]
+#omega@level 2 = 1.999931
+#grid index 2
+#root index 1
+#leaf index [3]
+#num of nodes (nd) (2240, 880)
+#offset to root (100, 80)
+#offset to global origin [129.75  89.75]
+#
+#grids in tree level 3 ---> [3]
+#omega@level 3 = 1.999863
+#grid index 3
+#root index 2
+#leaf index [4]
+#num of nodes (nd) (3360, 1280)
+#offset to root (200, 120)
+#offset to global origin [179.625 119.625]
+#
+#grids in tree level 4 ---> [4]
+#omega@level 4 = 1.999726
+#grid index 4
+#root index 3
+#leaf index []
+#num of nodes (nd) (5120, 1920)
+#offset to root (320, 160)
+#offset to global origin [219.5625 139.5625]
+#
+#[recursive run]
+#
+#run lbm on grid 0 @level 0
+#recursive run -> called grids@level 1 from root grid@level 0
+#    run lbm on grid 1 @level 1
+#    recursive run -> called grids@level 2 from root grid@level 1
+#        run lbm on grid 2 @level 2
+#        recursive run -> called grids@level 3 from root grid@level 2
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#        grid 2 @level 2 invokes Coarse <-> Fine interpolation with leaves @level 3; leaves [3]
+#
+#        run lbm on grid 2 @level 2
+#        recursive run -> called grids@level 3 from root grid@level 2
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#        grid 2 @level 2 invokes Coarse <-> Fine interpolation with leaves @level 3; leaves [3]
+#
+#    grid 1 @level 1 invokes Coarse <-> Fine interpolation with leaves @level 2; leaves [2]
+#
+#    run lbm on grid 1 @level 1
+#    recursive run -> called grids@level 2 from root grid@level 1
+#        run lbm on grid 2 @level 2
+#        recursive run -> called grids@level 3 from root grid@level 2
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#        grid 2 @level 2 invokes Coarse <-> Fine interpolation with leaves @level 3; leaves [3]
+#
+#        run lbm on grid 2 @level 2
+#        recursive run -> called grids@level 3 from root grid@level 2
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#            run lbm on grid 3 @level 3
+#            recursive run -> called grids@level 4 from root grid@level 3
+#                run lbm on grid 4 @level 4
+#                run lbm on grid 4 @level 4
+#            grid 3 @level 3 invokes Coarse <-> Fine interpolation with leaves @level 4; leaves [4]
+#
+#        grid 2 @level 2 invokes Coarse <-> Fine interpolation with leaves @level 3; leaves [3]
+#
+#    grid 1 @level 1 invokes Coarse <-> Fine interpolation with leaves @level 2; leaves [2]
+#
+#grid 0 @level 0 invokes Coarse <-> Fine interpolation with leaves @level 1; leaves [1]
 ```
