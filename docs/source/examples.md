@@ -338,6 +338,7 @@ Taichi GGUI is currently not supported for 3D nested grid. The result should be 
 !pip install -r requirements.txt
 !pip install 'trimesh[easy]'
 !pip install networkx
+!mkdir -p output
 ```
 
 - Open `File` in the side menu. 

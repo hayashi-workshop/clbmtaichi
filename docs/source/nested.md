@@ -344,7 +344,7 @@ Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The n
 5 level grids for flow past a flat plate @ Re=1,400,000 (`examples/nested_plate.py`). Simpler tree than the above but deeper nesting configuration. Vorticity magnitude maps, entire field and magnified view of level 4 (finest). The plate length is 40, while the resolution is 640 nodes at level 4. 
 
 ```{danger}
-17M nodes in total. 1 hour on Google Colab A100 for 100,000 steps. [!NOTE] The finest grid needs to run 1,600,000 steps for this global time. 
+17M nodes in total. 1 hour on Google Colab A100 for 100,000 steps (30 min with G4). [!NOTE] The finest grid needs to run 1,600,000 steps for this global time. 
 ```
 
 <div style="max-width: 100%">
