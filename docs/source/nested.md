@@ -282,7 +282,7 @@ with the acoustic scaling $\Delta x_{C} / \Delta t_{C} = \Delta x_{F} / \Delta t
 
 ### Multiple subgrids
 
-The nested module is utilized with the cumulant collision kernel for `JCprob1` example. The extreme setting of $Re$, i.e. Re=1,000,000, is employed here. 
+The nested module is utilized with the cumulant collision kernel for `JCprob1` example (`examples/nested_JCprob1.py`). The extreme setting of $Re$, i.e. Re=1,000,000, is employed here. 
 
 Four Johansen-Collela stars are set with different length scales: 
 - Star 0 is in nd0, level 0 root. The resolution and the position are the same as in `JCprob1.py`. 
@@ -341,7 +341,7 @@ Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The n
 
 ### Deeper nesting example
 
-5 level grids for flow past a flat plate @ Re=1,400,000. Simpler tree than the above but deeper nesting configuration. Vorticity magnitude maps, entire field and magnified view of level 4 (finest). The plate length is 40, while the resolution is 640 nodes at level 4. 
+5 level grids for flow past a flat plate @ Re=1,400,000 (`examples/nested_plate.py`). Simpler tree than the above but deeper nesting configuration. Vorticity magnitude maps, entire field and magnified view of level 4 (finest). The plate length is 40, while the resolution is 640 nodes at level 4. 
 
 ```{danger}
 17M nodes in total. 1 hour on Google Colab A100 for 100,000 steps. [!NOTE] The finest grid needs to run 1,600,000 steps for this global time. 
@@ -489,3 +489,13 @@ Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The n
 #
 #grid 0 @level 0 invokes Coarse <-> Fine interpolation with leaves @level 1; leaves [1]
 ```
+
+
+### 3D nested example
+
+4 level nested grids (level 0-3) run on Colab G4 (`examples/nested3d_L4.py`); one level finer than in Example page. nd=(361,121,121), nd1=(240,160,160), nd2=(300,220,220), nd3=(400,320,320); 66.9M nodes in total. u=0.05 and Re=100000. The sphere radius is 15; the spatial resolution for the radius at the finest level is 120. The predicted velocity field and Q-criterion contour (Q=0.001) at level 3 after 50,000 global time steps are shown below. 
+
+<div style="max-width: 100%; display: flex; gap: 10px;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested3d_L4_mag.png" style="max-width: 59.4%; height: auto; object-fit: contain;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested3d_L4_Q.png" style="max-width: 40.6%; height: auto; object-fit: contain;">
+</div>
