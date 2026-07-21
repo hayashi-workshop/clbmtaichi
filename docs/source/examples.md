@@ -373,8 +373,19 @@ Cloned and dumped files will be deleted when sessions are terminated. Consider t
 
 ### MLUPS bench with Colab
 
-`examples/mlups_main.py` does not use GGUI; therefore it runs on Colab without any changes. CPU (Xeon 12 cores (2.20 GHz)) vs. GPU (NVIDIA A100-SXM4-40GB) bench is shown below. 
+`examples/mlups_main.py` does not use GGUI; therefore it runs on Colab without any changes. 
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_A100.png" width=300></img>
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256_A100.png" width=300></img>
+CPU (Xeon 6cores/12threads cores (2.20 GHz)) vs. GPU (NVIDIA A100-SXM4-40GB) [!NOTE]
+
+<div style="max-width: 100%; display: flex; gap: 10px;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_A100.png" style="max-width: 50%; height: auto; object-fit: contain;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256_A100.png" style="max-width: 50%; height: auto; object-fit: contain;">
+</div>
+
+CPU (EPYC 9B45 24cores/48threads) vs. G4 GPU (NVIDIA RTX Pro 6000) [!NOTE] 
+
+<div style="max-width: 100%; display: flex; gap: 10px;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_G4.png" style="max-width: 50%; height: auto; object-fit: contain;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256_G4.png" style="max-width: 50%; height: auto; object-fit: contain;">
+</div>
 
