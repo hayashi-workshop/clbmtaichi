@@ -161,8 +161,10 @@ cd $REPO_PATH
 PYTHONPATH=. python examples/mlups_main.py
 ```
 
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups.png" width=300></img>
-<img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256.png" width=300></img>
+<div style="max-width: 100%; display: flex; gap: 10px;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups.png" style="max-width: 50%; height: auto; object-fit: contain;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256.png" style="max-width: 50%; height: auto; object-fit: contain;">
+</div>
 
 
 
