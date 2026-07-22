@@ -247,6 +247,10 @@ For the three velocity components, we have to determine $11 \times 3 = 33$ coeff
 
 In the actual implementation, we use $c_{200}^{\text{neq}} - c_{020}^{\text{neq}}$ and $c_{200}^{\text{neq}} - c_{002}^{\text{neq}}$ to express the latter three. 
 
+```{note}
+As we discussed in the MRT section, for $c^{eq} = 0$ at high orders, we can immediately compute $m^{eq}$ of the same order, and therefore there is no need to conduct backward transformation from $c$ to $m$. However, the implementation here starts from the cumulant space for readability. 
+```
+
 ```{admonition} need help
 Inspired by Eqs. (55)-(57) in {cite:p}`Geier2015` ($C_{110}$ relaxed single, and same as in 2D (Eq. {eq}`eq:eq_diff_cumulant_2d`)) and (61) and (62) ($C_{200} - C_{020}$ and $C_{200} - C_{002}$ are combined to express deviation). However, $2 c_{200} - c_{020} - c_{002}$ does not. The present implementation seems bit lacking for symmetry. Any reference for 3D case? 
 ```
