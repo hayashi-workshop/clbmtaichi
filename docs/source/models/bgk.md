@@ -249,9 +249,9 @@ Confirm the following relationships between the macroscopic variables and the eq
 
 ```{math}
 \begin{split}
-&$\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}$ \\
-&$\sum_{i=0}^{Q-1} c_{i \alpha} f^{eq}_{i} = \rho u_{\alpha}$ \\
-&$\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}$
+&\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta} \\
+&\sum_{i=0}^{Q-1} c_{i \alpha} f^{eq}_{i} = \rho u_{\alpha} \\
+&\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}
 \end{split}
 ```
 
