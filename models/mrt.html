@@ -1,0 +1,762 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Cumulant" href="cumulant.html"><link rel="prev" title="TRT" href="trt.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>MRT - clbmtaichi documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=2c019caf" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">clbmtaichi  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">clbmtaichi  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">LB models</a><input aria-label="Toggle navigation of LB models" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="velocity.html">Discrete velocity model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="streaming.html">Streaming step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bgk.html">BGK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trt.html">TRT</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">MRT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cumulant.html">Cumulant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="omega.html">Relaxation rates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bc.html">Boundary condition</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../kernels.html">Collision-streaming kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nested.html">Nested grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Coding tips</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../handson_derivation.html">Hands-on: Sympy CSE application to BGK LBE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../handson_derivation_cumulant.html">Hands-on: Cumulant kernel with Sympy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/models/mrt.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="mrt">
+<h1>MRT<a class="headerlink" href="#mrt" title="Link to this heading">¶</a></h1>
+<div class="admonition-github admonition">
+<p class="admonition-title">&#64;github</p>
+<p><a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_MRT_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d2q9_MRT_kernel.py</span></code></a>
+<a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_MRT_drho_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d2q9_MRT_drho_kernel.py</span></code></a>
+<a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_MRT_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d3q27_MRT_kernel.py</span></code></a>
+<a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_MRT_drho_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d3q27_MRT_drho_kernel.py</span></code></a></p>
+</div>
+<section id="multi-relaxation-time-model">
+<h2>Multi-relaxation time model<a class="headerlink" href="#multi-relaxation-time-model" title="Link to this heading">¶</a></h2>
+<p><a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/cumulant_generator.py#L251">The collision proceeds in the moment space</a> rather than the <span class="math notranslate nohighlight">\(f\)</span> space:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-moment-transformation">
+<div class="math notranslate nohighlight" id="equation-eq-eq-moment-transformation">
+<span class="eqno">(28)<a class="headerlink" href="#equation-eq-eq-moment-transformation" title="Link to this equation">¶</a></span>\[m = M f\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(f\)</span> is the vector of distribution function (<span class="math notranslate nohighlight">\(f_{q}\)</span>), <span class="math notranslate nohighlight">\(M\)</span> is the transformation matrix, and <span class="math notranslate nohighlight">\(m\)</span> is the moment vector. Therefore,</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-collision-mrt">
+<div class="math notranslate nohighlight" id="equation-eq-eq-collision-mrt">
+<span class="eqno">(29)<a class="headerlink" href="#equation-eq-eq-collision-mrt" title="Link to this equation">¶</a></span>\[\Omega = - S ( m - m^{eq} )\]</div>
+</div>
+<p>and</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-lbe-mrt-collision">
+<div class="math notranslate nohighlight" id="equation-eq-eq-lbe-mrt-collision">
+<span class="eqno">(30)<a class="headerlink" href="#equation-eq-eq-lbe-mrt-collision" title="Link to this equation">¶</a></span>\[m^{*} = m - S ( m - m^{eq} )\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(m^{*}\)</span> denotes the post-collision moment, and <span class="math notranslate nohighlight">\(S\)</span> is the diagonal matrix whose components are the relaxation rates for each moment. The streaming process is applied to <span class="math notranslate nohighlight">\(f_{i}\)</span>; that is,</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-lbe-mrt">
+<div class="math notranslate nohighlight" id="equation-eq-eq-lbe-mrt">
+<span class="eqno">(31)<a class="headerlink" href="#equation-eq-eq-lbe-mrt" title="Link to this equation">¶</a></span>\[f_{i}^{*}(t + \Delta t, \mathbf{x} + \mathbf{c}_{i} \Delta t) = f_{i} (t, \mathbf{x}) - M^{-1} m^{*}\]</div>
+</div>
+<p>The non-orthogonal (raw) moments of orders <span class="math notranslate nohighlight">\((\alpha, \beta, \gamma)\)</span> in each direction are defined by</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-raw-moment-definition">
+<div class="math notranslate nohighlight" id="equation-eq-eq-raw-moment-definition">
+<span class="eqno">(32)<a class="headerlink" href="#equation-eq-eq-raw-moment-definition" title="Link to this equation">¶</a></span>\[m_{\alpha \beta \gamma} = \sum_{i=0}^{Q-1} c_{ix}^{\alpha} c_{iy}^{\beta} c_{iz}^{\gamma} f_{i}\]</div>
+</div>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[
+m_{00} = \sum_{i=0}^{Q-1} c_{ix}^{0} c_{iy}^{0} f_{i} = \sum_{i=0}^{Q-1} f_{i} =  f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}
+\]</div>
+</div>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[
+m_{20} = \sum_{i=0}^{Q-1} c_{ix}^{2} c_{iy}^{0} f_{i} = f_{1} + f_{3} + f_{5} + f_{6} + f_{7} + f_{8}
+\]</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">moment_d2q9</span> <span class="o">=</span> <span class="n">MomentGenerator</span><span class="p">(</span><span class="n">vectors</span><span class="o">=</span><span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">is_central_moment</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">m00</span> <span class="o">=</span> <span class="n">moment_d2q9</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m00</span><span class="o">.</span><span class="n">rhs</span><span class="p">)</span>
+<span class="n">m20</span> <span class="o">=</span> <span class="n">moment_d2q9</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m20</span><span class="o">.</span><span class="n">rhs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The MRT introduced here differs from the well-known DHumieres’s implementation <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../reference.html#id6" title="D. D'Humieres, I. Ginzburg, M. Krafczyk, P. Lallemand, and L. S. Luo. Multiple-relaxation-time lattice boltzmann models in three dimensions. Philosophical Transactions. Series A, Mathematical, Physical, and Engineering Sciences, 360:437–451, 2002.">DHumieresGK+02</a>]</span>, in which Gram-Schmidt orthogonalization is the key idea to connecting each moment to physical quantities. See discussion in <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../reference.html#id3" title="M. Geier, M. Schonherr, A. Pasquali, and M. Krafczyk. The cumulant lattice boltzmann equation in three dimensions: theory and validation. Computers &amp; Mathematics with Applications, 70(4):507–547, 2015.">GSPK15</a>]</span>.</p>
+</div>
+</section>
+<section id="equilibrium-moment-m-eq">
+<h2>Equilibrium moment <span class="math notranslate nohighlight">\(m_{eq}\)</span><a class="headerlink" href="#equilibrium-moment-m-eq" title="Link to this heading">¶</a></h2>
+<p>The equilibrium distribution function <span class="math notranslate nohighlight">\(f_{i}^{eq}\)</span> in the BGK section was obtained by the second-order approximation. The equilibrium moments <span class="math notranslate nohighlight">\(m^{eq}\)</span> up to second order can be obtained by directly transforming <span class="math notranslate nohighlight">\(f_{i}^{eq}\)</span> with <span class="math notranslate nohighlight">\(M\)</span> as</p>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> 
+<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+
+<span class="n">rho</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;rho&#39;</span><span class="p">)</span>
+<span class="n">u</span>   <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">([</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">][:</span><span class="n">dim</span><span class="p">])</span> 
+
+<span class="n">cs2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">u_sq_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u_i</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="n">u</span><span class="p">)</span>
+
+<span class="n">feq_list</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">):</span>
+    <span class="n">c_dot_u</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cx</span> <span class="o">*</span> <span class="n">u_i</span> <span class="k">for</span> <span class="n">cx</span><span class="p">,</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+    <span class="n">feq</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">c_dot_u</span><span class="o">/</span><span class="n">cs2</span> <span class="o">+</span> <span class="p">(</span><span class="n">c_dot_u</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">u_sq_sum</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="p">))</span>
+    <span class="n">feq_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">feq</span> <span class="p">)</span> 
+    
+<span class="n">M</span> <span class="o">=</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">M</span>
+
+<span class="n">meq</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span> <span class="n">M</span><span class="nd">@sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span><span class="n">feq_list</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">meq</span><span class="p">)</span> <span class="c1"># result: rho, rho u, rho w, rho v, rho (u^2 + 1/3), ...</span>
+</pre></div>
+</div>
+</div>
+<p>The conserved quantities (density and momentum):</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-conserved-moments">
+<div class="math notranslate nohighlight" id="equation-eq-eq-conserved-moments">
+<span class="eqno">(33)<a class="headerlink" href="#equation-eq-eq-conserved-moments" title="Link to this equation">¶</a></span>\[m_{000}^{eq} = \rho,~~m_{100}^{eq} = \rho u,~~m_{010}^{eq} = \rho v,~~m_{001}^{eq} = \rho w\]</div>
+</div>
+<p>The second-order moments:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-2nd-order-moments">
+<div class="math notranslate nohighlight" id="equation-eq-eq-2nd-order-moments">
+<span class="eqno">(34)<a class="headerlink" href="#equation-eq-eq-2nd-order-moments" title="Link to this equation">¶</a></span>\[m_{200}^{eq} = \rho u^{2} + \rho c_{s}^{2},~~
+m_{020}^{eq} = \rho v^{2} + \rho c_{s}^{2},~~
+m_{002}^{eq} = \rho w^{2} + \rho c_{s}^{2}\]</div>
+</div>
+<p>The other second-order moments:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-2nd-order-moments-others">
+<div class="math notranslate nohighlight" id="equation-eq-eq-2nd-order-moments-others">
+<span class="eqno">(35)<a class="headerlink" href="#equation-eq-eq-2nd-order-moments-others" title="Link to this equation">¶</a></span>\[m_{110}^{eq} = \rho u v,~~
+m_{101}^{eq} = \rho u w,~~
+m_{011}^{eq} = \rho v w,~~\]</div>
+</div>
+<p>For the 3rd-order moment, we shall confirm the central moment:</p>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<p>This code shows you that</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\kappa_{210} = m_{210} - \frac{m_{010} m_{200}}{m_{000}} - \frac{2 m_{100} m_{110}}{m_{000}} + \frac{2 m_{010} m_{100}^{2}}{m_{000}^{2}}\]</div>
+</div>
+<p>In equilibrium, the third and fourth terms cancel out, and <span class="math notranslate nohighlight">\(C_{210}^{eq} = \kappa_{210}^{eq} = 0\)</span>, where <span class="math notranslate nohighlight">\(C_{210}\)</span> is the density-scaled cumulant (see <a class="reference internal" href="cumulant.html#cumulant"><span class="std std-ref">Cumulant</span></a>). Therefore,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[m_{210}^{eq} = \frac{m_{010}^{eq} m_{200}^{eq}}{m_{000}^{eq}}\]</div>
+</div>
+<p>The third-order moments:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-3rd-order-moments">
+<div class="math notranslate nohighlight" id="equation-eq-eq-3rd-order-moments">
+<span class="eqno">(36)<a class="headerlink" href="#equation-eq-eq-3rd-order-moments" title="Link to this equation">¶</a></span>\[m_{210}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq}}{m_{000}^{eq}},~~
+m_{201}^{eq} = \frac{m_{200}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+m_{120}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq}}{m_{000}^{eq}},~~
+m_{102}^{eq} = \frac{m_{100}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{021}^{eq} = \frac{m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq}},~~
+m_{012}^{eq} = \frac{m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{111}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}}\]</div>
+</div>
+<p>We then consider <span class="math notranslate nohighlight">\(m_{211}\)</span>.</p>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">C</span> <span class="o">=</span> <span class="n">cumulants_d3q27</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">density_scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">rhs</span>
+
+<span class="n">kappa_subs_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;kappa011&#39;</span><span class="p">:</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">rhs</span><span class="p">,</span>
+    <span class="s1">&#39;kappa200&#39;</span><span class="p">:</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">rhs</span><span class="p">,</span>
+    <span class="s1">&#39;kappa101&#39;</span><span class="p">:</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">rhs</span><span class="p">,</span>
+    <span class="s1">&#39;kappa110&#39;</span><span class="p">:</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">rhs</span><span class="p">,</span>
+    <span class="s1">&#39;kappa211&#39;</span><span class="p">:</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">rhs</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">C</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">kappa_subs_dict</span><span class="p">))</span>
+
+<span class="n">rho</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;rho&#39;</span><span class="p">)</span>
+<span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">([</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">])</span>
+<span class="n">cs2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">moment_subs_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;m000&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="p">,</span>
+    <span class="s1">&#39;m100&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">u</span><span class="p">,</span>
+    <span class="s1">&#39;m010&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">v</span><span class="p">,</span>
+    <span class="s1">&#39;m001&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="s1">&#39;m110&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v</span><span class="p">,</span>
+    <span class="s1">&#39;m101&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="s1">&#39;m011&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="s1">&#39;m111&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="s1">&#39;m200&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">),</span>
+    <span class="s1">&#39;m020&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">),</span>
+    <span class="s1">&#39;m002&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">),</span>
+    <span class="s1">&#39;m210&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="p">,</span>
+    <span class="s1">&#39;m201&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="s1">&#39;m120&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="p">,</span>
+    <span class="s1">&#39;m021&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="s1">&#39;m102&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="p">,</span>
+    <span class="s1">&#39;m012&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="p">,</span> 
+<span class="p">}</span>
+
+<span class="n">C</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">moment_subs_dict</span><span class="p">))</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We recognize that</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[C_{211}^{eq} = m_{211}^{eq} - \rho u^{2} v w - \frac{\rho v w}{3}\]</div>
+</div>
+<p>However, <span class="math notranslate nohighlight">\(C_{211}^{eq} = 0\)</span>, and thereofre</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[m_{211}^{eq} = \left( \rho u^{2} + \frac{\rho}{3} \right) v w \]</div>
+</div>
+<p>The fourth-order moments:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-4th-order-moments">
+<div class="math notranslate nohighlight" id="equation-eq-eq-4th-order-moments">
+<span class="eqno">(37)<a class="headerlink" href="#equation-eq-eq-4th-order-moments" title="Link to this equation">¶</a></span>\[m_{220}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq}}{m_{000}^{eq}},~~
+m_{202}^{eq} = \frac{m_{200}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{022}^{eq} = \frac{m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq}},~~
+m_{211}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{121}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{112}^{eq} = \frac{m_{100}^{eq} m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}\]</div>
+</div>
+<p>The fifth-order moments:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-5th-order-moments">
+<div class="math notranslate nohighlight" id="equation-eq-eq-5th-order-moments">
+<span class="eqno">(38)<a class="headerlink" href="#equation-eq-eq-5th-order-moments" title="Link to this equation">¶</a></span>\[m_{221}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq} m_{001}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{212}^{eq} = \frac{m_{200}^{eq} m_{010}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}},~~
+m_{122}^{eq} = \frac{m_{100}^{eq} m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}\]</div>
+</div>
+<p>Before considering the highest order, we define the moment subs dict:</p>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+
+<span class="n">moment_orders</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="n">kappa_subs_dict</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># for central moment</span>
+<span class="k">for</span> <span class="n">XYZ</span> <span class="ow">in</span> <span class="n">moment_orders</span><span class="p">:</span>
+    <span class="n">key_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;kappa</span><span class="si">{</span><span class="n">XYZ</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}{</span><span class="n">XYZ</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}{</span><span class="n">XYZ</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">kappa_subs_dict</span><span class="p">[</span><span class="n">key_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">moment_d3q27</span><span class="o">.</span><span class="n">derive_central_moment_from_moment</span><span class="p">(</span><span class="n">XYZ</span><span class="p">)</span><span class="o">.</span><span class="n">rhs</span>
+
+<span class="n">moment_subs_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span> <span class="c1"># update moment_subs_dict up to 5th order</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;m220&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">),</span>
+        <span class="s1">&#39;m202&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">),</span>
+        <span class="s1">&#39;m022&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">),</span>
+        <span class="s1">&#39;m211&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+        <span class="s1">&#39;m121&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+        <span class="s1">&#39;m112&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v</span><span class="p">,</span>
+        <span class="s1">&#39;m122&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="p">,</span>
+        <span class="s1">&#39;m212&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="p">,</span>
+        <span class="s1">&#39;m221&#39;</span><span class="p">:</span> <span class="n">rho</span><span class="o">*</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">cs2</span><span class="p">)</span><span class="o">*</span><span class="n">w</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Then,</p>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">C</span> <span class="o">=</span> <span class="n">cumulants_d3q27</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">density_scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">rhs</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">kappa_subs_dict</span><span class="p">))</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">moment_subs_dict</span><span class="p">))</span>
+<span class="n">m222</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">Eq</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;C222&#39;</span><span class="p">),</span> <span class="n">C</span><span class="p">),</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;m222&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">m222</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">factor</span><span class="p">(</span><span class="n">m222</span><span class="o">.</span><span class="n">subs</span><span class="p">({</span><span class="s1">&#39;C222&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}))</span>
+</pre></div>
+</div>
+</div>
+<p>You would find</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[m_{222}^{eq} = \rho \left( u^{2} + \frac{1}{3} \right) \left( v^{2} + \frac{1}{3} \right) \left( w^{2} + \frac{1}{3} \right)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(C_{222}^{eq} = 0\)</span> was used.</p>
+<p>Thus, the sixth-order moment:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-6th-order-moment">
+<div class="math notranslate nohighlight" id="equation-eq-eq-6th-order-moment">
+<span class="eqno">(39)<a class="headerlink" href="#equation-eq-eq-6th-order-moment" title="Link to this equation">¶</a></span>\[m_{222}^{eq} = \frac{m_{200}^{eq} m_{020}^{eq} m_{002}^{eq}}{m_{000}^{eq} m_{000}^{eq}}\]</div>
+</div>
+</section>
+<section id="collision-in-moment-space">
+<h2>Collision in moment space<a class="headerlink" href="#collision-in-moment-space" title="Link to this heading">¶</a></h2>
+<p>The formulation</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[m^{*} = (1 - \omega) m + m^{eq}\]</div>
+</div>
+<p>is applied to <span class="math notranslate nohighlight">\(110\)</span>, <span class="math notranslate nohighlight">\(101\)</span>, <span class="math notranslate nohighlight">\(011\)</span>, <span class="math notranslate nohighlight">\(211\)</span>, <span class="math notranslate nohighlight">\(121\)</span>, <span class="math notranslate nohighlight">\(112\)</span>, <span class="math notranslate nohighlight">\(221\)</span>, <span class="math notranslate nohighlight">\(212\)</span>, <span class="math notranslate nohighlight">\(122\)</span>, <span class="math notranslate nohighlight">\(222\)</span>. <span class="math notranslate nohighlight">\(m_{110}\)</span>, <span class="math notranslate nohighlight">\(m_{101}\)</span>, <span class="math notranslate nohighlight">\(m_{011}\)</span> are relaxed with <span class="math notranslate nohighlight">\(\omega_{1}\)</span> for shear viscosity.</p>
+<p>With <span class="math notranslate nohighlight">\(200\)</span>s, for shear</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-mrt-col-shear">
+<div class="math notranslate nohighlight" id="equation-eq-eq-mrt-col-shear">
+<span class="eqno">(40)<a class="headerlink" href="#equation-eq-eq-mrt-col-shear" title="Link to this equation">¶</a></span>\[\begin{split}\begin{split}
+m_{200}^{*} - m_{020}^{*} = (1 - \omega_{1}) (m_{200} - m_{020}) + (m_{200}^{eq} - m_{020}^{eq}) \\
+m_{200}^{*} - m_{002}^{*} = (1 - \omega_{1}) (m_{200} - m_{002}) + (m_{200}^{eq} - m_{002}^{eq}) \\
+\end{split}\end{split}\]</div>
+</div>
+<p>and for bulk</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-mrt-col-bulk">
+<div class="math notranslate nohighlight" id="equation-eq-eq-mrt-col-bulk">
+<span class="eqno">(41)<a class="headerlink" href="#equation-eq-eq-mrt-col-bulk" title="Link to this equation">¶</a></span>\[m_{200}^{*} + m_{020}^{*} + m_{002}^{*}
+ = (1 - \omega_{2})(m_{200} + m_{020} + m_{002}) + (m_{200}^{eq} + m_{020}^{eq} + m_{002}^{eq}) \]</div>
+</div>
+<p>Then, the other moments are relaxed as</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-mrt-col-dev">
+<div class="math notranslate nohighlight" id="equation-eq-eq-mrt-col-dev">
+<span class="eqno">(42)<a class="headerlink" href="#equation-eq-eq-mrt-col-dev" title="Link to this equation">¶</a></span>\[\begin{split}\begin{split}
+&amp;m_{120}^{*} + m_{102}^{*} = (1-\omega_{3})(m_{120} + m_{102}) + (m_{120}^{eq} + m_{102}^{eq}) \\
+&amp;m_{120}^{*} - m_{102}^{*} = (1-\omega_{4})(m_{120} - m_{102}) + (m_{120}^{eq} - m_{102}^{eq}) \\
+&amp;m_{210}^{*} + m_{012}^{*} = (1-\omega_{3})(m_{210} + m_{012}) + (m_{210}^{eq} + m_{012}^{eq}) \\
+&amp;m_{210}^{*} - m_{012}^{*} = (1-\omega_{4})(m_{210} - m_{012}) + (m_{210}^{eq} - m_{012}^{eq}) \\
+&amp;m_{201}^{*} + m_{021}^{*} = (1-\omega_{3})(m_{201} + m_{021}) + (m_{201}^{eq} + m_{021}^{eq}) \\
+&amp;m_{201}^{*} - m_{021}^{*} = (1-\omega_{4})(m_{201} - m_{021}) + (m_{201}^{eq} - m_{021}^{eq}) 
+\end{split}\end{split}\]</div>
+</div>
+<p>and</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-mrt-col-devdev">
+<div class="math notranslate nohighlight" id="equation-eq-eq-mrt-col-devdev">
+<span class="eqno">(43)<a class="headerlink" href="#equation-eq-eq-mrt-col-devdev" title="Link to this equation">¶</a></span>\[\begin{split}\begin{split}
+&amp;m_{220}^{*} - 2 m_{202}^{*} + m_{022}^{*} = (1-\omega_{6}) (m_{220} - 2 m_{202} + m_{022}) + (m_{220}^{eq} - 2 m_{202}^{eq} + m_{022}^{eq}) \\
+&amp;m_{220}^{*} + m_{202}^{*} - 2 m_{022}^{*} = (1-\omega_{6}) (m_{220} + m_{202} - 2 m_{022}) + (m_{220}^{eq} + m_{202}^{eq} - m_{022}^{eq}) \\
+&amp;m_{220}^{*} + m_{202}^{*} + m_{022}^{*} = (1-\omega_{7}) (m_{220} + m_{202} + m_{022}) + (m_{220}^{eq} + m_{202}^{eq} + m_{022}^{eq}) 
+\end{split}\end{split}\]</div>
+</div>
+</section>
+<section id="back-transformation-from-m-to-f">
+<h2>Back transformation from <span class="math notranslate nohighlight">\(m\)</span> to <span class="math notranslate nohighlight">\(f\)</span><a class="headerlink" href="#back-transformation-from-m-to-f" title="Link to this heading">¶</a></h2>
+<p>The back transformation is given simply by</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-backtransformation-f-m">
+<div class="math notranslate nohighlight" id="equation-eq-eq-backtransformation-f-m">
+<span class="eqno">(44)<a class="headerlink" href="#equation-eq-eq-backtransformation-f-m" title="Link to this equation">¶</a></span>\[f^{*} = M^{-1} m^{*}\]</div>
+</div>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[
+f_{1} = \frac{m_{10}}{2} - \frac{m_{12}}{2} + \frac{m_{20}}{2} - \frac{m_{22}}{2}
+\]</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">moment_d2q9</span> <span class="o">=</span> <span class="n">MomentGenerator</span><span class="p">(</span><span class="n">vectors</span><span class="o">=</span><span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">is_central_moment</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">f_exprs</span><span class="p">,</span> <span class="n">f_list</span> <span class="o">=</span> <span class="n">moment_d2q9</span><span class="o">.</span><span class="n">express_f_in_terms_of_moments</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">f_exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<p>However, since each moment appears multiple times in the <span class="math notranslate nohighlight">\(f\)</span> expression, naive computation by definition is not efficient. <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/generator_utils/cumulant_utils.py#L304">An efficient backward transformation from <span class="math notranslate nohighlight">\(m\)</span> to <span class="math notranslate nohighlight">\(f\)</span></a> is given by (Eq. (B.89)-(B.97) in <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../reference.html#id3" title="M. Geier, M. Schonherr, A. Pasquali, and M. Krafczyk. The cumulant lattice boltzmann equation in three dimensions: theory and validation. Computers &amp; Mathematics with Applications, 70(4):507–547, 2015.">GSPK15</a>]</span>)</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-chimera-backtransformation-m-f">
+<div class="math notranslate nohighlight" id="equation-eq-eq-chimera-backtransformation-m-f">
+<span class="eqno">(45)<a class="headerlink" href="#equation-eq-eq-chimera-backtransformation-m-f" title="Link to this equation">¶</a></span>\[\begin{split}\begin{aligned}
+&amp;m_{0|\beta\gamma} = m_{0\beta\gamma} - m_{2\beta\gamma} \\
+&amp;m_{\bar{1}|\beta\gamma} = (-m_{1\beta\gamma} + m_{2\beta\gamma}) / 2 \\
+&amp;m_{1|\beta\gamma} = (m_{1\beta\gamma} + m_{2\beta\gamma}) / 2 \\
+&amp;m_{i0|\gamma} = m_{i0\gamma} - m_{i2\gamma} \\
+&amp;m_{i\bar{1}|\gamma} = (-m_{i1\gamma} + m_{i2\gamma}) / 2 \\
+&amp;m_{i1|\gamma} = (m_{i1\gamma} + m_{i2\gamma}) / 2 \\
+&amp;f_{ i j 0} = m_{ij|0} - m_{ij|2} \\
+&amp;f_{ i j-1} = \frac{ -m_{ij|1} + m_{ij|2} }{2} \\
+&amp;f_{ i j 1} = \frac{  m_{ij|1} + m_{ij|2} }{2} 
+\end{aligned}\end{split}\]</div>
+</div>
+</section>
+<section id="stability-control">
+<h2>Stability control<a class="headerlink" href="#stability-control" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">examples/JCprob_bb.py</span></code> (push+bb) with <span class="math notranslate nohighlight">\(Re\)</span> increased to 10,000,000 can be a challenge for numerical stability. All one for <span class="math notranslate nohighlight">\(\omega_{i&gt;1}\)</span> could not reach 1000000 steps, while the simulation got stable with <span class="math notranslate nohighlight">\(\omega_{i&gt;2} = 1.4\)</span>, which dumped high order noises; where <span class="math notranslate nohighlight">\(\omega_{2}\)</span> for bulk viscosity was kept at unity.</p>
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/JCprob1_bb_MRT-10000000.png"></img>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">examples/nested.py</span></code> of Re=50,000 using MRT. The large <span class="math notranslate nohighlight">\(u\)</span> (0.1) can be a challenge for stable simulation. High dumping for <span class="math notranslate nohighlight">\(\omega_{2}\)</span> and over relaxation for higher orders are required to prevent simulation failure and noisy velocity distributions; <span class="math notranslate nohighlight">\(\omega_{2} = 1.8\)</span> and <span class="math notranslate nohighlight">\(\omega_{i&gt;2} = 1.9\)</span> for all (four) grid levels in this example. The figure below shows the predicted velocity field at 50,000 step.</p>
+<div style="max-width: 100%">
+    <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested_MRT-50000.png"></img>
+</div>
+</section>
+<section id="density-fluctuation-mode">
+<h2>Density-fluctuation mode<a class="headerlink" href="#density-fluctuation-mode" title="Link to this heading">¶</a></h2>
+<p>The shifted moment is defined by</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-moment-transformation-shifted">
+<div class="math notranslate nohighlight" id="equation-eq-eq-moment-transformation-shifted">
+<span class="eqno">(46)<a class="headerlink" href="#equation-eq-eq-moment-transformation-shifted" title="Link to this equation">¶</a></span>\[\widetilde{m} = M \widetilde{f} = M ( f - w ) = m - M w\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(w\)</span> is the vector of weights, and the non-zero components of <span class="math notranslate nohighlight">\(M w\)</span>, for example in D2Q9, are <span class="math notranslate nohighlight">\((0,0): 1\)</span>, <span class="math notranslate nohighlight">\((2,0), (0,2): 1/3\)</span> and <span class="math notranslate nohighlight">\((2,2): 1/9\)</span>.</p>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+<span class="n">moment_d2q9</span><span class="o">.</span><span class="n">M</span><span class="nd">@sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>One additional pattern <span class="math notranslate nohighlight">\(1/27\)</span> at the order <span class="math notranslate nohighlight">\((0,0,0)\)</span> appers in D3Q27.</p>
+</section>
+<section id="transformation-matrix">
+<h2>Transformation matrix<a class="headerlink" href="#transformation-matrix" title="Link to this heading">¶</a></h2>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+
+<span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+
+<span class="n">all_orders</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="n">dim</span><span class="p">))</span>
+<span class="n">moment_orders</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_orders</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="n">M</span><span class="p">,</span> <span class="n">M_inv</span> <span class="o">=</span> <span class="n">create_trans_matrix</span><span class="p">(</span><span class="n">moment_orders</span><span class="p">,</span> <span class="n">vectors</span><span class="p">)</span> 
+</pre></div>
+</div>
+</div>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}
+M = 
+\left[\begin{matrix}1 &amp; 1 &amp; 1 &amp; 1 &amp; 1 &amp; 1 &amp; 1 &amp; 1 &amp; 1\\0 &amp; 1 &amp; 0 &amp; -1 &amp; 0 &amp; 1 &amp; -1 &amp; -1 &amp; 1\\0 &amp; 0 &amp; 1 &amp; 0 &amp; -1 &amp; 1 &amp; 1 &amp; -1 &amp; -1\\0 &amp; 1 &amp; 0 &amp; 1 &amp; 0 &amp; 1 &amp; 1 &amp; 1 &amp; 1\\0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 1 &amp; -1 &amp; 1 &amp; -1\\0 &amp; 0 &amp; 1 &amp; 0 &amp; 1 &amp; 1 &amp; 1 &amp; 1 &amp; 1\\0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 1 &amp; 1 &amp; -1 &amp; -1\\0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 1 &amp; -1 &amp; -1 &amp; 1\\0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 1 &amp; 1 &amp; 1 &amp; 1\end{matrix}\right]
+\end{split}\]</div>
+</div>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}
+M^{-1}
+=
+\left[\begin{matrix}1 &amp; 0 &amp; 0 &amp; -1 &amp; 0 &amp; -1 &amp; 0 &amp; 0 &amp; 1\\0 &amp; \frac{1}{2} &amp; 0 &amp; \frac{1}{2} &amp; 0 &amp; 0 &amp; 0 &amp; - \frac{1}{2} &amp; - \frac{1}{2}\\0 &amp; 0 &amp; \frac{1}{2} &amp; 0 &amp; 0 &amp; \frac{1}{2} &amp; - \frac{1}{2} &amp; 0 &amp; - \frac{1}{2}\\0 &amp; - \frac{1}{2} &amp; 0 &amp; \frac{1}{2} &amp; 0 &amp; 0 &amp; 0 &amp; \frac{1}{2} &amp; - \frac{1}{2}\\0 &amp; 0 &amp; - \frac{1}{2} &amp; 0 &amp; 0 &amp; \frac{1}{2} &amp; \frac{1}{2} &amp; 0 &amp; - \frac{1}{2}\\0 &amp; 0 &amp; 0 &amp; 0 &amp; \frac{1}{4} &amp; 0 &amp; \frac{1}{4} &amp; \frac{1}{4} &amp; \frac{1}{4}\\0 &amp; 0 &amp; 0 &amp; 0 &amp; - \frac{1}{4} &amp; 0 &amp; \frac{1}{4} &amp; - \frac{1}{4} &amp; \frac{1}{4}\\0 &amp; 0 &amp; 0 &amp; 0 &amp; \frac{1}{4} &amp; 0 &amp; - \frac{1}{4} &amp; - \frac{1}{4} &amp; \frac{1}{4}\\0 &amp; 0 &amp; 0 &amp; 0 &amp; - \frac{1}{4} &amp; 0 &amp; - \frac{1}{4} &amp; \frac{1}{4} &amp; \frac{1}{4}\end{matrix}\right]
+\end{split}\]</div>
+</div>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<p>See that <span class="math notranslate nohighlight">\(M M^{-1} = I\)</span>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">moment_d3q27</span><span class="o">.</span><span class="n">M</span><span class="nd">@moment_d3q27</span><span class="o">.</span><span class="n">M_inv</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="cumulant.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Cumulant</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="trt.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">TRT</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Kosuke Hayashi@Kobe University
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/hayashi-workshop/clbmtaichi" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+            </a>
+              <a class="muted-link " href="https://www.lab.kobe-u.ac.jp/eng-mfd/" aria-label="Home">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">MRT</a><ul>
+<li><a class="reference internal" href="#multi-relaxation-time-model">Multi-relaxation time model</a></li>
+<li><a class="reference internal" href="#equilibrium-moment-m-eq">Equilibrium moment <span class="math notranslate nohighlight">\(m_{eq}\)</span></a></li>
+<li><a class="reference internal" href="#collision-in-moment-space">Collision in moment space</a></li>
+<li><a class="reference internal" href="#back-transformation-from-m-to-f">Back transformation from <span class="math notranslate nohighlight">\(m\)</span> to <span class="math notranslate nohighlight">\(f\)</span></a></li>
+<li><a class="reference internal" href="#stability-control">Stability control</a></li>
+<li><a class="reference internal" href="#density-fluctuation-mode">Density-fluctuation mode</a></li>
+<li><a class="reference internal" href="#transformation-matrix">Transformation matrix</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script>let toggleHintShow = 'open footnote';</script>
+    <script>let toggleHintHide = 'hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

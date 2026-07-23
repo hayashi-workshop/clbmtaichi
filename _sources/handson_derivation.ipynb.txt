@@ -1,0 +1,1656 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "a2c1518c-7679-4fc6-b345-ffbb53386bbf",
+   "metadata": {},
+   "source": [
+    "# Hands-on: Sympy CSE application to BGK LBE"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d43453bb-5941-4d86-866b-64bad9be64d2",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f8f9fa; \n",
+    "    border-left: 5px solid #ced4da; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #495057;\n",
+    "\">\n",
+    "    <strong>Reference:</strong> Notebook can be found at <a href=\"https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/handson_derivation.ipynb\">generator/handson_derivation.ipynb</a>\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ac91799a-88e8-4be8-a11e-649cd6548438",
+   "metadata": {},
+   "source": [
+    "This hands-on notebook is designed to learn how we can use `sympy` to derive CSE-optimized collision kernel in `clbmtaichi`. Enjoy!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "f35bcd18-11e0-4971-864a-b760b87f3ba5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import sympy as sp\n",
+    "from sympy import symbols, Eq"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1425de7c-ca4c-4808-a555-92cf5d1cc768",
+   "metadata": {},
+   "source": [
+    "## Weights"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "eb80866e-ae3b-4319-a3fa-2f0f8f501c62",
+   "metadata": {},
+   "source": [
+    "The weight vector $w_{i}$ has its intrinsic feature. If we label $w_{i}$ as $w_{\\alpha \\beta}$ = $w_{00}$, $w_{10}$, $w_{01}$, $\\cdots$ for $\\mathbf{c}=(0,0)$, $\\mathbf{c}=(1,0)$, $\\mathbf{c}=(0,1)$, $\\cdots$, the velocity components $0$ and $\\pm 1$ have their base weights as $2/3$ and $1/6$, respectively; for example, $w_{00} = \\frac{2}{3} \\times \\frac{2}{3} = \\frac{4}{9}$ and $w_{22} = \\frac{1}{6} \\times \\frac{1}{6} = \\frac{1}{36}$. Therefore, the weight vector is constructed by the following function. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "82a35a37-8126-4ad9-b8d8-4860be68bc76",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def calculate_weight(vec):\n",
+    "    w_base = {0: sp.Rational(2, 3), 1: sp.Rational(1, 6), -1: sp.Rational(1, 6)} # sp.Rational defines rational numbers\n",
+    "    weight = 1\n",
+    "    for component in vec:\n",
+    "        weight *= w_base[component]\n",
+    "    return weight"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "815cb05d-3f22-4ee1-b926-867653e2ec6b",
+   "metadata": {},
+   "source": [
+    "Let's check wether the function correctly work. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "41233b62-c9c9-4a31-b530-f5ad7f915359",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "w0, w1, w2, w3, w4, w5, w6, w7, w8 = 4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36\n",
+      "sum w = 1\n"
+     ]
+    }
+   ],
+   "source": [
+    "w0 = calculate_weight( ( 0, 0) )\n",
+    "w1, w2, w3, w4 = calculate_weight( ( 1, 0) ), calculate_weight( ( 0, 1) ), calculate_weight( (-1, 0) ), calculate_weight( ( 0,-1) )\n",
+    "w5, w6, w7, w8 = calculate_weight( ( 1, 1) ), calculate_weight( (-1, 1) ), calculate_weight( (-1,-1) ), calculate_weight( ( 1,-1) )\n",
+    "print(f\"w0, w1, w2, w3, w4, w5, w6, w7, w8 = {w0}, {w1}, {w2}, {w3}, {w4}, {w5}, {w6}, {w7}, {w8}\")\n",
+    "print(f\"sum w = {w0+w1+w2+w3+w4+w5+w6+w7+w8}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "82c9ccb9-5239-4013-9c5e-bd1749c9a18a",
+   "metadata": {},
+   "source": [
+    "Good!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "06d2da6c-1ef1-4bd9-b24c-2732a106876a",
+   "metadata": {},
+   "source": [
+    "## Velocity sets "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "57a9a5b1-24a6-4eda-a45d-661a6b42c151",
+   "metadata": {},
+   "source": [
+    "First, import required libraries before creating lattice velocity vectors. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "cf47a810-3f1a-4f07-91fb-57430cbe7997",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import itertools\n",
+    "import math\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d3e49f4e-9056-432b-ae92-aa89f7ca0e18",
+   "metadata": {},
+   "source": [
+    "The components of the D2Q9 velocity vectors take either $-1$, $0$ or $1$. D2Q9 consists of all possible combinations of them, and `itertools` easily produces such combinations, that is, "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "7991a993-eaf1-43c6-8562-c32f24f9b307",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)]"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "dim = 2 # dimension\n",
+    "list(itertools.product([-1, 0, 1], repeat=dim)) # result: [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a330a2b7-0520-48bd-a55a-302af7394659",
+   "metadata": {},
+   "source": [
+    "These are $\\mathbf{c}$ we need! However, we expect the order $\\mathbf{c}_{0} = (0,0)$, $\\mathbf{c}_{1} = (1,0)$, $\\cdots$, but the order of the velocities above does not follow this. The following function solves this by sorting the components: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "e1c7bcf6-d846-4fe1-8a62-339c8bf1e423",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Here we develop 2D version only, so dim=2 is not mandatory. However, we shall leave dim for later convinience. \n",
+    "def create_vectors(dim):\n",
+    "    all_vectors = list(itertools.product([-1, 0, 1], repeat=dim))\n",
+    "\n",
+    "    vectors = []\n",
+    "\n",
+    "    def lbm_2d_sort_key(vec):\n",
+    "        length_sq = sum(c**2 for c in vec) # cx^2 + cy^2 \n",
+    "        \n",
+    "        if length_sq == 0: return (0, -100) # c0\n",
+    "            \n",
+    "        angle = math.atan2(vec[1], vec[0]) # angle between c and x-axis\n",
+    "        if angle < 0: angle += 2 * math.pi # quadrant correction\n",
+    "\n",
+    "        return (length_sq, angle)\n",
+    "\n",
+    "    # sort for (length_sq, angle). (0,0) is placed first since its length is 0. Next, four components of length_sq = 1 are sorted for angle. Then, ..\n",
+    "    sorted_pairs = sorted([(v, calculate_weight(v)) for v in all_vectors], key=lambda x: lbm_2d_sort_key(x[0]))\n",
+    "\n",
+    "    # pick sorted vector from the result and list them. \n",
+    "    vectors = [p[0] for p in sorted_pairs]\n",
+    "\n",
+    "    return vectors"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "bbe62350-8218-417e-a2de-64ba1cc77e72",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]\n"
+     ]
+    }
+   ],
+   "source": [
+    "vectors = create_vectors(dim=dim)\n",
+    "print(vectors) # result : [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1ae5dabd-0649-446b-9145-363dc4ffb078",
+   "metadata": {},
+   "source": [
+    "Thus, we are ready to create the weight vector: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "e5707ec3-c86e-43a6-b0e3-9e7bb7f69b24",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36]\n"
+     ]
+    }
+   ],
+   "source": [
+    "weights = [calculate_weight(v) for v in vectors]\n",
+    "print(weights)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dc5f42d8-b75c-4b2e-9e66-d88ff429899d",
+   "metadata": {},
+   "source": [
+    "## Macroscopic variables"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3bfd4ae0-f8ae-4dec-9b15-1a80cb1d150d",
+   "metadata": {},
+   "source": [
+    "We shall start using sympy to construct LBE! "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "95d395c4-e9d1-4c65-8a47-d3c3a035c38d",
+   "metadata": {},
+   "source": [
+    "sympy *symbol* is a symbol variable to handle symbolic calculation. Deine *name* of symbol; then create the *symbol* for it by `sp.Symbol`. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "436c1db6-2bd3-403c-a0d8-056bbc365151",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\rho$"
+      ],
+      "text/plain": [
+       "rho"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "rho_name = 'rho'\n",
+    "rho = sp.Symbol(rho_name)\n",
+    "\n",
+    "display(rho) # display renders symbols with LaTeX drawing"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "27fae8d1-220e-4a32-b266-e67b5a026985",
+   "metadata": {},
+   "source": [
+    "Multiple symbols can be defined simultaneously from `List` using `sp.symbols`. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "1daaf82b-b5b5-4e47-8a2b-c47ea62d524b",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{matrix}u & v\\end{matrix}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([[u, v]])"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "vel_names = ['u', 'v', 'w'][:dim] # slicing eliminate 'w' when dim=2. \n",
+    "vel_syms  = sp.symbols(vel_names)\n",
+    "\n",
+    "display(sp.Matrix(vel_syms).T) # trick to display in LaTeX form. Not mandatory."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fb846c4c-4b9e-4089-8dcd-3a37226d2ed6",
+   "metadata": {},
+   "source": [
+    "`rho = sp.Symbol('rho')`, of course, works. However, defining *name* sparately is sometimes useful. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "5fe90f1a-ca10-4a60-90f5-197ff07238c5",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{matrix}f_{0} & f_{1} & f_{2} & f_{3} & f_{4} & f_{5} & f_{6} & f_{7} & f_{8}\\end{matrix}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([[f0, f1, f2, f3, f4, f5, f6, f7, f8]])"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "num_pops = len(vectors) # number of populations\n",
+    "\n",
+    "f_syms = sp.symbols([f'f{i}' for i in range(num_pops)]) # sympy symbol of f\n",
+    "\n",
+    "display(sp.Matrix(f_syms).T)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "52cd2f2f-bc78-4173-a178-430bf445ff75",
+   "metadata": {},
+   "source": [
+    "What is the density in LBM? It is $\\rho = \\sum_{i=0}^{Q-1} f_{i}$. Get it!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "3b40029a-04bf-49e1-a75a-9a4ccfa9cd3a",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}$"
+      ],
+      "text/plain": [
+       "f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "rho_expr = sum(f_syms)\n",
+    "\n",
+    "display(rho_expr)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ea6a39fc-67fe-483d-a094-2b34806ed637",
+   "metadata": {},
+   "source": [
+    "We've gotten into the discrete LB world. \n",
+    "\n",
+    "The term `expr` in `rho_expr` is an abbreviation of *expression*. The symbol $\\rho$ is a symbol. `rho_expr` is a concrete *expression* of $\\rho$. The name is arbitrary and you can use another one as you like. However, it would be better to have your own ruling for the variable names (my own ruling is sometimes broken in the actual code. sorry!). Let's have velocity expressions $\\mathbf{u} = \\sum \\mathbf{c}_{i} f_{i} / \\rho$ as well: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "7a6ed35c-138a-4a7d-a2b1-3cd8e97e248e",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{matrix}\\frac{f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}} & \\frac{f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}\\end{matrix}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([[(f1 - f3 + f5 - f6 - f7 + f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8), (f2 - f4 + f5 + f6 - f7 - f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)]])"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "vel_exprs = []\n",
+    "for d_idx in range(dim): \n",
+    "    momentum_expr = sum(vec[d_idx] * f_syms[i] for i, vec in enumerate(vectors))\n",
+    "    vel_exprs.append( momentum_expr / ( rho_expr ) ) \n",
+    "\n",
+    "display(sp.Matrix(vel_exprs).T)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "63be7c97-7b56-4bdf-9303-7d7b57290eab",
+   "metadata": {},
+   "source": [
+    "## Equilibrium distribution function"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c53f91e8-f90a-489e-b653-40a17a889443",
+   "metadata": {},
+   "source": [
+    "Same as `f_syms`, we prepare `feq_syms` for $f_{i}^{eq}$. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "0dac8ccd-e714-4987-a87e-2b89bbbd31ed",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{matrix}feq_{0} & feq_{1} & feq_{2} & feq_{3} & feq_{4} & feq_{5} & feq_{6} & feq_{7} & feq_{8}\\end{matrix}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([[feq0, feq1, feq2, feq3, feq4, feq5, feq6, feq7, feq8]])"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "feq_syms = sp.symbols([f'feq{i}' for i in range(num_pops)])\n",
+    "\n",
+    "display(sp.Matrix(feq_syms).T)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3ea9da3e-eac9-4e02-a77c-21dd37e824a9",
+   "metadata": {},
+   "source": [
+    "The most elaborative part in BGK is reconstruction of $f_{i}^{eq} = w_{i} \\rho \\left[ 1 + \\frac{\\mathbf{c}_{i} \\cdot \\mathbf{u}}{c_{s}^{2}} + \\frac{(\\mathbf{c}_{i} \\cdot \\mathbf{u})^{2}}{2 c_{s}^{4}} - \\frac{\\mathbf{u} \\cdot \\mathbf{u}}{2 c_{s}^{2}} \\right]$. However, sympy enables us to quickly implement this as follows. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "19306131-3c56-4027-b075-fb6f313625bd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cs2 = sp.Rational(1, 3) # cs^2 = 1/3\n",
+    "\n",
+    "def create_feq_list(dim, rho, u, vectors, weights):\n",
+    "    u_sq_sum = sum(u_i**2 for u_i in u) # u^2 + v^2\n",
+    "    \n",
+    "    feq_list = []\n",
+    "    for idx, vec in enumerate(vectors):\n",
+    "        c_dot_u = sum(cx * u_i for cx, u_i in zip(vec, u)) # c_{i} dot u\n",
+    "    \n",
+    "        feq_list.append( weights[idx] * rho * (1 + c_dot_u/cs2 + (c_dot_u**2)/(2 * cs2**2) - u_sq_sum/(2 * cs2)) )\n",
+    "\n",
+    "    return feq_list"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "33020963-c6cf-41b5-8d69-dbbb1dc08e42",
+   "metadata": {},
+   "source": [
+    "$f^{eq}$ in *symbolic form*:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "0eace511-8b77-4654-8de8-c8ed563d06d3",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{matrix}\\frac{4 \\rho \\left(- \\frac{3 u^{2}}{2} - \\frac{3 v^{2}}{2} + 1\\right)}{9} & \\frac{\\rho \\left(3 u^{2} + 3 u - \\frac{3 v^{2}}{2} + 1\\right)}{9} & \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 v^{2} + 3 v + 1\\right)}{9} & \\frac{\\rho \\left(3 u^{2} - 3 u - \\frac{3 v^{2}}{2} + 1\\right)}{9} & \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 v^{2} - 3 v + 1\\right)}{9} & \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 u - \\frac{3 v^{2}}{2} + 3 v + \\frac{9 \\left(u + v\\right)^{2}}{2} + 1\\right)}{36} & \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} - 3 u - \\frac{3 v^{2}}{2} + 3 v + \\frac{9 \\left(- u + v\\right)^{2}}{2} + 1\\right)}{36} & \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} - 3 u - \\frac{3 v^{2}}{2} - 3 v + \\frac{9 \\left(- u - v\\right)^{2}}{2} + 1\\right)}{36} & \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 u - \\frac{3 v^{2}}{2} - 3 v + \\frac{9 \\left(u - v\\right)^{2}}{2} + 1\\right)}{36}\\end{matrix}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([[4*rho*(-3*u**2/2 - 3*v**2/2 + 1)/9, rho*(3*u**2 + 3*u - 3*v**2/2 + 1)/9, rho*(-3*u**2/2 + 3*v**2 + 3*v + 1)/9, rho*(3*u**2 - 3*u - 3*v**2/2 + 1)/9, rho*(-3*u**2/2 + 3*v**2 - 3*v + 1)/9, rho*(-3*u**2/2 + 3*u - 3*v**2/2 + 3*v + 9*(u + v)**2/2 + 1)/36, rho*(-3*u**2/2 - 3*u - 3*v**2/2 + 3*v + 9*(-u + v)**2/2 + 1)/36, rho*(-3*u**2/2 - 3*u - 3*v**2/2 - 3*v + 9*(-u - v)**2/2 + 1)/36, rho*(-3*u**2/2 + 3*u - 3*v**2/2 - 3*v + 9*(u - v)**2/2 + 1)/36]])"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "feq_raw_list = create_feq_list(dim, rho, vel_syms, vectors, weights)\n",
+    "\n",
+    "display(sp.Matrix( feq_raw_list ).T)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "acc3fcc7-3374-4e24-ab24-125d3f7441b6",
+   "metadata": {},
+   "source": [
+    "Good; this is $f^{eq}$ that we know. However, $\\rho$ and $\\mathbf{u}$ are actually functions of $f$ in the discrete sense. So, by sending `expr` to the $f^{eq}$ create function, we obtain"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "d6dd06aa-0859-4125-a19c-e930c9d3dca7",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left(- \\frac{3 \\left(f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}\\right)^{2}}{2 \\left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\\right)^{2}} - \\frac{3 \\left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\\right)^{2}}{2 \\left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\\right)^{2}} + 1\\right) \\left(\\frac{4 f_{0}}{9} + \\frac{4 f_{1}}{9} + \\frac{4 f_{2}}{9} + \\frac{4 f_{3}}{9} + \\frac{4 f_{4}}{9} + \\frac{4 f_{5}}{9} + \\frac{4 f_{6}}{9} + \\frac{4 f_{7}}{9} + \\frac{4 f_{8}}{9}\\right)$"
+      ],
+      "text/plain": [
+       "(-3*(f1 - f3 + f5 - f6 - f7 + f8)**2/(2*(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)**2) - 3*(f2 - f4 + f5 + f6 - f7 - f8)**2/(2*(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)**2) + 1)*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "feq_exprs = create_feq_list(dim, rho_expr, vel_exprs, vectors, weights)\n",
+    "\n",
+    "display(feq_exprs[0])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a0d3c11a-c627-46cb-afcb-f7493a89d8c2",
+   "metadata": {},
+   "source": [
+    "Too complex! Don't worry, `sympy` is human friendly. `sp.simplify` helps us to grasp the structure of equation. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "88c66196-76d9-42f9-8efd-af7e3cd8f282",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\frac{- \\frac{2 \\left(f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}\\right)^{2}}{3} - \\frac{2 \\left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\\right)^{2}}{3} + \\frac{4 \\left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\\right)^{2}}{9}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}$"
+      ],
+      "text/plain": [
+       "(-2*(f1 - f3 + f5 - f6 - f7 + f8)**2/3 - 2*(f2 - f4 + f5 + f6 - f7 - f8)**2/3 + 4*(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)**2/9)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sp.simplify(feq_exprs[0])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "be2da135-7f7a-4560-8e20-ec81b9b0c56c",
+   "metadata": {},
+   "source": [
+    "## Lattice Boltzmann Equation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "65f1605e-2212-4776-9171-0e07b7b02b28",
+   "metadata": {},
+   "source": [
+    "Prepare the relaxation rate. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "2ac6a707-bf50-4f04-9b9a-2064af03ce4c",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\omega$"
+      ],
+      "text/plain": [
+       "omega"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "omega = sp.Symbol('omega')\n",
+    "\n",
+    "display(omega)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d4fc994f-0008-4772-8997-1f83312e8871",
+   "metadata": {},
+   "source": [
+    "#### Symbolic LBE: *post-collision* distribution"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "605cc515-6d43-4916-a0fc-618b3d704caa",
+   "metadata": {},
+   "source": [
+    "We construct LBE and register them in Python *dict*. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "dbf8e2cf-e982-47ef-a52b-f9c950f70e45",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "f_new_map = {\n",
+    "    f\"f{i}\": (f_syms[i] - omega * (f_syms[i] - feq_syms[i]))\n",
+    "    for i in range(num_pops)\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "d7353d7e-cf07-4d3f-b744-fb5710022364",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'f0': f0 - omega*(f0 - feq0),\n",
+       " 'f1': f1 - omega*(f1 - feq1),\n",
+       " 'f2': f2 - omega*(f2 - feq2),\n",
+       " 'f3': f3 - omega*(f3 - feq3),\n",
+       " 'f4': f4 - omega*(f4 - feq4),\n",
+       " 'f5': f5 - omega*(f5 - feq5),\n",
+       " 'f6': f6 - omega*(f6 - feq6),\n",
+       " 'f7': f7 - omega*(f7 - feq7),\n",
+       " 'f8': f8 - omega*(f8 - feq8)}"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "f_new_map"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f7c9e5ea-8f7a-46b8-950f-42c9073130d3",
+   "metadata": {},
+   "source": [
+    "Each equation can be accessed via *key* of the dict, e.g., "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "6d84a67f-c6d2-476e-9722-d7e5fc444ff6",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{0} - \\omega \\left(f_{0} - feq_{0}\\right)$"
+      ],
+      "text/plain": [
+       "f0 - omega*(f0 - feq0)"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "f_new_map['f0']"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6abf789b-b1a3-4b06-9c3b-8872ba759c86",
+   "metadata": {},
+   "source": [
+    "## LBE: *standard* pipeline"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6581d39d-4c41-4e11-be57-8a6a6224e706",
+   "metadata": {},
+   "source": [
+    "We have, thus, constructed the $\\rho$ equation, the $\\mathbf{u}$ equations, the symbolic $f^{eq}$ equation, and the LBE. The pipeline of BGK can thus be "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "bf39b5f3-30ff-4ac3-9f12-4391529d22ed",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\rho = f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}$"
+      ],
+      "text/plain": [
+       "Eq(rho, f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "display(Eq(rho, rho_expr))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "id": "2607254f-ee01-4b73-8d64-51c69a139316",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle u = \\frac{f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}$"
+      ],
+      "text/plain": [
+       "Eq(u, (f1 - f3 + f5 - f6 - f7 + f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle v = \\frac{f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}$"
+      ],
+      "text/plain": [
+       "Eq(v, (f2 - f4 + f5 + f6 - f7 - f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "for d_idx in range(dim):\n",
+    "    display(Eq(vel_syms[d_idx], vel_exprs[d_idx]))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "id": "05dd4c7b-d528-4aaf-be08-da31067f6675",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{0} = \\frac{4 \\rho \\left(- \\frac{3 u^{2}}{2} - \\frac{3 v^{2}}{2} + 1\\right)}{9}$"
+      ],
+      "text/plain": [
+       "Eq(feq0, 4*rho*(-3*u**2/2 - 3*v**2/2 + 1)/9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{1} = \\frac{\\rho \\left(3 u^{2} + 3 u - \\frac{3 v^{2}}{2} + 1\\right)}{9}$"
+      ],
+      "text/plain": [
+       "Eq(feq1, rho*(3*u**2 + 3*u - 3*v**2/2 + 1)/9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{2} = \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 v^{2} + 3 v + 1\\right)}{9}$"
+      ],
+      "text/plain": [
+       "Eq(feq2, rho*(-3*u**2/2 + 3*v**2 + 3*v + 1)/9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{3} = \\frac{\\rho \\left(3 u^{2} - 3 u - \\frac{3 v^{2}}{2} + 1\\right)}{9}$"
+      ],
+      "text/plain": [
+       "Eq(feq3, rho*(3*u**2 - 3*u - 3*v**2/2 + 1)/9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{4} = \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 v^{2} - 3 v + 1\\right)}{9}$"
+      ],
+      "text/plain": [
+       "Eq(feq4, rho*(-3*u**2/2 + 3*v**2 - 3*v + 1)/9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{5} = \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 u - \\frac{3 v^{2}}{2} + 3 v + \\frac{9 \\left(u + v\\right)^{2}}{2} + 1\\right)}{36}$"
+      ],
+      "text/plain": [
+       "Eq(feq5, rho*(-3*u**2/2 + 3*u - 3*v**2/2 + 3*v + 9*(u + v)**2/2 + 1)/36)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{6} = \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} - 3 u - \\frac{3 v^{2}}{2} + 3 v + \\frac{9 \\left(- u + v\\right)^{2}}{2} + 1\\right)}{36}$"
+      ],
+      "text/plain": [
+       "Eq(feq6, rho*(-3*u**2/2 - 3*u - 3*v**2/2 + 3*v + 9*(-u + v)**2/2 + 1)/36)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{7} = \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} - 3 u - \\frac{3 v^{2}}{2} - 3 v + \\frac{9 \\left(- u - v\\right)^{2}}{2} + 1\\right)}{36}$"
+      ],
+      "text/plain": [
+       "Eq(feq7, rho*(-3*u**2/2 - 3*u - 3*v**2/2 - 3*v + 9*(-u - v)**2/2 + 1)/36)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle feq_{8} = \\frac{\\rho \\left(- \\frac{3 u^{2}}{2} + 3 u - \\frac{3 v^{2}}{2} - 3 v + \\frac{9 \\left(u - v\\right)^{2}}{2} + 1\\right)}{36}$"
+      ],
+      "text/plain": [
+       "Eq(feq8, rho*(-3*u**2/2 + 3*u - 3*v**2/2 - 3*v + 9*(u - v)**2/2 + 1)/36)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "for i in range(num_pops):\n",
+    "    display( Eq(feq_syms[i], feq_raw_list[i]) )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "id": "e0b9690a-08ed-481a-a80a-60a2dc2b8c88",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{0} = f_{0} - \\omega \\left(f_{0} - feq_{0}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f0, f0 - omega*(f0 - feq0))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{1} = f_{1} - \\omega \\left(f_{1} - feq_{1}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f1, f1 - omega*(f1 - feq1))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{2} = f_{2} - \\omega \\left(f_{2} - feq_{2}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f2, f2 - omega*(f2 - feq2))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{3} = f_{3} - \\omega \\left(f_{3} - feq_{3}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f3, f3 - omega*(f3 - feq3))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{4} = f_{4} - \\omega \\left(f_{4} - feq_{4}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f4, f4 - omega*(f4 - feq4))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{5} = f_{5} - \\omega \\left(f_{5} - feq_{5}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f5, f5 - omega*(f5 - feq5))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{6} = f_{6} - \\omega \\left(f_{6} - feq_{6}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f6, f6 - omega*(f6 - feq6))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{7} = f_{7} - \\omega \\left(f_{7} - feq_{7}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f7, f7 - omega*(f7 - feq7))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{8} = f_{8} - \\omega \\left(f_{8} - feq_{8}\\right)$"
+      ],
+      "text/plain": [
+       "Eq(f8, f8 - omega*(f8 - feq8))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "for key, expr in zip(f_new_map.keys(), f_new_map.values()):\n",
+    "    display( Eq(sp.Symbol(key), expr) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3ab09379-bc6a-4b49-8d48-ec8bb4c59519",
+   "metadata": {},
+   "source": [
+    "Compute the density and viscosites, compute the equilibrium distributions from those macro vars, and then do collision... There are no differences from the standard implementaion of BGK-LBE. We can obtain a BGK code by exporting this story. But, this is not our goal; our remaining task is to apply CSE to the LBE!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9eebed4c-7f3b-4885-abe8-555644adc163",
+   "metadata": {},
+   "source": [
+    "## Sympy Common Subexpression Elimination (CSE): application to LBE pipeline"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "acd0dd91-6ba9-4052-9b8b-457ddad4d341",
+   "metadata": {},
+   "source": [
+    "Bundle the macroscopic variables. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "id": "060fb3e2-8e14-4b8f-9ff4-2eb18cdce33b",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{'rho': f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8, 'u': (f1 - f3 + f5 - f6 - f7 + f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8), 'v': (f2 - f4 + f5 + f6 - f7 - f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)}\n"
+     ]
+    }
+   ],
+   "source": [
+    "macro_keys   = [rho_name] + vel_names       # ['rho', 'u', 'v']\n",
+    "macro_values = [rho_expr] + vel_exprs[:dim] # [ f0 + f1 + ..., (f1 - f3 + ...)/(f0 + f1 + ...), (f2 - f4 + ...)/(f0 + f1 + ...)]\n",
+    "\n",
+    "macro_exprs  = dict(zip(macro_keys, macro_values)) # combine name and expressions as dict\n",
+    "\n",
+    "print(macro_exprs)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "32a8a762-d9c4-407f-aa4d-35f48ac4e25f",
+   "metadata": {},
+   "source": [
+    "We list all expressions to be injected to CSE. `cse_targets` is a `list` of `sympy` expressions. We extract `expr` from `macro_exprs` and `f_new_map`. It should be noted that `f_new_map` itself is *symbolic* expression, therefore the symbols are *substituted* with the concrete expressions `feq_exprs` via `subs_map`. Actually, `list(f_new_map.values())` can be replaced with `feq_exprs`, but it may be convenient to handle them as *dict*, in order to memory the meaning of equations. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "id": "dacd909b-e8c1-4680-9f43-aea5d57cd217",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# mapping feq0 -> (rho + 3*u...) for CSE\n",
+    "subs_map = {feq_syms[i]: feq_exprs[i] for i in range(num_pops)} \n",
+    "\n",
+    "# replacement of equations with feq_exprs\n",
+    "cse_targets = [ \n",
+    "    expr.xreplace(subs_map) for expr in (list(macro_exprs.values()) + list(f_new_map.values()))\n",
+    "]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "id": "4135d7ec-14fa-47ee-b7fd-c22c01a8d34e",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle f_{2} - \\omega \\left(f_{2} - \\left(- \\frac{3 \\left(f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}\\right)^{2}}{2 \\left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\\right)^{2}} + \\frac{3 \\left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\\right)^{2}}{\\left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\\right)^{2}} + \\frac{3 \\left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\\right)}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}} + 1\\right) \\left(\\frac{f_{0}}{9} + \\frac{f_{1}}{9} + \\frac{f_{2}}{9} + \\frac{f_{3}}{9} + \\frac{f_{4}}{9} + \\frac{f_{5}}{9} + \\frac{f_{6}}{9} + \\frac{f_{7}}{9} + \\frac{f_{8}}{9}\\right)\\right)$"
+      ],
+      "text/plain": [
+       "f2 - omega*(f2 - (-3*(f1 - f3 + f5 - f6 - f7 + f8)**2/(2*(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)**2) + 3*(f2 - f4 + f5 + f6 - f7 - f8)**2/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)**2 + 3*(f2 - f4 + f5 + f6 - f7 - f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8) + 1)*(f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "display(cse_targets[5]) # confirm LBE of f2 "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6295c739-920b-4ea0-ba81-099d0a4f5d11",
+   "metadata": {},
+   "source": [
+    "CSE's turn!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "id": "72a44037-00b9-4ab4-8ce7-e2b92f452e8c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "replacements, reduced_exprs = sp.cse(cse_targets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "id": "1e1860ad-4f36-4bac-a429-3c5c7b8b3334",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[(x0, f1 + f8),\n",
+       " (x1, f2 + f6),\n",
+       " (x2, f0 + f3 + f4 + f5 + f7 + x0 + x1),\n",
+       " (x3, 1/x2),\n",
+       " (x4, f5 - f7),\n",
+       " (x5, -f3 - f6 + x0 + x4),\n",
+       " (x6, x3*x5),\n",
+       " (x7, -f4 - f8 + x1 + x4),\n",
+       " (x8, x3*x7),\n",
+       " (x9, x7**2),\n",
+       " (x10, x2**(-2)),\n",
+       " (x11, 3*x10/2),\n",
+       " (x12, x11*x9),\n",
+       " (x13, x5**2),\n",
+       " (x14, x11*x13),\n",
+       " (x15, x14 - 1),\n",
+       " (x16, x12 + x15),\n",
+       " (x17, f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9),\n",
+       " (x18, 3*x6),\n",
+       " (x19, 3*x10),\n",
+       " (x20, 1 - x12),\n",
+       " (x21, x13*x19 + x20),\n",
+       " (x22, 3*x8),\n",
+       " (x23, -x14),\n",
+       " (x24, x22 + x23),\n",
+       " (x25, -x18),\n",
+       " (x26, f0/36 + f1/36 + f2/36 + f3/36 + f4/36 + f5/36 + f6/36 + f7/36 + f8/36),\n",
+       " (x27, x6 + x8),\n",
+       " (x28, x20 + x24),\n",
+       " (x29, x6 - x8)]"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "replacements \n",
+    "# this is a list of 2-component touples\n",
+    "# (intermediate variables like x0, expr: expressions of intermediate variables like f1 + f8)\n",
+    "# \n",
+    "# Eq(replacements[0][0], replacements[0][1]) -> x0 = f1 + f8"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "id": "d5de34f6-f4dc-4e20-81d7-f1bf1df9be38",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[x2,\n",
+       " x6,\n",
+       " x8,\n",
+       " f0 - omega*(f0 + x16*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9)),\n",
+       " f1 - omega*(f1 - x17*(x18 + x21)),\n",
+       " f2 - omega*(f2 - x17*(x19*x9 + x24 + 1)),\n",
+       " f3 - omega*(f3 - x17*(x21 + x25)),\n",
+       " f4 - omega*(f4 - x17*(3*x10*x9 - x15 - x22)),\n",
+       " f5 - omega*(f5 - x26*(x18 + 9*x27**2/2 + x28)),\n",
+       " f6 - omega*(f6 - x26*(x25 + x28 + 9*x29**2/2)),\n",
+       " f7 - omega*(f7 - x26*(-x16 - x18 - x22 + 9*x27**2/2)),\n",
+       " f8 - omega*(f8 - x26*(x18 + x20 - x22 + x23 + 9*x29**2/2))]"
+      ]
+     },
+     "execution_count": 32,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "reduced_exprs \n",
+    "# this is a list of reduces expression of *given expressions*"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4e50c333-8c5c-44b2-96d7-83128736ee11",
+   "metadata": {},
+   "source": [
+    "Note that the order of the components in `reduced_exprs` is the same as in `cse_targets`. Therefore, "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "id": "74260a85-9a56-471c-b349-382040e7090c",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\rho = x_{2}$"
+      ],
+      "text/plain": [
+       "Eq(rho, x2)"
+      ]
+     },
+     "execution_count": 33,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "Eq(rho, reduced_exprs[0])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "025789a6-ca4f-4ea9-823d-eddab473fbb7",
+   "metadata": {},
+   "source": [
+    "Validity check!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "id": "8898ae44-240e-4b18-9e96-c89056afabbf",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "x0 = replacements[0][1]\n",
+    "x1 = replacements[1][1]\n",
+    "x2 = replacements[2][1]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "id": "94e75a83-1b80-4b0e-9d9a-9264b79b37a6",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle 0$"
+      ],
+      "text/plain": [
+       "0"
+      ]
+     },
+     "execution_count": 35,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "(x2.subs({'x1': x1})).subs({'x0': x0}) - rho_expr # x2 - rho = 0?\n",
+    "# subs is substitution operation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ea282b61-799a-4ad4-a776-55697597de4a",
+   "metadata": {},
+   "source": [
+    "## Export as kernel"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d5d29ee0-3a89-4820-907a-a0fdd469fc8c",
+   "metadata": {},
+   "source": [
+    "Finaly, we export the result as *collision-streaming kernel*. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ee940209-6372-4714-ab53-ac3a927bed18",
+   "metadata": {},
+   "source": [
+    "### Pull-type streaming"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "id": "3ed82bce-bdc0-46b8-977c-07a206111d5b",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "f0 = f_pre[I-c[0]][0]\n",
+      "f1 = f_pre[I-c[1]][1]\n",
+      "f2 = f_pre[I-c[2]][2]\n",
+      "f3 = f_pre[I-c[3]][3]\n",
+      "f4 = f_pre[I-c[4]][4]\n",
+      "f5 = f_pre[I-c[5]][5]\n",
+      "f6 = f_pre[I-c[6]][6]\n",
+      "f7 = f_pre[I-c[7]][7]\n",
+      "f8 = f_pre[I-c[8]][8]\n"
+     ]
+    }
+   ],
+   "source": [
+    "for i in range(num_pops):\n",
+    "    print(f\"{f_syms[i]} = f_pre[I-c[{i}]][{i}]\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d4e8e103-d145-4eaa-b802-b1d5e9929c09",
+   "metadata": {},
+   "source": [
+    "### Construction of $f^{eq}$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "id": "4ccba94b-ac8e-43e9-b970-58dcc98fab5e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "x0 = f1 + f8\n",
+      "x1 = f2 + f6\n",
+      "x2 = f0 + f3 + f4 + f5 + f7 + x0 + x1\n",
+      "x3 = 1/x2\n",
+      "x4 = f5 - f7\n",
+      "x5 = -f3 - f6 + x0 + x4\n",
+      "x6 = x3*x5\n",
+      "x7 = -f4 - f8 + x1 + x4\n",
+      "x8 = x3*x7\n",
+      "x9 = x7**2\n",
+      "x10 = x2**(-2)\n",
+      "x11 = 3*x10/2\n",
+      "x12 = x11*x9\n",
+      "x13 = x5**2\n",
+      "x14 = x11*x13\n",
+      "x15 = x14 - 1\n",
+      "x16 = x12 + x15\n",
+      "x17 = f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9\n",
+      "x18 = 3*x6\n",
+      "x19 = 3*x10\n",
+      "x20 = 1 - x12\n",
+      "x21 = x13*x19 + x20\n",
+      "x22 = 3*x8\n",
+      "x23 = -x14\n",
+      "x24 = x22 + x23\n",
+      "x25 = -x18\n",
+      "x26 = f0/36 + f1/36 + f2/36 + f3/36 + f4/36 + f5/36 + f6/36 + f7/36 + f8/36\n",
+      "x27 = x6 + x8\n",
+      "x28 = x20 + x24\n",
+      "x29 = x6 - x8\n"
+     ]
+    }
+   ],
+   "source": [
+    "for var, expr in replacements:\n",
+    "    print(f\"{var} = {expr}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5bd95287-f0cc-46f5-9655-b48d8e674fcd",
+   "metadata": {},
+   "source": [
+    "### Collision and writing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "id": "519112a6-6097-4105-b3ff-3a6db4eeaa1e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "f_post[I][0] = f0 - omega*(f0 + x16*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9))\n",
+      "f_post[I][1] = f1 - omega*(f1 - x17*(x18 + x21))\n",
+      "f_post[I][2] = f2 - omega*(f2 - x17*(x19*x9 + x24 + 1))\n",
+      "f_post[I][3] = f3 - omega*(f3 - x17*(x21 + x25))\n",
+      "f_post[I][4] = f4 - omega*(f4 - x17*(3*x10*x9 - x15 - x22))\n",
+      "f_post[I][5] = f5 - omega*(f5 - x26*(x18 + 9*x27**2/2 + x28))\n",
+      "f_post[I][6] = f6 - omega*(f6 - x26*(x25 + x28 + 9*x29**2/2))\n",
+      "f_post[I][7] = f7 - omega*(f7 - x26*(-x16 - x18 - x22 + 9*x27**2/2))\n",
+      "f_post[I][8] = f8 - omega*(f8 - x26*(x18 + x20 - x22 + x23 + 9*x29**2/2))\n"
+     ]
+    }
+   ],
+   "source": [
+    "for i in range(num_pops):\n",
+    "    q = i+1+dim\n",
+    "    print(f\"f_post[I][{i}] = {reduced_exprs[q]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "114e3674-04a5-4515-bb97-8e9c1b5d9b68",
+   "metadata": {},
+   "source": [
+    "### Macroscopic variables"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 39,
+   "id": "b9fc84d3-1fab-4614-b886-e225890cc576",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "rho[I] = x2\n",
+      "vel[I][0] = x6\n",
+      "vel[I][1] = x8\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(f\"{rho}[I] = {reduced_exprs[0]}\")\n",
+    "\n",
+    "for d_idx in range(dim):\n",
+    "    print(f\"vel[I][{d_idx}] = {reduced_exprs[1+d_idx]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a9f2e6e7-40a6-4363-ab56-7e552655cd74",
+   "metadata": {},
+   "source": [
+    "## Functionalize expressions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 40,
+   "id": "ba3b54aa-d6ef-4825-9851-3e808bb05eca",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "@ti.kernel\n",
+      "def col_stream_core(rho: ti.template(), vel: ti.template(), f_pre: ti.template(), f_post: ti.template()):\n",
+      "    for I in ti.grouped(rho):\n",
+      "        f0 = f_pre[I-c[0]][0]\n",
+      "        f1 = f_pre[I-c[1]][1]\n",
+      "        f2 = f_pre[I-c[2]][2]\n",
+      "        f3 = f_pre[I-c[3]][3]\n",
+      "        f4 = f_pre[I-c[4]][4]\n",
+      "        f5 = f_pre[I-c[5]][5]\n",
+      "        f6 = f_pre[I-c[6]][6]\n",
+      "        f7 = f_pre[I-c[7]][7]\n",
+      "        f8 = f_pre[I-c[8]][8]\n",
+      "        x0 = f1 + f8\n",
+      "        x1 = f2 + f6\n",
+      "        x2 = f0 + f3 + f4 + f5 + f7 + x0 + x1\n",
+      "        x3 = 1/x2\n",
+      "        x4 = f5 - f7\n",
+      "        x5 = -f3 - f6 + x0 + x4\n",
+      "        x6 = x3*x5\n",
+      "        x7 = -f4 - f8 + x1 + x4\n",
+      "        x8 = x3*x7\n",
+      "        x9 = x7**2\n",
+      "        x10 = x2**(-2)\n",
+      "        x11 = 3*x10/2\n",
+      "        x12 = x11*x9\n",
+      "        x13 = x5**2\n",
+      "        x14 = x11*x13\n",
+      "        x15 = x14 - 1\n",
+      "        x16 = x12 + x15\n",
+      "        x17 = f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9\n",
+      "        x18 = 3*x6\n",
+      "        x19 = 3*x10\n",
+      "        x20 = 1 - x12\n",
+      "        x21 = x13*x19 + x20\n",
+      "        x22 = 3*x8\n",
+      "        x23 = -x14\n",
+      "        x24 = x22 + x23\n",
+      "        x25 = -x18\n",
+      "        x26 = f0/36 + f1/36 + f2/36 + f3/36 + f4/36 + f5/36 + f6/36 + f7/36 + f8/36\n",
+      "        x27 = x6 + x8\n",
+      "        x28 = x20 + x24\n",
+      "        x29 = x6 - x8\n",
+      "        f_post[I][0] = f0 - omega*(f0 + x16*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9))\n",
+      "        f_post[I][1] = f1 - omega*(f1 - x17*(x18 + x21))\n",
+      "        f_post[I][2] = f2 - omega*(f2 - x17*(x19*x9 + x24 + 1))\n",
+      "        f_post[I][3] = f3 - omega*(f3 - x17*(x21 + x25))\n",
+      "        f_post[I][4] = f4 - omega*(f4 - x17*(3*x10*x9 - x15 - x22))\n",
+      "        f_post[I][5] = f5 - omega*(f5 - x26*(x18 + 9*x27**2/2 + x28))\n",
+      "        f_post[I][6] = f6 - omega*(f6 - x26*(x25 + x28 + 9*x29**2/2))\n",
+      "        f_post[I][7] = f7 - omega*(f7 - x26*(-x16 - x18 - x22 + 9*x27**2/2))\n",
+      "        f_post[I][8] = f8 - omega*(f8 - x26*(x18 + x20 - x22 + x23 + 9*x29**2/2))\n",
+      "        rho[I] = x2\n",
+      "        vel[I][0] = x6\n",
+      "        vel[I][1] = x8\n"
+     ]
+    }
+   ],
+   "source": [
+    "idt = ['', '    ', '        ']\n",
+    "\n",
+    "print(f\"{idt[0]}@ti.kernel\")\n",
+    "print(f\"{idt[0]}def col_stream_core(rho: ti.template(), vel: ti.template(), f_pre: ti.template(), f_post: ti.template()):\")\n",
+    "\n",
+    "print(f\"{idt[1]}for I in ti.grouped(rho):\")\n",
+    "\n",
+    "for i in range(num_pops):\n",
+    "    print(f\"{idt[2]}{f_syms[i]} = f_pre[I-c[{i}]][{i}]\")\n",
+    "\n",
+    "for var, expr in replacements:\n",
+    "    print(f\"{idt[2]}{var} = {expr}\")\n",
+    "\n",
+    "for i in range(num_pops):\n",
+    "    q = i+1+dim\n",
+    "    print(f\"{idt[2]}f_post[I][{i}] = {reduced_exprs[q]}\")\n",
+    "\n",
+    "print(f\"{idt[2]}{rho}[I] = {reduced_exprs[0]}\")\n",
+    "\n",
+    "for d_idx in range(dim):\n",
+    "    print(f\"{idt[2]}vel[I][{d_idx}] = {reduced_exprs[1+d_idx]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e2e583fc-9bc9-4f1b-8122-d10c84caa676",
+   "metadata": {},
+   "source": [
+    "Congratulation! Compare this result with `lb_solver/d2q9_BGK_kernel.py`. Except some additional functions in the latter, the derived kernels are the same. \n",
+    "\n",
+    "Sympy CSE is now under control in your hands. \n",
+    "\n",
+    "Good news. Just by extending the `vectors` to D3Q29, we would immediately derive 3D kernerl as well!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a9f9d384-a73e-4f38-bc1b-eaebbeab0298",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.20"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
