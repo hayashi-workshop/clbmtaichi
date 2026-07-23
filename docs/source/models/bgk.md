@@ -243,7 +243,7 @@ For the higher orders, let me leave an example,
 display(compute_weight_tensor(suffix=(1,1,2,2), dim=dim)) # 4th-order (result: 1/9)
 ```
 
-## ### Macroscopic variable construction from $f^{eq}$ 
+## Macroscopic variable construction from $f^{eq}$ 
 
 Confirm the following relationships between the macroscopic variables and the equilibirum distribution functions by extending the weight tensor calculation function. 
 
