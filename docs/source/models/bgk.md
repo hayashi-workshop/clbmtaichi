@@ -248,10 +248,11 @@ display(compute_weight_tensor(suffix=(1,1,2,2), dim=dim)) # 4th-order (result: 1
 Confirm the following relationships between the macroscopic variables and the equilibirum distribution functions by extending the weight tensor calculation function. 
 
 ```{math}
-\begi{split}
+\begin{split}
 &$\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}$ \\
 &$\sum_{i=0}^{Q-1} c_{i \alpha} f^{eq}_{i} = \rho u_{\alpha}$ \\
 &$\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}$
+\end{split}
 ```
 
 ```python
