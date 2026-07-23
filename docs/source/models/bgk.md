@@ -218,6 +218,8 @@ display(W0)
 
 The 1st-order (vector), 
 ```python
+import numpy as np
+
 wt = []
 for i in range(dim):
     wt.append(compute_weight_tensor(suffix=(i), dim=dim))
@@ -227,7 +229,6 @@ display(W1)
 
 The 2nd-order tensor, 
 ```python
-import numpy as np
 wt = []
 for j in range(dim):
     for i in range(dim):
