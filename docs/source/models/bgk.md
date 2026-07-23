@@ -221,7 +221,7 @@ The 1st-order (vector),
 import numpy as np
 
 wt = []
-for i in range(dim):
+for i in (1,2,3)[:dim]:
     wt.append(compute_weight_tensor(suffix=(i), dim=dim))
 W1 = sp.Matrix( np.array(wt) )
 display(W1)
@@ -230,8 +230,8 @@ display(W1)
 The 2nd-order tensor, 
 ```python
 wt = []
-for j in range(dim):
-    for i in range(dim):
+for j in (1,2,3)[:dim]:
+    for i in (1,2,3)[:dim]:
         suffix = (i, j)
         wt.append( compute_weight_tensor(suffix=suffix, dim=dim) )
 W2 = sp.Matrix( np.array(wt).reshape(dim, dim) )
@@ -241,4 +241,73 @@ display(W2)
 For the higher orders, let me leave an example, 
 ```python
 display(compute_weight_tensor(suffix=(1,1,2,2), dim=dim)) # 4th-order (result: 1/9)
+```
+
+## ### Macroscopic variable construction from $f^{eq}$ 
+
+Confirm the following relationships between the macroscopic variables and the equilibirum distribution functions by extending the weight tensor calculation function. 
+
+```{math}
+\begi{split}
+&$\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}$ \\
+&$\sum_{i=0}^{Q-1} c_{i \alpha} f^{eq}_{i} = \rho u_{\alpha}$ \\
+&$\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}$
+```
+
+```python
+from collections.abc import Iterable
+
+def compute_feq_tensor(suffix=None, dim=2): # suffix is tuple
+    vectors = create_vectors(dim) # create lattice velocity
+    weights = [calculate_weight(v) for v in vectors]
+
+    rho = sp.Symbol('rho')
+    u   = sp.symbols(['u', 'v', 'w'][:dim]) 
+    
+    cs2 = sp.Rational(1, 3)
+    u_sq_sum = sum(u_i**2 for u_i in u)
+    
+    feq_list = []
+    for idx, vec in enumerate(vectors):
+        c_dot_u = sum(cx * u_i for cx, u_i in zip(vec, u))
+        feq = weights[idx] * rho * (1 + c_dot_u/cs2 + (c_dot_u**2)/(2 * cs2**2) - u_sq_sum/(2 * cs2))
+        feq_list.append( feq ) 
+    
+    if suffix == None:
+        return sp.expand(sum(feq_list))
+    elif not isinstance(suffix, Iterable):
+        suffix = (suffix,)
+
+    feq_tensor_expr = 0 # sum ( f_{i}^{eq} * c_{i alpha} * c_{i beta} * c_{i gamma} ...)
+    for i, v in enumerate(vectors):
+        cprod = feq_list[i] # set f_{i}^{eq}
+        for s in suffix:
+            ss = s - 1 # shift: physics uses x=1, but code uses x=0
+            cprod *= v[ss] # multiply f_{i}^{eq} * c_{i alpha} * c_{i beta} * c_{i gamma} ...
+        feq_tensor_expr += cprod
+
+    return sp.expand(feq_tensor_expr)
+```
+
+```python
+dim = 3
+compute_feq_tensor(dim=dim)
+```
+
+```python
+ft = []
+for i in (1,2,3)[:dim]:
+    ft.append(compute_feq_tensor(suffix=(i), dim=dim))
+F1 = sp.Matrix( np.array(ft) )
+display(F1)
+```
+
+```python
+ft = []
+for j in (1,2,3)[:dim]:
+    for i in (1,2,3)[:dim]:
+        suffix = (i, j)
+        ft.append( compute_feq_tensor(suffix=suffix, dim=dim) )
+F2 = sp.Matrix( np.array(ft).reshape(dim, dim) )
+display(F2)
 ```
