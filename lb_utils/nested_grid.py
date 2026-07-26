@@ -195,7 +195,7 @@ class GridManager:
             raise ValueError(f"level {level} exceeds the level next to the max level. Set grid at level {self.max_level+1} first.")
 
         if not all(x % 2 == 0 for x in grid.nd):
-            raise ValueError(f"nd, domain size, {nd} of leaf must be even (nd[d] % 2 == 0).")
+            raise ValueError(f"nd, domain size, {grid.nd} of leaf must be even (nd[d] % 2 == 0).")
 
         if not all(0 <= x < limit for x, limit in zip(offset, self.grid[root_idx].nd)):
             raise ValueError(f"offset {offset} is set in invalid range; not covered by root grid.")
@@ -220,7 +220,7 @@ class GridManager:
         if level >= self.max_level:
             self.tree[level + 1] = []            # activate list in next level
 
-        self.root_idx[self.idx] = root_idx       # remember who is my root
+        #self.root_idx[self.idx] = root_idx       # remember who is my root
         self.leaf_idx[root_idx].append(self.idx) # set leaf idx to root grid 
         _, _ = self.get_tree_info()              # update tree info
 
