@@ -49,6 +49,9 @@ def main():
     parser.add_argument("--Re", type=float, default=10000, 
                         help="Reynolds number; default 10000")
 
+    parser.add_argument("--u", type=float, default=0.1, 
+                        help="Inlet velocity; default 0.1")
+
     parser.add_argument("--render", type=str, default="vorticity", 
                         help="Render mode: default vorticity [vorticity, velocity]")
 
@@ -60,9 +63,11 @@ def main():
         if (dim != 2) & (dim != 3): raise ValueError("Dimension must be 2 or 3.")
         Re = abs(args.Re)
         if (Re < 1e-2): raise ValueError("Reynolds number maybe too small.")
+        u = abs(args.u)
+        if (u < 1e-8): raise ValueError("Inlet velocity must be positive.")
         render_mode = args.render
         if (render_mode != "vorticity") & (render_mode != "velocity"): raise ValueError("Render mode must be vorticity or velocity.")        
-        run(nd, Re, render_mode)
+        run(nd, Re, u, render_mode)
     elif args.mode == 'gen':
         code_gen()
     
@@ -74,7 +79,7 @@ def code_gen():
     allrun() # generate all kernels
 
 # run numerical simulation #
-def run(nd, Re, render_mode):
+def run(nd, Re, u, render_mode):
     # constructing LB model -> #
 
     GEN_PATH = "generated_kernel.py" # if None, existing kernel module will be imported
@@ -85,7 +90,7 @@ def run(nd, Re, render_mode):
 #    nd = (241, 61, 61) # <- managed in main()
 #    nd = (801, 201)
 #    Re = 10000.0
-    u  = 0.1                                         # inlet velocity
+#    u  = 0.1                                         # inlet velocity
     radius = nd[1] * 0.25 if len(nd) == 3 else 20.0  # radius of object
     nu = u*2*radius/Re                               # kinematic viscosity
     omega = 1/(3*nu + 0.5)                           # relaxation parameter
