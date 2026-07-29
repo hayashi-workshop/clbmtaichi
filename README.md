@@ -60,12 +60,13 @@ cd $REPO_PATH
 python main.py run
 ```
 
-2D/3D (specified by domain size `nd`), Reynolds number, and rendering mode can be changed by throwing them in `args`, for example,  
+2D/3D (specified by domain size `nd`), Reynolds number, inlet velocity, and rendering mode can be changed by throwing them in `args`, for example,  
 
 ```bash
-python main.py run --nd 1001 301 --Re 1000 --render velocity
+python main.py run --nd 1001 301 --Re 1000 --u 0.05 --render velocity
 ```
 
+The default inlet velocity is set to a large value (0.1). The simple implementation of outlet may cause instability in some conditions, for which a reduction of inlet velocity would be effective for stability. 
 
 ## [Documentation](https://hayashi-workshop.github.io/clbmtaichi/)
 
