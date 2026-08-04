@@ -503,3 +503,8 @@ Predicted vorticity (Paraview) and velocity (GGUI) fields are shown below. The n
   <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested3d_L4_mag.png" style="max-width: 59.4%; height: auto; object-fit: contain;">
   <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested3d_L4_Q.png" style="max-width: 40.6%; height: auto; object-fit: contain;">
 </div>
+
+The same setting for the sphere case is used, but a square plate is placed in this case. This example can also be found in `example` directory; `examples/nested3d_plate.py`, which may take 5 hours with Colab G4. 
+<div style="max-width: 100%; display: flex; gap: 10px;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/nested3d_plate_vtk.png" style="max-width: 100%; height: auto; object-fit: contain;">
+</div>

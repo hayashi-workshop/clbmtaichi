@@ -48,5 +48,9 @@ class NestedObstacleManager(ObstacleManager): # circle (2D) / sphere (3D)
         length2 = (0.5*self.length)**2
         for I in ti.grouped(mask):
             distance = ti.cast(I, ti.f32) - self.center[None]
-            if distance[0]**2 < width2 and distance[1]**2 < length2:
-                mask[I] = 1.0
+            if ti.static(self.dim == 2):
+                if distance[0]**2 < width2 and distance[1]**2 < length2:
+                    mask[I] = 1.0
+            else:
+                if distance[0]**2 < width2 and distance[1]**2 < length2 and distance[2]**2 < length2:
+                    mask[I] = 1.0
