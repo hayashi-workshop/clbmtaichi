@@ -1,0 +1,4281 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "a2c1518c-7679-4fc6-b345-ffbb53386bbf",
+   "metadata": {},
+   "source": [
+    "# Hands-on: Cumulant kernel with Sympy"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e77b7115-67a9-4da2-85b2-a757fa1d4eef",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f8f9fa; \n",
+    "    border-left: 5px solid #ced4da; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #495057;\n",
+    "\">\n",
+    "    <strong>Reference:</strong> Notebook can be found at <a href=\"https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/handson_derivation_cumulant.ipynb\">generator/handson_derivation_cumulant.ipynb</a>\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7fc0d878-d9d9-485c-8d1f-bd84dcef978d",
+   "metadata": {},
+   "source": [
+    "We shall first review the algorithm to understand what we need in construction of cumulant LBM.\n",
+    "\n",
+    "- Forward transformation from $f$ to $m$\n",
+    "- Forward transformation from $m$ to $\\kappa$\n",
+    "- Forward transformation from $\\kappa$ to $C$\n",
+    "- Collision in cumulant space ($C \\rightarrow C^{*}$)\n",
+    "- Backward transformation from $C^{*}$ to $\\kappa^{*}$\n",
+    "- Backward transformation from $\\kappa^{*}$ to $m^{*}$\n",
+    "- Backward transformation from $m^{*}$ to $f^{*}$\n",
+    "\n",
+    "We need the forward transformation pipeline ($f \\rightarrow m \\rightarrow \\kappa \\rightarrow C$) and the backward transformation pipeline ($C \\rightarrow \\kappa \\rightarrow m \\rightarrow f$); seems many, but actually the fact that cumulants of 2nd and 3rd orders are the same with $\\kappa$ reduces implementation burden. \n",
+    "\n",
+    "Here, we try to develop D3Q27 version; however, we also implement D2Q9 version in utility functions. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e62c7b72-681c-433c-befe-18a2bccb835e",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f0f8ff; \n",
+    "    border-left: 5px solid #a2c4c9; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #2c4a5e;\n",
+    "\">\n",
+    "    <strong>Note:</strong> Fast transformation (Geier et al., 2015) itself is already optimized. Sympy CSE seems not so effective for the transformation algorithms. Reduced operation vs. Register pressure; this point should be further studied.  \n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1bfa785d-4908-447d-8ca4-8070e892352b",
+   "metadata": {},
+   "source": [
+    "Import required packages in this hands-on, which does not depend on external libraries except for `sympy` and `numpy`. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "b304e085-68d2-464f-8e3d-498194ed014a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import sympy as sp\n",
+    "from sympy import symbols, Eq\n",
+    "\n",
+    "import itertools\n",
+    "import math\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a18bff4e-1636-4341-b090-7ea2858805ad",
+   "metadata": {},
+   "source": [
+    "## Weights"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "90badcd1-709a-4756-8b94-0db6a7331cef",
+   "metadata": {},
+   "source": [
+    "Get started from the weights as we did for the BGK case. `calculate_weight` is the same as in BGK."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "74019860-b0a7-41aa-80b5-f9f61e57e347",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def calculate_weight(vec):\n",
+    "    w_base = {0: sp.Rational(2, 3), 1: sp.Rational(1, 6), -1: sp.Rational(1, 6)}\n",
+    "    weight = 1\n",
+    "    for component in vec:\n",
+    "        weight *= w_base[component]\n",
+    "    return weight"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d2827bec-769d-4bb8-a86b-1f328d82acc4",
+   "metadata": {},
+   "source": [
+    "## Velocity sets"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7edc4f82-ccac-4126-a737-8589ed9e5e4c",
+   "metadata": {},
+   "source": [
+    "`create_vectors` we developed previously can also be used; however, we extend it to include D3Q27 option. D2Q9 consists of all possible combinations of $-1$, $0$, $+1$, so that `itertools.product([-1, 0, 1], repeat=dim)` simply gave us all velocity sets. Fortunately, D3Q27 has the same feature, and `itertools` provides all velocities for `dim = 3` as well. Only problem we need to consider is the *order* of the velocities. In D3Q27, the order of the lattice velocities is defined as *1st velocity, oppsite to 1st velocity is put on the second place, 3rd velocity, oppsite to 3rd velocity is put on the 4th place...* This is totally different from the conventional D2Q9 we implemented before. Let's see the ordering below: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "9ba1ed4b-96a3-457a-9ed0-45e9cd7281f7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def create_vectors(dim):\n",
+    "    all_vectors = list(itertools.product([-1, 0, 1], repeat=dim))\n",
+    "\n",
+    "    vectors = []\n",
+    "\n",
+    "    if dim == 2: # * this part is the same with the BGK hands-on * #\n",
+    "        def lbm_2d_sort_key(vec):\n",
+    "            length_sq = sum(c**2 for c in vec) # cx^2 + cy^2 \n",
+    "            \n",
+    "            if length_sq == 0: return (0, -100) # c0\n",
+    "                \n",
+    "            angle = math.atan2(vec[1], vec[0]) # angle between c and x-axis\n",
+    "            if angle < 0: angle += 2 * math.pi # quadrant correction\n",
+    "    \n",
+    "            return (length_sq, angle)\n",
+    "    \n",
+    "        # sort for (length_sq, angle). (0,0) is placed first since its length is 0. Next, four components of length_sq = 1 are sorted for angle. Then, ..\n",
+    "        sorted_pairs = sorted([(v, calculate_weight(v)) for v in all_vectors], key=lambda x: lbm_2d_sort_key(x[0]))\n",
+    "    \n",
+    "        # pick sorted vector from the result and list them. \n",
+    "        vectors = [p[0] for p in sorted_pairs]\n",
+    "        \n",
+    "    elif dim == 3: \n",
+    "#       2- 0 -1 # <- anti-direction pairing ->\n",
+    "        \n",
+    "        groups = {}\n",
+    "\n",
+    "        for v in all_vectors:\n",
+    "            w = calculate_weight(v)\n",
+    "            groups.setdefault(w, []).append(v) # velocities grouped by the value of weight\n",
+    "\n",
+    "        vectors.append((0, 0, 0)) # put center velocity first\n",
+    "        \n",
+    "        for w in sorted(groups.keys(), reverse=True): # search velocities grouped by the value of w; from 8/27, 2/27, 1/54, to 1/216\n",
+    "\n",
+    "            if w == sp.Rational(8, 27): continue # skip center; it is already on the top\n",
+    "                \n",
+    "            unvisited = list(groups[w]) # fetch velocities for current w \n",
+    "            unvisited.sort(key=lambda x: (tuple(abs(c) for c in x), x), reverse=True) # sort list so as to have positive one first; (1,0,0) is expected to be found earlier than (-1,0,0)\n",
+    "            \n",
+    "            while unvisited: # search pair and register them\n",
+    "                v1 = unvisited.pop(0) # fetch next velocity from pool\n",
+    "                v2 = tuple(-c for c in v1) # set pair \n",
+    "                unvisited.remove(v2) # remove from pool since it has been found\n",
+    "                vectors.append(v1) \n",
+    "                vectors.append(v2)\n",
+    "    \n",
+    "    return vectors"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "8547f10d-7e32-4ae5-b728-1cb5ac9d54f0",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dim = 3\n",
+    "\n",
+    "vectors = create_vectors(dim)\n",
+    "\n",
+    "weights = [calculate_weight(v) for v in vectors]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cc10decb-33cc-4af6-b090-2b43c9bc40e3",
+   "metadata": {},
+   "source": [
+    "Let's check the result. In order to minimize the display space, we put the vectors in matrix form."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "6f9d7821-1040-4ed3-ad25-c75f061274df",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{array}{ccccccccccccccccccccccccccc}0 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\\\0 & 0 & 0 & 1 & -1 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\end{array}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([\n",
+       "[0, 1, -1, 0,  0, 0,  0, 1, -1,  1, -1, 1, -1,  1, -1, 0,  0,  0,  0, 1, -1,  1, -1,  1, -1,  1, -1],\n",
+       "[0, 0,  0, 1, -1, 0,  0, 1, -1, -1,  1, 0,  0,  0,  0, 1, -1,  1, -1, 1, -1,  1, -1, -1,  1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 1, -1, 0,  0,  0,  0, 1, -1, -1,  1, 1, -1, -1,  1, 1, -1, -1,  1,  1, -1, -1,  1]])"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sp.Matrix(vectors).T # the most left is (0,0,0) for c0, the next one is (1,0,0) for c1,..."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "aa5620c0-4aa1-42e4-8a65-9302396d46eb",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle 1$"
+      ],
+      "text/plain": [
+       "1"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sum(weights) # sum w = 1: the scalar constrant for the weight vector"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "771e2d8c-1dd7-4526-a26b-2d4b0ae2386c",
+   "metadata": {},
+   "source": [
+    "Very good. For the use in the following calulations, "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "b006b902-2aed-41ad-8c10-0998e3232c2f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "num_pops = len(vectors) # number of populations = 9 or 27"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "44f5fa9d-30c7-47ca-8872-0b2fd50e1134",
+   "metadata": {},
+   "source": [
+    "## Macroscopic variables"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "58a387c3-2cf3-452f-b7ad-2a932f60ebae",
+   "metadata": {},
+   "source": [
+    "Define distribution functions and macroscopic variables. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "e27e5b65-7ee1-400f-b0f7-d029ae7e35b1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "f_syms = sp.symbols([f'f{i}' for i in range(num_pops)]) # sympy symbol of f"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "32d5757d-ce6e-4964-b8c8-1914c8ba298e",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\rho = f_{0} + f_{1} + f_{10} + f_{11} + f_{12} + f_{13} + f_{14} + f_{15} + f_{16} + f_{17} + f_{18} + f_{19} + f_{2} + f_{20} + f_{21} + f_{22} + f_{23} + f_{24} + f_{25} + f_{26} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8} + f_{9}$"
+      ],
+      "text/plain": [
+       "Eq(rho, f0 + f1 + f10 + f11 + f12 + f13 + f14 + f15 + f16 + f17 + f18 + f19 + f2 + f20 + f21 + f22 + f23 + f24 + f25 + f26 + f3 + f4 + f5 + f6 + f7 + f8 + f9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\rho v = f_{10} + f_{15} - f_{16} + f_{17} - f_{18} + f_{19} - f_{20} + f_{21} - f_{22} - f_{23} + f_{24} - f_{25} + f_{26} + f_{3} - f_{4} + f_{7} - f_{8} - f_{9}$"
+      ],
+      "text/plain": [
+       "Eq(rho*v, f10 + f15 - f16 + f17 - f18 + f19 - f20 + f21 - f22 - f23 + f24 - f25 + f26 + f3 - f4 + f7 - f8 - f9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "rho_name = 'rho'\n",
+    "rho = sp.Symbol(rho_name)\n",
+    "\n",
+    "vel_names = ['u', 'v', 'w'][:dim] # slicing eliminate 'w' when dim=2. \n",
+    "vel_syms  = sp.symbols(vel_names)\n",
+    "\n",
+    "rho_expr = sum(f_syms)\n",
+    "\n",
+    "vel_exprs = []\n",
+    "for d_idx in range(dim): \n",
+    "    momentum_expr = sum(vec[d_idx] * f_syms[i] for i, vec in enumerate(vectors))\n",
+    "    vel_exprs.append( momentum_expr / ( rho_expr ) ) \n",
+    "\n",
+    "display(Eq(rho, rho_expr))\n",
+    "display(Eq(rho * vel_syms[1], rho_expr * vel_exprs[1]))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "06d2da6c-1ef1-4bd9-b24c-2732a106876a",
+   "metadata": {},
+   "source": [
+    "## Forward transformation: $f \\rightarrow m$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d67c7a47-901d-4890-ae4b-59029ad1e126",
+   "metadata": {},
+   "source": [
+    "The forward transformation from $f$ to $m$ is defined by $m = M f$. This is the general definition, we have not yet defined the concrete form of the transformation matrix $M$. We follow the implementation of Geier et al (2015), that is, $m$ is the raw moment given by $m_{\\alpha \\beta \\gamma} = \\sum_{i=0}^{Q-1} c_{ix}^{\\alpha} c_{iy}^{\\beta} c_{iz}^{\\gamma} f_{i}$. Some examples are shown below: \n",
+    "\n",
+    "- For $(0,0,0)$, $m_{000} = \\sum_{i=0}^{Q-1} f_{i}$. Hence, all componets in the corresponding row of $M$ is $1$.\n",
+    "- For $(1,0,0)$, $m_{100} = \\sum_{i=0}^{Q-1} c_{ix} f_{i}$.\n",
+    "- For $(0,2,0)$, $m_{020} = \\sum_{i=0}^{Q-1} c_{iy}^{2} f_{i}$.\n",
+    "\n",
+    "It is convenient to have a list of all combinations of $\\alpha \\beta \\gamma$ to set the order of the moments. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "be812714-722c-4b4d-a9f4-166b78f3d57a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "all_orders = list(itertools.product((0, 1, 2), repeat=dim))\n",
+    "\n",
+    "moment_orders = sorted(all_orders, key=lambda x: (sum(x), -x[0]))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "709c77de-9c26-487b-919a-9bf0e3450011",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{array}{ccccccccccccccccccccccccccc}0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 2 & 2 & 2 & 2 & 2 & 2 & 2 & 2 & 2\\\\0 & 0 & 0 & 1 & 1 & 1 & 2 & 2 & 2 & 0 & 0 & 0 & 1 & 1 & 1 & 2 & 2 & 2 & 0 & 0 & 0 & 1 & 1 & 1 & 2 & 2 & 2\\\\0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2 & 0 & 1 & 2\\end{array}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([\n",
+       "[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2],\n",
+       "[0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 2, 2, 2],\n",
+       "[0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]])"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sp.Matrix(all_orders).T"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "643a69b1-0185-4ad2-8711-5c7e3787d55c",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{array}{ccccccccccccccccccccccccccc}0 & 1 & 0 & 0 & 2 & 1 & 1 & 0 & 0 & 0 & 2 & 2 & 1 & 1 & 1 & 0 & 0 & 2 & 2 & 2 & 1 & 1 & 0 & 2 & 2 & 1 & 2\\\\0 & 0 & 0 & 1 & 0 & 0 & 1 & 0 & 1 & 2 & 0 & 1 & 0 & 1 & 2 & 1 & 2 & 0 & 1 & 2 & 1 & 2 & 2 & 1 & 2 & 2 & 2\\\\0 & 0 & 1 & 0 & 0 & 1 & 0 & 2 & 1 & 0 & 1 & 0 & 2 & 1 & 0 & 2 & 1 & 2 & 1 & 0 & 2 & 1 & 2 & 2 & 1 & 2 & 2\\end{array}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([\n",
+       "[0, 1, 0, 0, 2, 1, 1, 0, 0, 0, 2, 2, 1, 1, 1, 0, 0, 2, 2, 2, 1, 1, 0, 2, 2, 1, 2],\n",
+       "[0, 0, 0, 1, 0, 0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 1, 2, 0, 1, 2, 1, 2, 2, 1, 2, 2, 2],\n",
+       "[0, 0, 1, 0, 0, 1, 0, 2, 1, 0, 1, 0, 2, 1, 0, 2, 1, 2, 1, 0, 2, 1, 2, 2, 1, 2, 2]])"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sp.Matrix(moment_orders).T"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c539d16e-27fd-4251-a37b-5e89b22170f8",
+   "metadata": {},
+   "source": [
+    "Set moment names, which are used later."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "ee4081f7-8bc6-4c76-a8c1-fcf834d276e2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mom_names = [\"m\" + \"\".join(map(str, order)) for order in moment_orders]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d16747ab-4ed2-4ea6-93f6-72d03e9b163b",
+   "metadata": {},
+   "source": [
+    "### Standard transformation ($f \\rightarrow m$)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ea0928b1-de2e-4a6c-a00a-760b6a3fee0e",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f0f8ff; \n",
+    "    border-left: 5px solid #a2c4c9; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #2c4a5e;\n",
+    "\">\n",
+    "    <strong>Note:</strong> This will not be used in the actual implementation, so you can skip this section.\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "60f0f30a-7998-4c6f-9b68-3c642012c662",
+   "metadata": {},
+   "source": [
+    "#### Matrix construction"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9a360fd1-9540-4187-87c0-02c351b25ce8",
+   "metadata": {},
+   "source": [
+    "It should be noted that the order of moments is *not* related to the order of $\\mathbf{c}$. We create $m_{\\alpha \\beta \\gamma}$ for this order `moment_orders`. `create_trans_matrix` gives you $M$, the raw order of which is compatible with `moment_orders`. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "c7f6dda5-c250-484a-9c56-f5c679f4dc59",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def create_trans_matrix(moment_orders, vectors):\n",
+    "    M_list = []\n",
+    "    for order in moment_orders: # order is tuple of (\\alpha, \\beta, \\gamma) running from (0,0,0) to (2,2,2)\n",
+    "        row = [] # compute components row by row\n",
+    "        for vec in vectors: # vector c\n",
+    "            term = 1\n",
+    "            for c, alpha in zip(vec, order): \n",
+    "                term *= (c ** alpha) # c_{ix}^{alpha} c_{iy}^{beta} c_{iz}^{gamma}\n",
+    "            row.append(term)\n",
+    "        M_list.append(row)\n",
+    "    M = sp.Matrix(M_list) # converted as sympy Matrix\n",
+    "    return M, M.inv() # return M and its inverse"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "f3a749bc-a617-456c-8197-dd7cc5f2e93e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "M, M_inv = create_trans_matrix(moment_orders, vectors)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c32fd52a-5321-40b2-98e7-643145c4e1a5",
+   "metadata": {},
+   "source": [
+    "$M$ is *sparse*, meaning that most components are $0$!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "245549a8-9d11-46be-b5e8-aa8615a285a0",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\left[\\begin{array}{ccccccccccccccccccccccccccc}1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\\\0 & 0 & 0 & 0 & 0 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\\\0 & 0 & 0 & 1 & -1 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\\\0 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & -1 & -1 & -1 & -1\\\\0 & 0 & 0 & 0 & 0 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & -1 & -1 & 1 & 1\\\\0 & 0 & 0 & 1 & 1 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & -1 & 1 & 1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & -1 & -1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & -1 & -1 & -1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & -1 & -1 & 1 & 1 & -1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & -1 & 1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & -1 & 1 & 1 & -1 & -1 & 1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & -1 & 1 & -1 & 1 & -1 & 1 & -1\\\\0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\end{array}\\right]$"
+      ],
+      "text/plain": [
+       "Matrix([\n",
+       "[1, 1,  1, 1,  1, 1,  1, 1,  1,  1,  1, 1,  1,  1,  1, 1,  1,  1,  1, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 1, -1, 0,  0, 0,  0, 1, -1,  1, -1, 1, -1,  1, -1, 0,  0,  0,  0, 1, -1,  1, -1,  1, -1,  1, -1],\n",
+       "[0, 0,  0, 0,  0, 1, -1, 0,  0,  0,  0, 1, -1, -1,  1, 1, -1, -1,  1, 1, -1, -1,  1,  1, -1, -1,  1],\n",
+       "[0, 0,  0, 1, -1, 0,  0, 1, -1, -1,  1, 0,  0,  0,  0, 1, -1,  1, -1, 1, -1,  1, -1, -1,  1, -1,  1],\n",
+       "[0, 1,  1, 0,  0, 0,  0, 1,  1,  1,  1, 1,  1,  1,  1, 0,  0,  0,  0, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 1,  1, -1, -1, 0,  0,  0,  0, 1,  1, -1, -1,  1,  1, -1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 1,  1, -1, -1, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1,  1,  1, -1, -1, -1, -1],\n",
+       "[0, 0,  0, 0,  0, 1,  1, 0,  0,  0,  0, 1,  1,  1,  1, 1,  1,  1,  1, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1, -1, -1, 1,  1, -1, -1, -1, -1,  1,  1],\n",
+       "[0, 0,  0, 1,  1, 0,  0, 1,  1,  1,  1, 0,  0,  0,  0, 1,  1,  1,  1, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 1, -1, -1,  1, 0,  0,  0,  0, 1, -1, -1,  1,  1, -1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 1, -1, -1,  1, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1,  1, -1, -1,  1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 1, -1,  1, -1, 0,  0,  0,  0, 1, -1,  1, -1,  1, -1,  1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1, -1,  1, -1,  1,  1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 1, -1,  1, -1, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1,  1, -1,  1, -1,  1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1,  1, -1, 1, -1,  1, -1, -1,  1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1, -1,  1, 1, -1, -1,  1,  1, -1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 1,  1,  1,  1, 0,  0,  0,  0, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1, -1, -1, -1, -1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 1,  1,  1,  1, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1,  1,  1, -1, -1, -1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1, -1, -1,  1,  1, -1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1,  1,  1, 1,  1,  1,  1,  1,  1,  1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1,  1, -1, -1,  1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1, -1,  1,  1, -1, -1,  1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1, -1,  1, -1,  1, -1,  1, -1],\n",
+       "[0, 0,  0, 0,  0, 0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 0,  0,  0,  0, 1,  1,  1,  1,  1,  1,  1,  1]])"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "M"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "df5da86a-eab8-421d-8fa9-2d433345bdef",
+   "metadata": {},
+   "source": [
+    "#### Get into moment space"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d9e4818a-7905-4e96-8bd3-d4e90b7eb5c9",
+   "metadata": {},
+   "source": [
+    "Simply, $m = M f$:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "2daf38fc-e434-47c0-a9ec-142c95947ba3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "m_exprs = M@sp.Matrix(f_syms)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a3304e5c-2c4a-4650-8d6b-b79dc43852db",
+   "metadata": {},
+   "source": [
+    "Display the moments in the 0th and 2nd places: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "e7914126-0d93-4a98-bc23-206785cbdf87",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle m_{000} = f_{0} + f_{1} + f_{10} + f_{11} + f_{12} + f_{13} + f_{14} + f_{15} + f_{16} + f_{17} + f_{18} + f_{19} + f_{2} + f_{20} + f_{21} + f_{22} + f_{23} + f_{24} + f_{25} + f_{26} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8} + f_{9}$"
+      ],
+      "text/plain": [
+       "Eq(m000, f0 + f1 + f10 + f11 + f12 + f13 + f14 + f15 + f16 + f17 + f18 + f19 + f2 + f20 + f21 + f22 + f23 + f24 + f25 + f26 + f3 + f4 + f5 + f6 + f7 + f8 + f9)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle m_{001} = f_{11} - f_{12} - f_{13} + f_{14} + f_{15} - f_{16} - f_{17} + f_{18} + f_{19} - f_{20} - f_{21} + f_{22} + f_{23} - f_{24} - f_{25} + f_{26} + f_{5} - f_{6}$"
+      ],
+      "text/plain": [
+       "Eq(m001, f11 - f12 - f13 + f14 + f15 - f16 - f17 + f18 + f19 - f20 - f21 + f22 + f23 - f24 - f25 + f26 + f5 - f6)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "display( Eq(sp.Symbol(mom_names[0]), m_exprs[0]) )\n",
+    "display( Eq(sp.Symbol(mom_names[2]), m_exprs[2]) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "83f8220d-3df3-4835-8edf-fea4bcc857ba",
+   "metadata": {},
+   "source": [
+    "We know that these are $\\rho$ and $\\rho w$, so validate the results by comparing them with the macro variables we have already computed. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "e5149f9a-8366-40fb-ab4d-5b02948643a8",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle m_{222} = f_{19} + f_{20} + f_{21} + f_{22} + f_{23} + f_{24} + f_{25} + f_{26}$"
+      ],
+      "text/plain": [
+       "Eq(m222, f19 + f20 + f21 + f22 + f23 + f24 + f25 + f26)"
+      ]
+     },
+     "execution_count": 19,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "m_raw = {}\n",
+    "\n",
+    "for i in range(len(moment_orders)):\n",
+    "    o, name = moment_orders[i], mom_names[i]\n",
+    "    m_raw[o] = m_exprs[i]\n",
+    "\n",
+    "Eq(sp.Symbol('m' + '2'*dim), m_raw[(2,2,2)[:dim]])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8ef7456d-e988-4546-a9a2-1f4ba68f58f8",
+   "metadata": {},
+   "source": [
+    "### Chimera fast transformation ($f_{i} \\rightarrow m_{\\alpha \\beta \\gamma}$)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5702d29f-f3f0-467a-979e-f055437d5315",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f8f9fa; \n",
+    "    border-left: 5px solid #ced4da; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #495057;\n",
+    "\">\n",
+    "    <strong>Reference:</strong> See Sec 4.3 in Geier et al. (2015): from Eq. (B.1) to (B.3).\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "23449822-c596-4155-a0ea-2929a0f3e5f3",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f0f8ff; \n",
+    "    border-left: 5px solid #a2c4c9; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #2c4a5e;\n",
+    "\">\n",
+    "    <strong>Note:</strong> The implementation here differs from that in Geier et al., in which the central moments are directly transformed from the distribution. See Eqs. (43)-(45) in the literature. \n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6e14b7ae-baa8-433c-9e61-9de7c2e12c30",
+   "metadata": {},
+   "source": [
+    "Although `sp.cse` can calculations in the moment transformation efficient, we utilize the chimera fast moment transformation proposed by Geier et al. (2015) to make our implementation consistent: "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b9c2c1c0-f791-411b-a2a9-d01445eda6f8",
+   "metadata": {},
+   "source": [
+    "\\begin{align}\n",
+    "&m_{ij|\\gamma} = \\sum_{k=-1,0,1} k^{\\gamma} f_{ijk} \\\\\n",
+    "&m_{i|\\beta \\gamma} = \\sum_{j=-1,0,1} j^{\\beta} m_{ij|\\gamma} \\\\\n",
+    "&m_{\\alpha \\beta \\gamma}  = \\sum_{i=-1,0,1} i^{\\alpha} m_{i|\\beta \\gamma}\n",
+    "\\end{align}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0b5a4fd5-d4de-4ca7-ae44-bf7aee2c2f67",
+   "metadata": {},
+   "source": [
+    "We develop a function creating *chimera*s: $m_{ij|\\gamma} = \\sum_{k=-1,0,1} k^{\\gamma} f_{ijk}$ and $m_{i|\\beta \\gamma} = \\sum_{j=-1,0,1} j^{\\beta} m_{ij|\\gamma}$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "7e2e8ed0-74ae-4755-a425-460d6ad1b82a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "chimera_name = 'chimera'\n",
+    "chimera_delimiter = 'c'\n",
+    "\n",
+    "def chimera_moment(dim, vectors, pipe_exprs=None):\n",
+    "    if pipe_exprs == None:\n",
+    "        pipe_exprs = {}\n",
+    "        \n",
+    "    # dynamic loop based on vectors\n",
+    "    # dim=3: grouping (v[0], v[1]) and product sum for v[2] (k)\n",
+    "    # dim=2: grouping v[0] and product sum for v[1] (j)\n",
+    "    sum_axis = dim - 1\n",
+    "    group_keys = sorted(list(set(v[:sum_axis] for v in vectors)))\n",
+    "    v_map = {-1: \"m1\", 0: \"0\", 1: \"1\"}\n",
+    "    \n",
+    "    first_chimera = {} # m_{i|beta gamma}\n",
+    "    \n",
+    "    for g_key in group_keys:\n",
+    "        for gamma in [0, 1, 2]:\n",
+    "            expr = 0\n",
+    "            for idx, v in enumerate(vectors):\n",
+    "                if v[:sum_axis] == g_key:\n",
+    "                    k_val = v[sum_axis]\n",
+    "                    k_pow = 1 if (k_val == 0 and gamma == 0) else (k_val ** gamma)\n",
+    "                    expr += k_pow * sp.Symbol(f\"f{idx}\") # m_{ij|gamma} = sum k^{gamma} f_{ijk}\n",
+    "\n",
+    "            expr = sp.simplify(expr)\n",
+    "            if dim == 3:\n",
+    "                var_sym = sp.Symbol(f\"{chimera_name}_m_{v_map[g_key[0]]}_{v_map[g_key[1]]}_{chimera_delimiter}_{gamma}\")\n",
+    "            else:\n",
+    "                var_sym = sp.Symbol(f\"{chimera_name}_m_{v_map[g_key[0]]}_{chimera_delimiter}_{gamma}\")\n",
+    "                \n",
+    "            first_chimera[(g_key, gamma)] = var_sym\n",
+    "            \n",
+    "            pipe_exprs[var_sym] = expr\n",
+    "                        \n",
+    "    second_chimera = {} # m_{ij|gamma}\n",
+    "\n",
+    "    if dim == 3:\n",
+    "        x_keys = sorted(list(set(v[0] for v in vectors)))\n",
+    "        for i_val in x_keys:\n",
+    "            for beta in [0, 1, 2]:\n",
+    "                for gamma in [0, 1, 2]:\n",
+    "                    expr = 0\n",
+    "                    for j_val in [-1, 0, 1]:\n",
+    "                        if ((i_val, j_val), gamma) in first_chimera:\n",
+    "                            j_pow = 1 if (j_val == 0 and beta == 0) else (j_val ** beta)\n",
+    "                            expr += j_pow * first_chimera[((i_val, j_val), gamma)] # m_{i|beta gamma} = sum j^{beta} m_{ij|gamma}  \n",
+    "\n",
+    "                    expr = sp.simplify(expr)\n",
+    "                    var_sym = sp.Symbol(f\"{chimera_name}_m_{v_map[i_val]}_{chimera_delimiter}_{beta}_{gamma}\")\n",
+    "                    second_chimera[(i_val, beta, gamma)] = var_sym\n",
+    "                    \n",
+    "                    pipe_exprs[var_sym] = expr\n",
+    "    \n",
+    "    return first_chimera, second_chimera, v_map, pipe_exprs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "b3ea9042-bc24-41db-91d8-4ad562eb93a3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def generate_moment_expr(o, first_chimera, second_chimera):\n",
+    "    dim = len(o) \n",
+    "    \n",
+    "    expr_raw = 0\n",
+    "    \n",
+    "    if dim == 3:\n",
+    "        alpha, beta, gamma = o\n",
+    "        for i_val in [-1, 0, 1]:\n",
+    "            if (i_val, beta, gamma) in second_chimera:\n",
+    "                i_pow = 1 if (i_val == 0 and alpha == 0) else (i_val ** alpha)\n",
+    "                expr_raw += i_pow * second_chimera[(i_val, beta, gamma)] # m_{alpha beta gamma} = sum i^{alpha} m_{i|beta gamma}  \n",
+    "\n",
+    "    else:  # dim == 2\n",
+    "        alpha, beta = o\n",
+    "        for i_val in [-1, 0, 1]:\n",
+    "            target_key = ((i_val,), beta)\n",
+    "            if target_key in first_chimera:\n",
+    "                i_pow = 1 if (i_val == 0 and alpha == 0) else (i_val ** alpha)\n",
+    "                expr_raw += i_pow * first_chimera[target_key]\n",
+    "                \n",
+    "    return sp.simplify(expr_raw)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "0f313870-2d9c-4a79-b0b7-b380c9762098",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "first_chimera, second_chimera, v_map, pipe_exprs_m_chimera = chimera_moment(dim, vectors) "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1df13739-3e60-406b-b20c-1ce270416198",
+   "metadata": {},
+   "source": [
+    "The first chimera, $m_{ij|\\gamma} = \\sum_{k=-1,0,1} k^{\\gamma} f_{ijk}$, has the suffix $(ij)$ and $\\gamma$ on the L.H.S. This function represents this fact by using two args in accesser, meaning that, the argument is a tuple of *((i,j), gamma)*"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "cf200542-6c6b-49eb-b79d-bcee900d6cbc",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "chimera_m_m1_m1_c_0\n"
+     ]
+    }
+   ],
+   "source": [
+    "print( first_chimera[(-1,-1)[:dim-1], 0] ) "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ec6d86c4-d419-418b-b4ab-edf75f0f96e9",
+   "metadata": {},
+   "source": [
+    "The second chimera, $m_{i|\\beta \\gamma} = \\sum_{j=-1,0,1} j^{\\beta} m_{ij|\\gamma}$, has the suffix $i$ and $\\beta \\gamma$. Therefore, in this case, we employ a flat accesser *(i,beta,gamma)*: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "id": "b2b5d7e2-e034-465d-9efc-20431dcf336f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "chimera_m_m1_c_0_0\n"
+     ]
+    }
+   ],
+   "source": [
+    "if dim == 3: # exists only in 3D\n",
+    "    print( second_chimera[(-1,0,0)] )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "49803e60-7c32-47c6-96fe-640bef029bf2",
+   "metadata": {},
+   "source": [
+    "The chimera expressions can be accessed via `pipe_exprs_m_chimera`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "id": "a9d58713-b3c6-4f5c-adc1-8c56bd0a57a0",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle chimera_{m m1 m1 c 0} = f_{20} + f_{22} + f_{8}$"
+      ],
+      "text/plain": [
+       "Eq(chimera_m_m1_m1_c_0, f20 + f22 + f8)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle chimera_{m m1 c 0 0} = chimera_{m m1 0 c 0} + chimera_{m m1 1 c 0} + chimera_{m m1 m1 c 0}$"
+      ],
+      "text/plain": [
+       "Eq(chimera_m_m1_c_0_0, chimera_m_m1_0_c_0 + chimera_m_m1_1_c_0 + chimera_m_m1_m1_c_0)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "display( Eq(first_chimera[(-1,-1)[:dim-1], 0], pipe_exprs_m_chimera[first_chimera[(-1,-1)[:dim-1], 0]]) )\n",
+    "if dim == 3:\n",
+    "    display( Eq(second_chimera[(-1,0,0)], pipe_exprs_m_chimera[second_chimera[(-1,0,0)]]) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4301b8c3-25d8-445c-bbbb-1f84ccbecb02",
+   "metadata": {},
+   "source": [
+    "Is this correct? Let's check by hand.\n",
+    "\n",
+    "$m_{-1-1|0} = \\sum_{k=-1,0,1} k^{0} f_{-1-1k} = \\sum_{k=-1,0,1} f_{-1-1k} = f_{-1-1-1} + f_{-1-10} + f_{-1-11}$\n",
+    "\n",
+    "The correctness of the suffix can be confirmed by observing the vector components, i.e.,"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "id": "759cd2c4-a659-4319-b968-0a3c576534ca",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(-1, -1, -1)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/plain": [
+       "(-1, -1, 1)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/plain": [
+       "(-1, -1, 0)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "if dim == 3:\n",
+    "    display(vectors[20], vectors[22], vectors[8])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6109da58-4a9c-466a-bb85-eeefef519a8b",
+   "metadata": {},
+   "source": [
+    "Good! Then, the second chimera, \n",
+    "\n",
+    "$m_{-1|00} = \\sum_{j=-1,0,1} j^{0} m_{-1j|0} = m_{-1-1|0} + m_{-10|0} + m_{-11|0}$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8b0bb2ef-7d2e-4d67-b4ae-d5674ba2ac55",
+   "metadata": {},
+   "source": [
+    "The raw moments are then constructed from the chimeras, e.g.,  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "id": "3ab54485-db35-4b3c-b218-e1d7e5a114a7",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle chimera_{m 1 c 1 1} - chimera_{m m1 c 1 1}$"
+      ],
+      "text/plain": [
+       "chimera_m_1_c_1_1 - chimera_m_m1_c_1_1"
+      ]
+     },
+     "execution_count": 27,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "generate_moment_expr((1,1,1)[:dim], first_chimera, second_chimera)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9523899f-65ad-4221-b0b2-8b696069a002",
+   "metadata": {},
+   "source": [
+    "Prepare moment name *dict* for convenience in constructing equations."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "id": "80cb4010-9522-40e8-8095-78d7a191aad6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def create_moment_dictionary(moment_orders, rho=None):\n",
+    "    M_raw, M_post = {}, {} # raw moment\n",
+    "    K_cen, K_post = {}, {} # central moment \n",
+    "    C_cum, C_post = {}, {} # cumulant (density scaled) \n",
+    "\n",
+    "    for o in moment_orders:\n",
+    "        o_name = \"\".join(map(str, o))\n",
+    "        order_sum = sum(o)\n",
+    "        \n",
+    "        M_raw[o]  = sp.Symbol(f\"m{o_name}\")\n",
+    "        M_post[o] = sp.Symbol(f\"m{o_name}_post\")\n",
+    "\n",
+    "        K_cen[o]  = sp.Symbol(f\"kappa{o_name}\")\n",
+    "        K_post[o] = sp.Symbol(f\"kappa{o_name}_post\")\n",
+    "        \n",
+    "        C_cum[o]  = sp.Symbol(f\"C{o_name}\")\n",
+    "        C_post[o] = sp.Symbol(f\"C{o_name}_post\")\n",
+    "        \n",
+    "    return M_raw, M_post, K_cen, K_post, C_cum, C_post"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "id": "4a337760-b530-41d2-8ab4-1c2f5174e1d2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "M_raw, M_post, K_cen, K_post, C_cum, C_post = create_moment_dictionary(moment_orders)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "eef44782-c8a7-4ee2-b313-ef4a46db8847",
+   "metadata": {},
+   "source": [
+    "Set *dict* of all raw moment expressions:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "id": "318c4f62-f5d1-4b21-8c89-2ef06722566e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "M_raw_expr = {}\n",
+    "\n",
+    "for o, name in zip(moment_orders, mom_names):\n",
+    "    M_raw_expr[o] = generate_moment_expr(o, first_chimera, second_chimera)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "id": "dcbb6f05-45b9-4436-8c05-a7c45e9e5b01",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "m000 = chimera_m_0_c_0_0 + chimera_m_1_c_0_0 + chimera_m_m1_c_0_0\n",
+      "m100 = chimera_m_1_c_0_0 - chimera_m_m1_c_0_0\n",
+      "m001 = chimera_m_0_c_0_1 + chimera_m_1_c_0_1 + chimera_m_m1_c_0_1\n",
+      "m010 = chimera_m_0_c_1_0 + chimera_m_1_c_1_0 + chimera_m_m1_c_1_0\n",
+      "m200 = chimera_m_1_c_0_0 + chimera_m_m1_c_0_0\n",
+      "m101 = chimera_m_1_c_0_1 - chimera_m_m1_c_0_1\n",
+      "m110 = chimera_m_1_c_1_0 - chimera_m_m1_c_1_0\n",
+      "m002 = chimera_m_0_c_0_2 + chimera_m_1_c_0_2 + chimera_m_m1_c_0_2\n",
+      "m011 = chimera_m_0_c_1_1 + chimera_m_1_c_1_1 + chimera_m_m1_c_1_1\n",
+      "m020 = chimera_m_0_c_2_0 + chimera_m_1_c_2_0 + chimera_m_m1_c_2_0\n",
+      "m201 = chimera_m_1_c_0_1 + chimera_m_m1_c_0_1\n",
+      "m210 = chimera_m_1_c_1_0 + chimera_m_m1_c_1_0\n",
+      "m102 = chimera_m_1_c_0_2 - chimera_m_m1_c_0_2\n",
+      "m111 = chimera_m_1_c_1_1 - chimera_m_m1_c_1_1\n",
+      "m120 = chimera_m_1_c_2_0 - chimera_m_m1_c_2_0\n",
+      "m012 = chimera_m_0_c_1_2 + chimera_m_1_c_1_2 + chimera_m_m1_c_1_2\n",
+      "m021 = chimera_m_0_c_2_1 + chimera_m_1_c_2_1 + chimera_m_m1_c_2_1\n",
+      "m202 = chimera_m_1_c_0_2 + chimera_m_m1_c_0_2\n",
+      "m211 = chimera_m_1_c_1_1 + chimera_m_m1_c_1_1\n",
+      "m220 = chimera_m_1_c_2_0 + chimera_m_m1_c_2_0\n",
+      "m112 = chimera_m_1_c_1_2 - chimera_m_m1_c_1_2\n",
+      "m121 = chimera_m_1_c_2_1 - chimera_m_m1_c_2_1\n",
+      "m022 = chimera_m_0_c_2_2 + chimera_m_1_c_2_2 + chimera_m_m1_c_2_2\n",
+      "m212 = chimera_m_1_c_1_2 + chimera_m_m1_c_1_2\n",
+      "m221 = chimera_m_1_c_2_1 + chimera_m_m1_c_2_1\n",
+      "m122 = chimera_m_1_c_2_2 - chimera_m_m1_c_2_2\n",
+      "m222 = chimera_m_1_c_2_2 + chimera_m_m1_c_2_2\n"
+     ]
+    }
+   ],
+   "source": [
+    "for o, name in zip(moment_orders, mom_names):\n",
+    "    print(f\"{M_raw[o]} = {M_raw_expr[o]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e49293ef-1e96-4f2b-a826-829b83543169",
+   "metadata": {},
+   "source": [
+    "## Forward transformation: $m_{\\alpha \\beta \\gamma} \\rightarrow \\kappa_{\\alpha \\beta \\gamma}$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c11dcbc3-af9f-494c-9db5-4ec2656212b1",
+   "metadata": {},
+   "source": [
+    "The central moment is derived from the raw moments by definition: \n",
+    "\n",
+    "\\begin{equation}\n",
+    "\\kappa_{\\alpha \\beta \\gamma} = \\sum_{i=0}^{Q-1} (c_{ix}-u_{x})^{\\alpha} (c_{iy}-u_{y})^{\\beta} (c_{iz}-u_{z})^{\\gamma} f_{i}\n",
+    "\\end{equation}\n",
+    "\n",
+    "For example, \n",
+    "\n",
+    "\\begin{align}\n",
+    "    \\kappa_{111} \n",
+    "    &= \\sum_{i=0}^{Q-1} (c_{ix}-u_{x})^{1} (c_{iy}-u_{y})^{1} (c_{iz}-u_{z})^{1} f_{i} \\\\\n",
+    "    &= \\sum_{i=0}^{Q-1} ( c_{ix}c_{iy}c_{iz} - u_{x}c_{iy}c_{iz} - u_{z}c_{ix}c_{iy} + u_{x}u_{z}c_{iy} - u_{y}c_{ix}c_{iz} + u_{x}u_{y} c_{iz} + u_{y}u_{z}c_{ix} - u_{x}u_{y}u_{z} ) f_{i} \\\\\n",
+    "   &= m_{000} - u m_{011} - v m_{101} - w m_{110} + 2 \\rho u v w \\\\\n",
+    "\\end{align}\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "id": "d2be0762-4245-4fc6-a073-cd162197b071",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def replace_with_moments(expr, c_list, prefix='m'): # X**2 * Z**2 -> m202\n",
+    "    poly = sp.Poly(expr, c_list)\n",
+    "    terms = poly.terms()\n",
+    "\n",
+    "    new_expr = 0\n",
+    "    \n",
+    "    for exponent_tuple, coeff in terms:\n",
+    "        suffix = \"\".join(map(str, exponent_tuple))\n",
+    "        sym = sp.Symbol(f\"{prefix}{suffix}\")\n",
+    "        new_expr += coeff * sym\n",
+    "\n",
+    "    return new_expr\n",
+    "\n",
+    "\n",
+    "def derive_central_moment_from_moment(order, rho, u):\n",
+    "    dim = len(order)\n",
+    "\n",
+    "    c_list = sp.symbols( ['cx', 'cy', 'cz'][:dim] ) # lattice velocity\n",
+    "\n",
+    "    m000 = sp.Symbol('m' + '0'*dim)\n",
+    "\n",
+    "    kappa_expr = sp.prod([(c_list[i] - u[i])**order[i] for i in range(dim)]) # construct kappa by definition\n",
+    "    kappa_expr = sp.expand(kappa_expr)\n",
+    "    kappa_expr = replace_with_moments(kappa_expr, c_list, prefix='m')\n",
+    "\n",
+    "    u_subs = {u[i]: sp.Symbol(f'm{\"0\"*i}1{\"0\"*(dim-1-i)}') / m000 for i in range(dim)}\n",
+    "    kappa_expr = kappa_expr.xreplace(u_subs)\n",
+    "\n",
+    "    back_subs = {m000: rho} # replace m000 with rho\n",
+    "\n",
+    "    for i in range(dim): # replace m100, m010, m001 with rho u, rho v, rho w\n",
+    "        mom_name = f'm{\"0\"*i}1{\"0\"*(dim-1-i)}'\n",
+    "        \n",
+    "        back_subs[sp.Symbol(mom_name)] = rho * u[i]\n",
+    "    \n",
+    "    kappa_expr = kappa_expr.xreplace(back_subs)\n",
+    "\n",
+    "    lhs = sp.Symbol(f'\\\\kappa_{{{\"\".join(map(str, order))}}}')\n",
+    "\n",
+    "    return Eq(lhs, kappa_expr)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "id": "2f270280-8943-44fe-86ac-a007f6ed37bc",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{000} = \\rho$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{000}, rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{100} = 0$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{100}, 0)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{001} = 0$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{001}, 0)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{010} = 0$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{010}, 0)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{200} = m_{200} - \\rho u^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{200}, m200 - rho*u**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{101} = m_{101} - \\rho u w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{101}, m101 - rho*u*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{110} = m_{110} - \\rho u v$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{110}, m110 - rho*u*v)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{002} = m_{002} - \\rho w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{002}, m002 - rho*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{011} = m_{011} - \\rho v w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{011}, m011 - rho*v*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{020} = m_{020} - \\rho v^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{020}, m020 - rho*v**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{201} = - 2 m_{101} u - m_{200} w + m_{201} + 2 \\rho u^{2} w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{201}, -2*m101*u - m200*w + m201 + 2*rho*u**2*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{210} = - 2 m_{110} u - m_{200} v + m_{210} + 2 \\rho u^{2} v$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{210}, -2*m110*u - m200*v + m210 + 2*rho*u**2*v)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{102} = - m_{002} u - 2 m_{101} w + m_{102} + 2 \\rho u w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{102}, -m002*u - 2*m101*w + m102 + 2*rho*u*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{111} = - m_{011} u - m_{101} v - m_{110} w + m_{111} + 2 \\rho u v w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{111}, -m011*u - m101*v - m110*w + m111 + 2*rho*u*v*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{120} = - m_{020} u - 2 m_{110} v + m_{120} + 2 \\rho u v^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{120}, -m020*u - 2*m110*v + m120 + 2*rho*u*v**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{012} = - m_{002} v - 2 m_{011} w + m_{012} + 2 \\rho v w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{012}, -m002*v - 2*m011*w + m012 + 2*rho*v*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{021} = - 2 m_{011} v - m_{020} w + m_{021} + 2 \\rho v^{2} w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{021}, -2*m011*v - m020*w + m021 + 2*rho*v**2*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{202} = m_{002} u^{2} + 4 m_{101} u w - 2 m_{102} u + m_{200} w^{2} - 2 m_{201} w + m_{202} - 3 \\rho u^{2} w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{202}, m002*u**2 + 4*m101*u*w - 2*m102*u + m200*w**2 - 2*m201*w + m202 - 3*rho*u**2*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{211} = m_{011} u^{2} + 2 m_{101} u v + 2 m_{110} u w - 2 m_{111} u + m_{200} v w - m_{201} v - m_{210} w + m_{211} - 3 \\rho u^{2} v w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{211}, m011*u**2 + 2*m101*u*v + 2*m110*u*w - 2*m111*u + m200*v*w - m201*v - m210*w + m211 - 3*rho*u**2*v*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{220} = m_{020} u^{2} + 4 m_{110} u v - 2 m_{120} u + m_{200} v^{2} - 2 m_{210} v + m_{220} - 3 \\rho u^{2} v^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{220}, m020*u**2 + 4*m110*u*v - 2*m120*u + m200*v**2 - 2*m210*v + m220 - 3*rho*u**2*v**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{112} = m_{002} u v + 2 m_{011} u w - m_{012} u + 2 m_{101} v w - m_{102} v + m_{110} w^{2} - 2 m_{111} w + m_{112} - 3 \\rho u v w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{112}, m002*u*v + 2*m011*u*w - m012*u + 2*m101*v*w - m102*v + m110*w**2 - 2*m111*w + m112 - 3*rho*u*v*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{121} = 2 m_{011} u v + m_{020} u w - m_{021} u + m_{101} v^{2} + 2 m_{110} v w - 2 m_{111} v - m_{120} w + m_{121} - 3 \\rho u v^{2} w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{121}, 2*m011*u*v + m020*u*w - m021*u + m101*v**2 + 2*m110*v*w - 2*m111*v - m120*w + m121 - 3*rho*u*v**2*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{022} = m_{002} v^{2} + 4 m_{011} v w - 2 m_{012} v + m_{020} w^{2} - 2 m_{021} w + m_{022} - 3 \\rho v^{2} w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{022}, m002*v**2 + 4*m011*v*w - 2*m012*v + m020*w**2 - 2*m021*w + m022 - 3*rho*v**2*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{212} = - m_{002} u^{2} v - 2 m_{011} u^{2} w + m_{012} u^{2} - 4 m_{101} u v w + 2 m_{102} u v - 2 m_{110} u w^{2} + 4 m_{111} u w - 2 m_{112} u - m_{200} v w^{2} + 2 m_{201} v w - m_{202} v + m_{210} w^{2} - 2 m_{211} w + m_{212} + 4 \\rho u^{2} v w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{212}, -m002*u**2*v - 2*m011*u**2*w + m012*u**2 - 4*m101*u*v*w + 2*m102*u*v - 2*m110*u*w**2 + 4*m111*u*w - 2*m112*u - m200*v*w**2 + 2*m201*v*w - m202*v + m210*w**2 - 2*m211*w + m212 + 4*rho*u**2*v*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{221} = - 2 m_{011} u^{2} v - m_{020} u^{2} w + m_{021} u^{2} - 2 m_{101} u v^{2} - 4 m_{110} u v w + 4 m_{111} u v + 2 m_{120} u w - 2 m_{121} u - m_{200} v^{2} w + m_{201} v^{2} + 2 m_{210} v w - 2 m_{211} v - m_{220} w + m_{221} + 4 \\rho u^{2} v^{2} w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{221}, -2*m011*u**2*v - m020*u**2*w + m021*u**2 - 2*m101*u*v**2 - 4*m110*u*v*w + 4*m111*u*v + 2*m120*u*w - 2*m121*u - m200*v**2*w + m201*v**2 + 2*m210*v*w - 2*m211*v - m220*w + m221 + 4*rho*u**2*v**2*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{122} = - m_{002} u v^{2} - 4 m_{011} u v w + 2 m_{012} u v - m_{020} u w^{2} + 2 m_{021} u w - m_{022} u - 2 m_{101} v^{2} w + m_{102} v^{2} - 2 m_{110} v w^{2} + 4 m_{111} v w - 2 m_{112} v + m_{120} w^{2} - 2 m_{121} w + m_{122} + 4 \\rho u v^{2} w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{122}, -m002*u*v**2 - 4*m011*u*v*w + 2*m012*u*v - m020*u*w**2 + 2*m021*u*w - m022*u - 2*m101*v**2*w + m102*v**2 - 2*m110*v*w**2 + 4*m111*v*w - 2*m112*v + m120*w**2 - 2*m121*w + m122 + 4*rho*u*v**2*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{222} = m_{002} u^{2} v^{2} + 4 m_{011} u^{2} v w - 2 m_{012} u^{2} v + m_{020} u^{2} w^{2} - 2 m_{021} u^{2} w + m_{022} u^{2} + 4 m_{101} u v^{2} w - 2 m_{102} u v^{2} + 4 m_{110} u v w^{2} - 8 m_{111} u v w + 4 m_{112} u v - 2 m_{120} u w^{2} + 4 m_{121} u w - 2 m_{122} u + m_{200} v^{2} w^{2} - 2 m_{201} v^{2} w + m_{202} v^{2} - 2 m_{210} v w^{2} + 4 m_{211} v w - 2 m_{212} v + m_{220} w^{2} - 2 m_{221} w + m_{222} - 5 \\rho u^{2} v^{2} w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{222}, m002*u**2*v**2 + 4*m011*u**2*v*w - 2*m012*u**2*v + m020*u**2*w**2 - 2*m021*u**2*w + m022*u**2 + 4*m101*u*v**2*w - 2*m102*u*v**2 + 4*m110*u*v*w**2 - 8*m111*u*v*w + 4*m112*u*v - 2*m120*u*w**2 + 4*m121*u*w - 2*m122*u + m200*v**2*w**2 - 2*m201*v**2*w + m202*v**2 - 2*m210*v*w**2 + 4*m211*v*w - 2*m212*v + m220*w**2 - 2*m221*w + m222 - 5*rho*u**2*v**2*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "for o, name in zip(moment_orders, mom_names):\n",
+    "    display( derive_central_moment_from_moment(o, rho, vel_syms) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ee81f7ad-03fd-4382-9209-8e62deeaad77",
+   "metadata": {},
+   "source": [
+    "These are $\\kappa$ as functions of $m$. \n",
+    "\n",
+    "We, for higher than 2nd order, express them in terms of *the raw moment* $m$ of same order and *central moemnts* $\\kappa$ of lower orders by a cascading process. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "id": "84a7a829-6758-4ed9-8447-bfd09538d719",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{212} = - \\kappa_{002} u^{2} v - 2 \\kappa_{011} u^{2} w - \\kappa_{012} u^{2} - 4 \\kappa_{101} u v w - 2 \\kappa_{102} u v - 2 \\kappa_{110} u w^{2} - 4 \\kappa_{111} u w - 2 \\kappa_{112} u - \\kappa_{200} v w^{2} - 2 \\kappa_{201} v w - \\kappa_{202} v - \\kappa_{210} w^{2} - 2 \\kappa_{211} w + m_{212} - \\rho u^{2} v w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{212}, -\\kappa_{002}*u**2*v - 2*\\kappa_{011}*u**2*w - \\kappa_{012}*u**2 - 4*\\kappa_{101}*u*v*w - 2*\\kappa_{102}*u*v - 2*\\kappa_{110}*u*w**2 - 4*\\kappa_{111}*u*w - 2*\\kappa_{112}*u - \\kappa_{200}*v*w**2 - 2*\\kappa_{201}*v*w - \\kappa_{202}*v - \\kappa_{210}*w**2 - 2*\\kappa_{211}*w + m212 - rho*u**2*v*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{221} = - 2 \\kappa_{011} u^{2} v - \\kappa_{020} u^{2} w - \\kappa_{021} u^{2} - 2 \\kappa_{101} u v^{2} - 4 \\kappa_{110} u v w - 4 \\kappa_{111} u v - 2 \\kappa_{120} u w - 2 \\kappa_{121} u - \\kappa_{200} v^{2} w - \\kappa_{201} v^{2} - 2 \\kappa_{210} v w - 2 \\kappa_{211} v - \\kappa_{220} w + m_{221} - \\rho u^{2} v^{2} w$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{221}, -2*\\kappa_{011}*u**2*v - \\kappa_{020}*u**2*w - \\kappa_{021}*u**2 - 2*\\kappa_{101}*u*v**2 - 4*\\kappa_{110}*u*v*w - 4*\\kappa_{111}*u*v - 2*\\kappa_{120}*u*w - 2*\\kappa_{121}*u - \\kappa_{200}*v**2*w - \\kappa_{201}*v**2 - 2*\\kappa_{210}*v*w - 2*\\kappa_{211}*v - \\kappa_{220}*w + m221 - rho*u**2*v**2*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{122} = - \\kappa_{002} u v^{2} - 4 \\kappa_{011} u v w - 2 \\kappa_{012} u v - \\kappa_{020} u w^{2} - 2 \\kappa_{021} u w - \\kappa_{022} u - 2 \\kappa_{101} v^{2} w - \\kappa_{102} v^{2} - 2 \\kappa_{110} v w^{2} - 4 \\kappa_{111} v w - 2 \\kappa_{112} v - \\kappa_{120} w^{2} - 2 \\kappa_{121} w + m_{122} - \\rho u v^{2} w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{122}, -\\kappa_{002}*u*v**2 - 4*\\kappa_{011}*u*v*w - 2*\\kappa_{012}*u*v - \\kappa_{020}*u*w**2 - 2*\\kappa_{021}*u*w - \\kappa_{022}*u - 2*\\kappa_{101}*v**2*w - \\kappa_{102}*v**2 - 2*\\kappa_{110}*v*w**2 - 4*\\kappa_{111}*v*w - 2*\\kappa_{112}*v - \\kappa_{120}*w**2 - 2*\\kappa_{121}*w + m122 - rho*u*v**2*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{222} = - \\kappa_{002} u^{2} v^{2} - 4 \\kappa_{011} u^{2} v w - 2 \\kappa_{012} u^{2} v - \\kappa_{020} u^{2} w^{2} - 2 \\kappa_{021} u^{2} w - \\kappa_{022} u^{2} - 4 \\kappa_{101} u v^{2} w - 2 \\kappa_{102} u v^{2} - 4 \\kappa_{110} u v w^{2} - 8 \\kappa_{111} u v w - 4 \\kappa_{112} u v - 2 \\kappa_{120} u w^{2} - 4 \\kappa_{121} u w - 2 \\kappa_{122} u - \\kappa_{200} v^{2} w^{2} - 2 \\kappa_{201} v^{2} w - \\kappa_{202} v^{2} - 2 \\kappa_{210} v w^{2} - 4 \\kappa_{211} v w - 2 \\kappa_{212} v - \\kappa_{220} w^{2} - 2 \\kappa_{221} w + m_{222} - \\rho u^{2} v^{2} w^{2}$"
+      ],
+      "text/plain": [
+       "Eq(\\kappa_{222}, -\\kappa_{002}*u**2*v**2 - 4*\\kappa_{011}*u**2*v*w - 2*\\kappa_{012}*u**2*v - \\kappa_{020}*u**2*w**2 - 2*\\kappa_{021}*u**2*w - \\kappa_{022}*u**2 - 4*\\kappa_{101}*u*v**2*w - 2*\\kappa_{102}*u*v**2 - 4*\\kappa_{110}*u*v*w**2 - 8*\\kappa_{111}*u*v*w - 4*\\kappa_{112}*u*v - 2*\\kappa_{120}*u*w**2 - 4*\\kappa_{121}*u*w - 2*\\kappa_{122}*u - \\kappa_{200}*v**2*w**2 - 2*\\kappa_{201}*v**2*w - \\kappa_{202}*v**2 - 2*\\kappa_{210}*v*w**2 - 4*\\kappa_{211}*v*w - 2*\\kappa_{212}*v - \\kappa_{220}*w**2 - 2*\\kappa_{221}*w + m222 - rho*u**2*v**2*w**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "K_cen_expr = {}\n",
+    "\n",
+    "kappa_subs_dict = {}\n",
+    "\n",
+    "for o, name in zip(moment_orders, mom_names):\n",
+    "\n",
+    "    kappa_eq = derive_central_moment_from_moment(o, rho, vel_syms) # get kappa in terms of raw moments from generating fucntion\n",
+    "    \n",
+    "    k_sym, expr = kappa_eq.lhs, kappa_eq.rhs\n",
+    "    K_cen_expr[o] = expr # register kappa expr\n",
+    "\n",
+    "    if sum(o) == 2:\n",
+    "        kappa_subs_dict.update({name: sp.solve(kappa_eq, name)[0]}) # solver for raw moment and add to subs_dict \n",
+    "\n",
+    "    if sum(o) > 2:\n",
+    "        K_cen_expr[o] = sp.simplify(K_cen_expr[o].subs(kappa_subs_dict)) # replace raw moments with lower order central moments\n",
+    "        kappa_subs_dict.update({k_sym: K_cen_expr[o]}) # add kappa expression to subs_dict for replacement at the next order\n",
+    "        kappa_subs_dict.update({name: sp.solve( Eq(k_sym, K_cen_expr[o]), name)[0]}) # solve for raw moment of the same order and add to sub_dict for replacement at the next order\n",
+    "\n",
+    "    if dim == 2:\n",
+    "        if sum(o) == 4:\n",
+    "            display( Eq(k_sym, K_cen_expr[o]) )\n",
+    "    else: # dim = 3\n",
+    "        if sum(o) > 4:\n",
+    "            display( Eq(k_sym, K_cen_expr[o]) )\n",
+    "        \n",
+    "        # some examples at high orders are shown below\n",
+    "        "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "212a9572-15b6-4939-9802-9039d4c39291",
+   "metadata": {},
+   "source": [
+    "## Forward transformation: $\\kappa_{\\alpha \\beta \\gamma} \\rightarrow C_{\\alpha \\beta \\gamma}$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6714670b-3151-4f03-a868-e62f6b8f4334",
+   "metadata": {},
+   "source": [
+    "The cumulant generating function is defined by \n",
+    "\\begin{equation}\n",
+    "    C ( \\mathbf{X} ) = \\log M( \\mathbf{X} ) \n",
+    "\\end{equation}\n",
+    "while it can also be written in terms of the central moment generating function $K$: \n",
+    "\\begin{equation}\n",
+    "    C ( \\mathbf{X} ) = \\mathbf{X} \\cdot \\mathbf{u} + \\log K( \\mathbf{X} )\n",
+    "\\end{equation}\n",
+    "The cumulants are  \n",
+    "\\begin{equation}\n",
+    "    c_{\\alpha \\beta \\gamma} = \\left[ \\partial_{X}^{\\alpha} \\partial_{Y}^{\\beta} \\partial_{Z}^{\\gamma} C( \\mathbf{X} ) \\right]_{\\mathbf{X}=0}\n",
+    "\\end{equation}\n",
+    "Hence, the relationships between cumulants and central moments required in the collision step can be derived by differentiating the generating function. See [lbmpy Tutorial 04](https://pycodegen.pages.i10git.cs.fau.de/lbmpy/notebooks/04_tutorial_cumulant_LBM.html). \n",
+    "\n",
+    "Here, we develop a cumulant generator class to obtain cumulants in terms of $\\kappa$. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8b7d9ee2-c964-4a8f-a7b4-0eec21da6686",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f0f8ff; \n",
+    "    border-left: 5px solid #a2c4c9; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #2c4a5e;\n",
+    "\">\n",
+    "    <strong>Note:</strong> This class was originally desinged for `cumulant_moment_exprs.ipynb`. Some symbols defined with \"_{}\" to represent its order. This requires string replacement in the following calculation. You can, of course, modify the code!\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "id": "5704e9a5-ec31-4732-9137-df53cf0ecd55",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class CumulantGenerator():\n",
+    "    def __init__(self, dim=3):\n",
+    "        self.dim = dim\n",
+    "        self.X_list = sp.symbols(['X', 'Y', 'Z'][:dim])\n",
+    "        self.u_list = sp.symbols(['u', 'v', 'w'][:dim])\n",
+    "        self.K = sp.Function('K')(*(self.X_list))\n",
+    "        self.C = sp.Function('C')(*(self.X_list))\n",
+    "        self.X_vec = sp.Matrix(self.X_list)\n",
+    "        self.u_vec = sp.Matrix(self.u_list)\n",
+    "        self.C_sym = (self.X_vec.T @ self.u_vec)[0] + sp.log(self.K)\n",
+    "\n",
+    "        self.alpha, self.beta, self.gamma = sp.symbols('alpha beta gamma', integer=True, positive=True)\n",
+    "        self.order_sym = (self.alpha, self.beta, self.gamma)\n",
+    "        diff_vars = []\n",
+    "        for var, n in zip(self.X_list, self.order_sym):\n",
+    "            diff_vars.append((var, n))\n",
+    "\n",
+    "        self.gen_operator = sp.Derivative(self.C, *diff_vars)\n",
+    "        self.density_scaling = True\n",
+    "\n",
+    "    def definition_of_generating_function(self):\n",
+    "        return Eq(self.C, self.C_sym)\n",
+    "\n",
+    "    def definition_of_cumulant(self):\n",
+    "        lhs_def = sp.Symbol(rf'c_{{\\alpha \\beta \\gamma}}', latex_name=rf'c_{{\\alpha \\beta \\gamma}}')\n",
+    "        return Eq(lhs_def, self.gen_operator)\n",
+    "\n",
+    "    def __call__(self, order, density_scaling=None):\n",
+    "        if density_scaling == None: density_scaling = self.density_scaling\n",
+    "        c_expr = self._generate_cumulant_from_central_moment(order, density_scaling=density_scaling)\n",
+    "        lhs = sp.Symbol(f'C_{{{\"\".join(map(str, order))}}}') if density_scaling else sp.Symbol(f'c_{{{\"\".join(map(str, order))}}}')\n",
+    "        return Eq(lhs, c_expr)\n",
+    "\n",
+    "    def _generate_cumulant_from_central_moment(self, order_tuple, density_scaling):\n",
+    "        dim = self.dim\n",
+    "        if self.dim != len(order_tuple): \n",
+    "            raise ValueError(f\"Dimension mismatch: expected {self.dim}, got {len(order_tuple)}.\")\n",
+    "\n",
+    "        rho = sp.Symbol('rho') # density\n",
+    "\n",
+    "        expr = self.C_sym # cumulant generating function in terms of K\n",
+    "        for var, order in zip(self.X_list, order_tuple):\n",
+    "            if order > 0:\n",
+    "                expr = expr.diff(var, order)\n",
+    "        \n",
+    "        def get_deriv_symbol(deriv_obj):\n",
+    "            # enforce kappa100=kappa010=kappa001=0 to suppress term divergence at high orders\n",
+    "            args = deriv_obj.args # get derivative order in Derivative expr, like (X, 2) for partial_{X}^{2} \n",
+    "\n",
+    "            orders = {var: 0 for var in self.X_list} # derivative order count; starting from X:0 Y:0 Z:0\n",
+    "            for arg in args[1:]:\n",
+    "                var, count = arg if isinstance(arg, (tuple, sp.Tuple)) else (arg, 1)            \n",
+    "                if var in orders:\n",
+    "                    orders[var] += count\n",
+    "\n",
+    "            total = sum(orders.values())\n",
+    "            \n",
+    "            if total == 0: # 000\n",
+    "                return rho\n",
+    "            elif total == 1: # kappa100 -> 0\n",
+    "                return sp.Integer(0)\n",
+    "            else:\n",
+    "                suffix = \"\".join([str(orders[var]) for var in self.X_list])\n",
+    "                return sp.Symbol(f'kappa{suffix}')\n",
+    "\n",
+    "        subs_rules = {d: get_deriv_symbol(d) for d in expr.atoms(sp.Derivative)} # dictionary for replacement of derivatives of K with kappa symbols        \n",
+    "        subs_rules.update({var: 0 for var in self.X_list}) # evaluate at X=0 (treatment for X dot u term)\n",
+    "        subs_rules[self.K] = rho # replacement rule: K at X=0 -> rho\n",
+    "        multiplyer = rho if density_scaling==True else sp.Integer(1) # density scaling C_{200} = rho c_{200} = kappa_{200}\n",
+    "\n",
+    "        return ( expr.subs(subs_rules)*multiplyer ).simplify()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "18bb6121-7edc-4b8f-ba21-d423ae486465",
+   "metadata": {},
+   "source": [
+    "Instantiate CumulantGenerator object as `Cgen`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "id": "7d7ecca1-8205-423e-8dab-61a6dedbed85",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Cgen = CumulantGenerator(dim=dim)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "75e50cb3-c4dc-4b4d-a5d1-70273956a3b2",
+   "metadata": {},
+   "source": [
+    "Using `Cgen`, generate cumulant expressions."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "556239cc-86f9-4a7d-a66d-ef5ac03d40d1",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f0f8ff; \n",
+    "    border-left: 5px solid #a2c4c9; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #2c4a5e;\n",
+    "\">\n",
+    "    <strong>Note:</strong> We will use only $C_{\\alpha \\beta \\gamma}$ higher than 3rd orders since the 2nd and 3rd order cumulants are the same as $\\kappa$. However, we generate all $C_{\\alpha \\beta \\gamma}$ just for confirmation. \n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "id": "a8d0f7cb-fabc-496f-89d3-b174c41cf581",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{000} = \\rho \\log{\\left(\\rho \\right)}$"
+      ],
+      "text/plain": [
+       "Eq(C_{000}, rho*log(rho))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{100} = \\rho u$"
+      ],
+      "text/plain": [
+       "Eq(C_{100}, rho*u)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{001} = \\rho w$"
+      ],
+      "text/plain": [
+       "Eq(C_{001}, rho*w)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{010} = \\rho v$"
+      ],
+      "text/plain": [
+       "Eq(C_{010}, rho*v)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{200} = \\kappa_{200}$"
+      ],
+      "text/plain": [
+       "Eq(C_{200}, kappa200)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{101} = \\kappa_{101}$"
+      ],
+      "text/plain": [
+       "Eq(C_{101}, kappa101)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{110} = \\kappa_{110}$"
+      ],
+      "text/plain": [
+       "Eq(C_{110}, kappa110)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{002} = \\kappa_{002}$"
+      ],
+      "text/plain": [
+       "Eq(C_{002}, kappa002)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{011} = \\kappa_{011}$"
+      ],
+      "text/plain": [
+       "Eq(C_{011}, kappa011)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{020} = \\kappa_{020}$"
+      ],
+      "text/plain": [
+       "Eq(C_{020}, kappa020)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{201} = \\kappa_{201}$"
+      ],
+      "text/plain": [
+       "Eq(C_{201}, kappa201)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{210} = \\kappa_{210}$"
+      ],
+      "text/plain": [
+       "Eq(C_{210}, kappa210)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{102} = \\kappa_{102}$"
+      ],
+      "text/plain": [
+       "Eq(C_{102}, kappa102)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{111} = \\kappa_{111}$"
+      ],
+      "text/plain": [
+       "Eq(C_{111}, kappa111)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{120} = \\kappa_{120}$"
+      ],
+      "text/plain": [
+       "Eq(C_{120}, kappa120)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{012} = \\kappa_{012}$"
+      ],
+      "text/plain": [
+       "Eq(C_{012}, kappa012)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{021} = \\kappa_{021}$"
+      ],
+      "text/plain": [
+       "Eq(C_{021}, kappa021)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{202} = \\frac{- \\kappa_{002} \\kappa_{200} - 2 \\kappa_{101}^{2} + \\kappa_{202} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{202}, (-kappa002*kappa200 - 2*kappa101**2 + kappa202*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{211} = \\frac{- \\kappa_{011} \\kappa_{200} - 2 \\kappa_{101} \\kappa_{110} + \\kappa_{211} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{211}, (-kappa011*kappa200 - 2*kappa101*kappa110 + kappa211*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{220} = \\frac{- \\kappa_{020} \\kappa_{200} - 2 \\kappa_{110}^{2} + \\kappa_{220} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{220}, (-kappa020*kappa200 - 2*kappa110**2 + kappa220*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{112} = \\frac{- \\kappa_{002} \\kappa_{110} - 2 \\kappa_{011} \\kappa_{101} + \\kappa_{112} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{112}, (-kappa002*kappa110 - 2*kappa011*kappa101 + kappa112*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{121} = \\frac{- 2 \\kappa_{011} \\kappa_{110} - \\kappa_{020} \\kappa_{101} + \\kappa_{121} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{121}, (-2*kappa011*kappa110 - kappa020*kappa101 + kappa121*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{022} = \\frac{- \\kappa_{002} \\kappa_{020} - 2 \\kappa_{011}^{2} + \\kappa_{022} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{022}, (-kappa002*kappa020 - 2*kappa011**2 + kappa022*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{212} = \\frac{- \\kappa_{002} \\kappa_{210} - 2 \\kappa_{011} \\kappa_{201} - \\kappa_{012} \\kappa_{200} - 4 \\kappa_{101} \\kappa_{111} - 2 \\kappa_{102} \\kappa_{110} + \\kappa_{212} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{212}, (-kappa002*kappa210 - 2*kappa011*kappa201 - kappa012*kappa200 - 4*kappa101*kappa111 - 2*kappa102*kappa110 + kappa212*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{221} = \\frac{- 2 \\kappa_{011} \\kappa_{210} - \\kappa_{020} \\kappa_{201} - \\kappa_{021} \\kappa_{200} - 2 \\kappa_{101} \\kappa_{120} - 4 \\kappa_{110} \\kappa_{111} + \\kappa_{221} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{221}, (-2*kappa011*kappa210 - kappa020*kappa201 - kappa021*kappa200 - 2*kappa101*kappa120 - 4*kappa110*kappa111 + kappa221*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{122} = \\frac{- \\kappa_{002} \\kappa_{120} - 4 \\kappa_{011} \\kappa_{111} - 2 \\kappa_{012} \\kappa_{110} - \\kappa_{020} \\kappa_{102} - 2 \\kappa_{021} \\kappa_{101} + \\kappa_{122} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{122}, (-kappa002*kappa120 - 4*kappa011*kappa111 - 2*kappa012*kappa110 - kappa020*kappa102 - 2*kappa021*kappa101 + kappa122*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{222} = \\frac{2 \\kappa_{002} \\kappa_{020} \\kappa_{200} + 4 \\kappa_{002} \\kappa_{110}^{2} - \\kappa_{002} \\kappa_{220} \\rho + 4 \\kappa_{011}^{2} \\kappa_{200} + 16 \\kappa_{011} \\kappa_{101} \\kappa_{110} - 4 \\kappa_{011} \\kappa_{211} \\rho - 2 \\kappa_{012} \\kappa_{210} \\rho + 4 \\kappa_{020} \\kappa_{101}^{2} - \\kappa_{020} \\kappa_{202} \\rho - 2 \\kappa_{021} \\kappa_{201} \\rho - \\kappa_{022} \\kappa_{200} \\rho - 4 \\kappa_{101} \\kappa_{121} \\rho - 2 \\kappa_{102} \\kappa_{120} \\rho - 4 \\kappa_{110} \\kappa_{112} \\rho - 4 \\kappa_{111}^{2} \\rho + \\kappa_{222} \\rho^{2}}{\\rho^{2}}$"
+      ],
+      "text/plain": [
+       "Eq(C_{222}, (2*kappa002*kappa020*kappa200 + 4*kappa002*kappa110**2 - kappa002*kappa220*rho + 4*kappa011**2*kappa200 + 16*kappa011*kappa101*kappa110 - 4*kappa011*kappa211*rho - 2*kappa012*kappa210*rho + 4*kappa020*kappa101**2 - kappa020*kappa202*rho - 2*kappa021*kappa201*rho - kappa022*kappa200*rho - 4*kappa101*kappa121*rho - 2*kappa102*kappa120*rho - 4*kappa110*kappa112*rho - 4*kappa111**2*rho + kappa222*rho**2)/rho**2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "C_cum_expr = {}\n",
+    "\n",
+    "for i in range(len(moment_orders)):\n",
+    "    o, name = moment_orders[i], mom_names[i]\n",
+    "\n",
+    "    C_eq = Cgen(o, density_scaling=True) # get cumulant\n",
+    "    \n",
+    "    C_cum_expr[o] = C_eq.rhs # register cumulant expr\n",
+    "\n",
+    "    display( Eq(C_eq.lhs, C_cum_expr[o]) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "45cd77ad-067a-4ded-a15a-d2f7d85391d5",
+   "metadata": {},
+   "source": [
+    "Now, we have finished the forward transformation! \n",
+    "\n",
+    "Close the forward pipeline. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "id": "68897363-d1f9-47c8-aedb-e1a16cb37f0d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pipe_forward = pipe_exprs_m_chimera\n",
+    "\n",
+    "for o in moment_orders:\n",
+    "    pipe_forward[M_raw[o]] = M_raw_expr[o]\n",
+    "\n",
+    "for o in moment_orders:\n",
+    "    if sum(o) > 1:\n",
+    "        pipe_forward[K_cen[o]] = K_cen_expr[o]\n",
+    "\n",
+    "for o in moment_orders:\n",
+    "    if sum(o) > 3:\n",
+    "        pipe_forward[C_cum[o]] = C_cum_expr[o]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "25f9b5cf-46bd-443c-a7ca-0f917a43f35d",
+   "metadata": {},
+   "source": [
+    "## Collision and backward transformation $C_{\\alpha \\beta \\gamma} \\rightarrow \\kappa_{\\alpha \\beta \\gamma}$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "30e17ea9-f2f3-431a-b45b-6b7c7ba7ed6e",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f8f9fa; \n",
+    "    border-left: 5px solid #ced4da; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #495057;\n",
+    "\">\n",
+    "    <strong>Reference:</strong> See Sec 4.3 in Geier et al. (2015): from Eq. (55) to (84).\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7ef4e6c5-7882-43b8-b22e-7ca096269b23",
+   "metadata": {},
+   "source": [
+    "Collision step proceeds in the cumulant space. However, as we confirmed above, the 2nd and 3rd-order cumulants are the same as central moments. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 39,
+   "id": "06adc2a2-68db-4b2a-9c12-2bc0273b89fc",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "num_params = 10 # [10 omegas]\n",
+    "om_syms = [None] + list(sp.symbols(f'om1:{num_params + 1}')) # sp.symbols('om1 om2 ... om10') # om_syms[1] -> om1\n",
+    "\n",
+    "omega_values = [f\"omega[{i}]\" for i in range(1, num_params + 1)]\n",
+    "omega_config = {}\n",
+    "for i in range(1, len(om_syms)):\n",
+    "    val = omega_values[i-1] # note: 0-indexed, so shift i\n",
+    "    omega_config[om_syms[i]] = sp.Symbol(val)            "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e30a4e33-5e10-47ca-8d39-3948c2099b25",
+   "metadata": {},
+   "source": [
+    "We prepare order tuples for each order. This may be useful since we need to do *for* loops order by order.  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 40,
+   "id": "25a3b4bf-9295-4afe-8db3-14af417a955b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "one = sp.Integer(1)\n",
+    "\n",
+    "orders_2nd = [o for o in moment_orders if sum(o) == 2]\n",
+    "orders_3rd = [o for o in moment_orders if sum(o) == 3]\n",
+    "orders_4th = [o for o in moment_orders if sum(o) == 4]\n",
+    "orders_5th = [o for o in moment_orders if sum(o) == 5]\n",
+    "orders_6th = [o for o in moment_orders if sum(o) == 6]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "233a6247-41ec-4f2e-ae0f-22a5578b6ce8",
+   "metadata": {},
+   "source": [
+    "We follow the collision equations given by Geier et al. (2015). The equations are registered into a pipeline: `pipe_collision` *dict*. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "id": "1a86b3fc-a543-4989-864e-d3f102d57c47",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pipe_collision = {}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d6027986-cb4d-4cd4-b877-e4d6cdec9d62",
+   "metadata": {},
+   "source": [
+    "We begin by low order cumulants. The first ones are the second order cumulants $C_{110}$, $C_{101}$, $C_{011}$. Their equilibirum $C^{eq}$ is $0$. Therefore, \n",
+    "\n",
+    "\\begin{align}\n",
+    "&C_{110}^{*} = (1 - \\omega_{1}) C_{110} \\\\\n",
+    "&C_{101}^{*} = (1 - \\omega_{1}) C_{101} \\\\\n",
+    "&C_{011}^{*} = (1 - \\omega_{1}) C_{011} \n",
+    "\\end{align}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "id": "b49fb440-c8eb-4a88-936c-923448de20a2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cross_orders_2nd = [o for o in orders_2nd if max(o) == 1] # 200 is also 2nd order, but considered later with different logic\n",
+    "\n",
+    "for o in cross_orders_2nd:\n",
+    "    relaxation_expr = K_cen[o] + omega_config[om_syms[1]] * (0 - K_cen[o]) # make expr\n",
+    "    pipe_collision[K_post[o]] = sp.simplify(relaxation_expr)               # then register it in pipeline"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5fb7def2-081d-473b-8a05-312bab3f8291",
+   "metadata": {},
+   "source": [
+    "We write here `K_post`, not `C_post`. Up to the 3rd order, $C = \\kappa$; therefore, writing $\\kappa^{*}$ means that we have already transformed $C^{*}$ to $\\kappa^{*}$!\n",
+    "\n",
+    "`pipe_collision` looks like "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 43,
+   "id": "143c22e2-7925-409f-bf57-6650a240acb6",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{kappa101_post: kappa101*(1 - omega[1]),\n",
+       " kappa110_post: kappa110*(1 - omega[1]),\n",
+       " kappa011_post: kappa011*(1 - omega[1])}"
+      ]
+     },
+     "execution_count": 43,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "pipe_collision # check the equations registered!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8251eed2-ff8f-475c-a0f9-65addaad9fab",
+   "metadata": {},
+   "source": [
+    "The remaining 2nd order cumulants are $C_{200}$, $C_{020}$, $C_{002}$. Their collision equations are \n",
+    "\\begin{align}\n",
+    "&C_{200}^{*} + C_{020}^{*} - 2 C_{002}^{*} = (1 - \\omega_{1}) ( C_{200} + C_{020} - 2 C_{002} ) \\\\\n",
+    "&C_{200}^{*} - C_{002}^{*} = (1 - \\omega_{1}) ( C_{200} - C_{002} ) \\\\\n",
+    "&C_{200}^{*} + C_{020}^{*} + C_{002}^{*} = \\operatorname{Tr}(P) + (1 - \\omega_{2}) ( C_{200} + C_{020} + C_{002} )\n",
+    "\\end{align}\n",
+    "where\n",
+    "$P_{ij} = p \\delta_{ij} = (\\rho/3) \\delta_{ij}$; $\\operatorname{Tr}(P) = \\rho$ in 3D, $2\\rho/3$ in 2D. Let the right-hand sides be $X$, $Y$ and $Z$, the post-collision cumulants are"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "id": "40a96ec5-1795-4656-b212-74754c2bde28",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{002} = - \\frac{X - Z}{3}$"
+      ],
+      "text/plain": [
+       "Eq(C002, -(X - Z)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{020} = \\frac{X - 3 Y + 2 Z}{6}$"
+      ],
+      "text/plain": [
+       "Eq(C020, (X - 3*Y + 2*Z)/6)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{200} = \\frac{X + 3 Y + 2 Z}{6}$"
+      ],
+      "text/plain": [
+       "Eq(C200, (X + 3*Y + 2*Z)/6)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "C200, C020, C002, X, Y, Z = sp.symbols('C200 C020 C002 X Y Z')\n",
+    "\n",
+    "eq1 = C200 + C020 - 2*C002 - X\n",
+    "eq2 = C200 - C020 - Y\n",
+    "eq3 = C200 + C020 + C002 - Z\n",
+    "\n",
+    "sol = sp.solve([eq1, eq2, eq3], [C200, C020, C002])\n",
+    "\n",
+    "for key, val in sol.items():\n",
+    "    display( Eq(key, sp.factor(val)) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7547a170-865d-4042-ae55-e1906669a56c",
+   "metadata": {},
+   "source": [
+    "We set symbolic equations and push them into the pipeline. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "id": "7c5e42cb-39f5-4cef-9a9e-be135c21bacd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "kappa_diag_eq = sp.Rational(1, 3) * rho # isotropic component (pressure): rho * cs**2 = rho / 3\n",
+    "\n",
+    "if dim == 2:\n",
+    "    trace_mode = K_cen[(2, 0)] + K_cen[(0, 2)]\n",
+    "    trace_eq   = 2 * kappa_diag_eq # trace of eqilibrium values: 2 * rho / 3\n",
+    "    trace_post = trace_mode + omega_config[om_syms[2]] * (trace_eq - trace_mode)\n",
+    "    \n",
+    "    diff_mode  = K_cen[(2, 0)] - K_cen[(0, 2)]\n",
+    "    diff_post  = diff_mode + omega_config[om_syms[1]] * (0 - diff_mode)\n",
+    "    \n",
+    "    pipe_collision[K_post[(2, 0)]] = sp.simplify((trace_post + diff_post) * sp.Rational(1, 2))\n",
+    "    pipe_collision[K_post[(0, 2)]] = sp.simplify((trace_post - diff_post) * sp.Rational(1, 2))\n",
+    "else:\n",
+    "    trace_mode = K_cen[(2,0,0)] + K_cen[(0,2,0)] + K_cen[(0,0,2)]\n",
+    "    trace_eq   = 3 * kappa_diag_eq # trace of eqilibrium values: 3 * (rho/3) = rho\n",
+    "    trace_post = trace_mode + omega_config[om_syms[2]] * (trace_eq - trace_mode)\n",
+    "\n",
+    "    diff1_mode = (K_cen[(2,0,0)] - K_cen[(0,2,0)])\n",
+    "    diff1_post = diff1_mode + omega_config[om_syms[1]] * (0 - diff1_mode)        \n",
+    "    diff2_mode = (K_cen[(2,0,0)] + K_cen[(0,2,0)] - 2 * K_cen[(0,0,2)])\n",
+    "    diff2_post = diff2_mode + omega_config[om_syms[1]] * (0 - diff2_mode)\n",
+    "\n",
+    "    pipe_collision[K_post[(2,0,0)]] = sp.simplify((2 * trace_post + 3 * diff1_post + diff2_post) * sp.Rational(1, 6))\n",
+    "    pipe_collision[K_post[(0,2,0)]] = sp.simplify((2 * trace_post - 3 * diff1_post + diff2_post) * sp.Rational(1, 6))\n",
+    "    pipe_collision[K_post[(0,0,2)]] = sp.simplify((trace_post - diff2_post) * sp.Rational(1, 3))\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1894087d-db9c-40e8-a376-b566f3840e31",
+   "metadata": {},
+   "source": [
+    "We have 7 at the 3rd order: \n",
+    "$C_{120}$, $C_{102}$, $C_{210}$, $C_{012}$, $C_{201}$, $C_{021}$, $C_{111}$\n",
+    "\n",
+    "$C_{111}^{*}$ is simply given by \n",
+    "\n",
+    "$C_{111}^{*} = (1 - \\omega_{5}) C_{111}$ \n",
+    "\n",
+    "where $C_{111}^{eq} = 0$. The others are \n",
+    "\n",
+    "\\begin{align}\n",
+    "&C_{120}^{*} + C_{102}^{*} = (1 - \\omega_{3}) (C_{120} + C_{102}) \\\\\n",
+    "&C_{210}^{*} + C_{012}^{*} = (1 - \\omega_{3}) (C_{210} + C_{012}) \\\\\n",
+    "&C_{201}^{*} + C_{021}^{*} = (1 - \\omega_{3}) (C_{201} + C_{021}) \\\\\n",
+    "&C_{120}^{*} - C_{102}^{*} = (1 - \\omega_{4}) (C_{120} - C_{102}) \\\\\n",
+    "&C_{210}^{*} - C_{012}^{*} = (1 - \\omega_{4}) (C_{210} - C_{012}) \\\\\n",
+    "&C_{201}^{*} - C_{021}^{*} = (1 - \\omega_{4}) (C_{201} - C_{021}) \\\\\n",
+    "\\end{align}\n",
+    "We can easily solve for each, for example, \n",
+    "\n",
+    "$C_{120}^{*} = (1 - \\omega_{3}) (C_{120} + C_{102})/2 +  (1 - \\omega_{4}) (C_{120} - C_{102})/2$\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "id": "712c86bf-cdb1-495b-9b9c-79265f5e4e98",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if dim == 2:\n",
+    "    for o in orders_3rd: # goes to zero equilibria\n",
+    "        relaxation_expr = K_cen[o] + omega_config[om_syms[3]] * (sp.Integer(0) - K_cen[o])\n",
+    "        pipe_collision[K_post[o]] = sp.simplify(relaxation_expr)\n",
+    "else: \n",
+    "    # 120, 102, 210, 012, 201, 021\n",
+    "    sum1_post  = (one - omega_config[om_syms[3]]) * (K_cen[(1,2,0)] + K_cen[(1,0,2)])\n",
+    "    sum2_post  = (one - omega_config[om_syms[3]]) * (K_cen[(2,1,0)] + K_cen[(0,1,2)])\n",
+    "    sum3_post  = (one - omega_config[om_syms[3]]) * (K_cen[(2,0,1)] + K_cen[(0,2,1)])\n",
+    "    diff1_post = (one - omega_config[om_syms[4]]) * (K_cen[(1,2,0)] - K_cen[(1,0,2)])\n",
+    "    diff2_post = (one - omega_config[om_syms[4]]) * (K_cen[(2,1,0)] - K_cen[(0,1,2)])\n",
+    "    diff3_post = (one - omega_config[om_syms[4]]) * (K_cen[(2,0,1)] - K_cen[(0,2,1)])\n",
+    "    pipe_collision[K_post[(1,2,0)]] = sp.simplify((sum1_post + diff1_post) * sp.Rational(1, 2))\n",
+    "    pipe_collision[K_post[(2,1,0)]] = sp.simplify((sum2_post + diff2_post) * sp.Rational(1, 2))\n",
+    "    pipe_collision[K_post[(2,0,1)]] = sp.simplify((sum3_post + diff3_post) * sp.Rational(1, 2))\n",
+    "    pipe_collision[K_post[(1,0,2)]] = sp.simplify((sum1_post - diff1_post) * sp.Rational(1, 2))\n",
+    "    pipe_collision[K_post[(0,1,2)]] = sp.simplify((sum2_post - diff2_post) * sp.Rational(1, 2))\n",
+    "    pipe_collision[K_post[(0,2,1)]] = sp.simplify((sum3_post - diff3_post) * sp.Rational(1, 2))\n",
+    "\n",
+    "    # 111 \n",
+    "    o = (1,1,1)\n",
+    "    pipe_collision[K_post[o]] = sp.simplify( (one - omega_config[om_syms[5]]) * K_cen[o] )\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d233afa6-d72d-4df8-8a73-625a00078bac",
+   "metadata": {},
+   "source": [
+    "We have actually done not only collision but also $C \\rightarrow \\kappa$ transformation at the 3rd order. \n",
+    "\n",
+    "We shall go for the higher orders. By using `Cgen`, a cumulant expression in terms of $\\kappa$ can be easily obtained, e.g, "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "id": "92dffe12-25f5-4e10-ac86-d287d34c1b37",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{220} = \\frac{- \\kappa_{020} \\kappa_{200} - 2 \\kappa_{110}^{2} + \\kappa_{220} \\rho}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(C_{220}, (-kappa020*kappa200 - 2*kappa110**2 + kappa220*rho)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "o = (2,2,0)[:dim]\n",
+    "CO = Cgen(o, density_scaling=True)\n",
+    "display(CO)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "38929cd9-1cd3-49a5-8fc1-480c62ac749c",
+   "metadata": {},
+   "source": [
+    "We notice that the post-collision moment $\\kappa^{*}$ of the lower orders were already obtained. Therefore, after computing $C_{220}^{*}$, $\\kappa_{220}^{*}$ can be calculated by solving the above equation for $\\kappa_{220}$, that is, "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 48,
+   "id": "280134e2-2a4a-4c96-abe7-b882c675a3ab",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{220} = \\frac{C_{220} \\rho + \\kappa_{020} \\kappa_{200} + 2 \\kappa_{110}^{2}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa220, (C_{220}*rho + kappa020*kappa200 + 2*kappa110**2)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "kappaO_post = sp.simplify(sp.solve(CO, K_cen[o])[0])\n",
+    "display( Eq(K_cen[o], kappaO_post) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ff6a3303-bff4-48a8-a4a5-232022b3cbac",
+   "metadata": {},
+   "source": [
+    "However, we do not have *post* decorator in this equation derived with `Cgen`. So, prepare a simple label substitution map. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 49,
+   "id": "fe85ed61-481c-4e04-b69f-0018229f7148",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "k_post_subs_map = {}\n",
+    "for o in moment_orders:\n",
+    "    if sum(o) > 1:\n",
+    "        k_post_subs_map.update({K_cen[o]: sp.Symbol(str(K_cen[o])+'_post')})\n",
+    "        order = ''.join(str(x) for x in o)\n",
+    "        C_name = \"C_{\" + order + \"}\"\n",
+    "        k_post_subs_map.update({C_name: sp.Symbol(str(C_cum[o])+'_post')})"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 50,
+   "id": "c74c2cc7-d32e-424e-b596-e3e23e6d437a",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{220 post} = \\frac{C_{220 post} \\rho + \\kappa_{020 post} \\kappa_{200 post} + 2 \\kappa_{110 post}^{2}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa220_post, (C220_post*rho + kappa020_post*kappa200_post + 2*kappa110_post**2)/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "display( Eq(K_post[(2,2,0)[:dim]], kappaO_post.subs(k_post_subs_map)) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c08159bf-eb43-497c-8e72-68a1e6d9cfdc",
+   "metadata": {},
+   "source": [
+    "Very good. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "02fe03fb-40a8-4172-b725-5919169c7153",
+   "metadata": {},
+   "source": [
+    "An elaborative part is only the fourth order of $C_{220}$ $C_{202}$ $C_{022}$. The collision operator for them is \n",
+    "\n",
+    "\\begin{align}\n",
+    "&C_{220}^{*} - 2 C_{202}^{*} + C_{022}^{*} = (1 - \\omega_{6}) (C_{220} - 2 C_{202} + C_{022}) \\\\ \n",
+    "&C_{220}^{*} + C_{202}^{*} - 2 C_{022}^{*} = (1 - \\omega_{6}) (C_{220} + C_{202} - 2 C_{022}) \\\\ \n",
+    "&C_{220}^{*} + C_{202}^{*} + C_{022}^{*} = (1 - \\omega_{7}) (C_{220} + C_{202} + C_{022}) \\\\ \n",
+    "\\end{align}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "id": "6fa17565-fbef-4dd5-b471-0b0bd8af1e6e",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{022} = - \\frac{Y - Z}{3}$"
+      ],
+      "text/plain": [
+       "Eq(C022, -(Y - Z)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{202} = - \\frac{X - Z}{3}$"
+      ],
+      "text/plain": [
+       "Eq(C202, -(X - Z)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{220} = \\frac{X + Y + Z}{3}$"
+      ],
+      "text/plain": [
+       "Eq(C220, (X + Y + Z)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "C220, C202, C022, X, Y, Z = sp.symbols('C220 C202 C022 X Y Z')\n",
+    "\n",
+    "eq1 = C220 - 2*C202 + C022 - X\n",
+    "eq2 = C220 + C202 - 2*C022 - Y\n",
+    "eq3 = C220 + C202 + C022 - Z\n",
+    "\n",
+    "sol = sp.solve([eq1, eq2, eq3], [C220, C202, C022])\n",
+    "\n",
+    "for key, val in sol.items():\n",
+    "    display( Eq(key, sp.factor(val)) )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 52,
+   "id": "c4eebb35-26aa-4b3e-bd49-6a96f1af3d40",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "special_4th_cross = {(2, 2, 0), (2, 0, 2), (0, 2, 2)}\n",
+    "\n",
+    "if dim == 3:\n",
+    "    cross1_post = (C_cum[(2,2,0)] - 2 * C_cum[(2,0,2)] + C_cum[(0,2,2)]) * (one - omega_config[om_syms[6]])\n",
+    "    cross2_post = (C_cum[(2,2,0)] + C_cum[(2,0,2)] - 2 * C_cum[(0,2,2)]) * (one - omega_config[om_syms[6]])\n",
+    "    cross3_post = (C_cum[(2,2,0)] + C_cum[(2,0,2)] + C_cum[(0,2,2)]) * (one - omega_config[om_syms[7]])\n",
+    "    pipe_collision[C_post[(2,2,0)]] = sp.simplify( (   cross1_post + cross2_post + cross3_post ) * sp.Rational(1, 3) )\n",
+    "    pipe_collision[C_post[(2,0,2)]] = sp.simplify( ( - cross1_post               + cross3_post ) * sp.Rational(1, 3) )\n",
+    "    pipe_collision[C_post[(0,2,2)]] = sp.simplify( ( - cross2_post               + cross3_post ) * sp.Rational(1, 3) )\n",
+    "\n",
+    "    for o in special_4th_cross:\n",
+    "        C_expr = Cgen(o, density_scaling=True)\n",
+    "        k_post_expr = sp.simplify(sp.solve(C_expr, K_cen[o])[0])\n",
+    "        pipe_collision[K_post[o]] = sp.expand(k_post_expr).subs(k_post_subs_map)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "539c5e6e-e23e-4b4e-925c-e9872cd0fd1c",
+   "metadata": {},
+   "source": [
+    "The last ones!\n",
+    "\n",
+    "\\begin{align}\n",
+    "&C_{211}^{*} = (1 - \\omega_{8}) C_{211} \\\\\n",
+    "&C_{121}^{*} = (1 - \\omega_{8}) C_{121} \\\\\n",
+    "&C_{112}^{*} = (1 - \\omega_{8}) C_{112} \\\\\n",
+    "&C_{221}^{*} = (1 - \\omega_{9}) C_{221} \\\\\n",
+    "&C_{212}^{*} = (1 - \\omega_{9}) C_{212} \\\\\n",
+    "&C_{122}^{*} = (1 - \\omega_{9}) C_{122} \\\\\n",
+    "&C_{222}^{*} = (1 - \\omega_{10}) C_{222} \\\\\n",
+    "\\end{align}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "id": "d6dea2d4-f968-4d64-87c3-cd765203c888",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# cumulant transformation for orders higher than 3\n",
+    "all_higher_orders = orders_4th + orders_5th + orders_6th\n",
+    "\n",
+    "processed = False\n",
+    "for o in all_higher_orders:\n",
+    "    if dim == 2: # (2, 2) is the only case for 2D, and C22_eq = 0\n",
+    "        if processed:\n",
+    "            pass\n",
+    "        else:\n",
+    "            pipe_collision[C_post[o]] = sp.simplify( (one - omega_config[om_syms[6]]) * C_cum[o] )\n",
+    "\n",
+    "            C_expr = Cgen(o, density_scaling=True)\n",
+    "            k_post_expr = sp.simplify(sp.solve(C_expr, K_cen[o])[0])\n",
+    "            pipe_collision[K_post[o]] = sp.expand(k_post_expr).subs(k_post_subs_map)\n",
+    "        continue\n",
+    "\n",
+    "    if dim == 3 and o in special_4th_cross:\n",
+    "        continue\n",
+    "\n",
+    "    current_omega = omega_config[om_syms[8]]\n",
+    "    if sum(o) == 5: current_omega = omega_config[om_syms[9]]\n",
+    "    elif sum(o) == 6: current_omega = omega_config[om_syms[10]]\n",
+    "\n",
+    "    pipe_collision[C_post[o]] = sp.simplify( (one - current_omega) * C_cum[o] )\n",
+    "\n",
+    "    C_expr = Cgen(o, density_scaling=True)\n",
+    "    k_post_expr = sp.simplify(sp.solve(C_expr, K_cen[o])[0])\n",
+    "    pipe_collision[K_post[o]] = sp.expand(k_post_expr).subs(k_post_subs_map)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d19d065d-89d7-4703-aab0-ce82cade49f3",
+   "metadata": {},
+   "source": [
+    "Let's see the outcome. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 54,
+   "id": "dd5f38fa-cafd-4489-b7e9-767ae7c27304",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{101 post} = \\kappa_{101} \\left(1 - omega[1]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(kappa101_post, kappa101*(1 - omega[1]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{110 post} = \\kappa_{110} \\left(1 - omega[1]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(kappa110_post, kappa110*(1 - omega[1]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{011 post} = \\kappa_{011} \\left(1 - omega[1]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(kappa011_post, kappa011*(1 - omega[1]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{200 post} = \\kappa_{200} + \\frac{omega[1] \\left(\\kappa_{020} - \\kappa_{200}\\right)}{2} - \\frac{omega[1] \\left(- 2 \\kappa_{002} + \\kappa_{020} + \\kappa_{200}\\right)}{6} - \\frac{omega[2] \\left(\\kappa_{002} + \\kappa_{020} + \\kappa_{200} - \\rho\\right)}{3}$"
+      ],
+      "text/plain": [
+       "Eq(kappa200_post, kappa200 + omega[1]*(kappa020 - kappa200)/2 - omega[1]*(-2*kappa002 + kappa020 + kappa200)/6 - omega[2]*(kappa002 + kappa020 + kappa200 - rho)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{020 post} = \\kappa_{020} - \\frac{omega[1] \\left(\\kappa_{020} - \\kappa_{200}\\right)}{2} - \\frac{omega[1] \\left(- 2 \\kappa_{002} + \\kappa_{020} + \\kappa_{200}\\right)}{6} - \\frac{omega[2] \\left(\\kappa_{002} + \\kappa_{020} + \\kappa_{200} - \\rho\\right)}{3}$"
+      ],
+      "text/plain": [
+       "Eq(kappa020_post, kappa020 - omega[1]*(kappa020 - kappa200)/2 - omega[1]*(-2*kappa002 + kappa020 + kappa200)/6 - omega[2]*(kappa002 + kappa020 + kappa200 - rho)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{002 post} = \\kappa_{002} + \\frac{omega[1] \\left(- 2 \\kappa_{002} + \\kappa_{020} + \\kappa_{200}\\right)}{3} - \\frac{omega[2] \\left(\\kappa_{002} + \\kappa_{020} + \\kappa_{200} - \\rho\\right)}{3}$"
+      ],
+      "text/plain": [
+       "Eq(kappa002_post, kappa002 + omega[1]*(-2*kappa002 + kappa020 + kappa200)/3 - omega[2]*(kappa002 + kappa020 + kappa200 - rho)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{120 post} = \\frac{\\left(\\kappa_{102} - \\kappa_{120}\\right) \\left(omega[4] - 1\\right)}{2} - \\frac{\\left(\\kappa_{102} + \\kappa_{120}\\right) \\left(omega[3] - 1\\right)}{2}$"
+      ],
+      "text/plain": [
+       "Eq(kappa120_post, (kappa102 - kappa120)*(omega[4] - 1)/2 - (kappa102 + kappa120)*(omega[3] - 1)/2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{210 post} = \\frac{\\left(\\kappa_{012} - \\kappa_{210}\\right) \\left(omega[4] - 1\\right)}{2} - \\frac{\\left(\\kappa_{012} + \\kappa_{210}\\right) \\left(omega[3] - 1\\right)}{2}$"
+      ],
+      "text/plain": [
+       "Eq(kappa210_post, (kappa012 - kappa210)*(omega[4] - 1)/2 - (kappa012 + kappa210)*(omega[3] - 1)/2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{201 post} = \\frac{\\left(\\kappa_{021} - \\kappa_{201}\\right) \\left(omega[4] - 1\\right)}{2} - \\frac{\\left(\\kappa_{021} + \\kappa_{201}\\right) \\left(omega[3] - 1\\right)}{2}$"
+      ],
+      "text/plain": [
+       "Eq(kappa201_post, (kappa021 - kappa201)*(omega[4] - 1)/2 - (kappa021 + kappa201)*(omega[3] - 1)/2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{102 post} = - \\frac{\\left(\\kappa_{102} - \\kappa_{120}\\right) \\left(omega[4] - 1\\right)}{2} - \\frac{\\left(\\kappa_{102} + \\kappa_{120}\\right) \\left(omega[3] - 1\\right)}{2}$"
+      ],
+      "text/plain": [
+       "Eq(kappa102_post, -(kappa102 - kappa120)*(omega[4] - 1)/2 - (kappa102 + kappa120)*(omega[3] - 1)/2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{012 post} = - \\frac{\\left(\\kappa_{012} - \\kappa_{210}\\right) \\left(omega[4] - 1\\right)}{2} - \\frac{\\left(\\kappa_{012} + \\kappa_{210}\\right) \\left(omega[3] - 1\\right)}{2}$"
+      ],
+      "text/plain": [
+       "Eq(kappa012_post, -(kappa012 - kappa210)*(omega[4] - 1)/2 - (kappa012 + kappa210)*(omega[3] - 1)/2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{021 post} = - \\frac{\\left(\\kappa_{021} - \\kappa_{201}\\right) \\left(omega[4] - 1\\right)}{2} - \\frac{\\left(\\kappa_{021} + \\kappa_{201}\\right) \\left(omega[3] - 1\\right)}{2}$"
+      ],
+      "text/plain": [
+       "Eq(kappa021_post, -(kappa021 - kappa201)*(omega[4] - 1)/2 - (kappa021 + kappa201)*(omega[3] - 1)/2)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{111 post} = \\kappa_{111} \\left(1 - omega[5]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(kappa111_post, kappa111*(1 - omega[5]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{220 post} = \\frac{C_{022} omega[6]}{3} - \\frac{C_{022} omega[7]}{3} + \\frac{C_{202} omega[6]}{3} - \\frac{C_{202} omega[7]}{3} - \\frac{2 C_{220} omega[6]}{3} - \\frac{C_{220} omega[7]}{3} + C_{220}$"
+      ],
+      "text/plain": [
+       "Eq(C220_post, C022*omega[6]/3 - C022*omega[7]/3 + C202*omega[6]/3 - C202*omega[7]/3 - 2*C220*omega[6]/3 - C220*omega[7]/3 + C220)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{202 post} = \\frac{\\left(omega[6] - 1\\right) \\left(C_{022} - 2 C_{202} + C_{220}\\right)}{3} - \\frac{\\left(omega[7] - 1\\right) \\left(C_{022} + C_{202} + C_{220}\\right)}{3}$"
+      ],
+      "text/plain": [
+       "Eq(C202_post, (omega[6] - 1)*(C022 - 2*C202 + C220)/3 - (omega[7] - 1)*(C022 + C202 + C220)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{022 post} = \\frac{\\left(omega[6] - 1\\right) \\left(- 2 C_{022} + C_{202} + C_{220}\\right)}{3} - \\frac{\\left(omega[7] - 1\\right) \\left(C_{022} + C_{202} + C_{220}\\right)}{3}$"
+      ],
+      "text/plain": [
+       "Eq(C022_post, (omega[6] - 1)*(-2*C022 + C202 + C220)/3 - (omega[7] - 1)*(C022 + C202 + C220)/3)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{022 post} = C_{022 post} + \\frac{\\kappa_{002 post} \\kappa_{020 post}}{\\rho} + \\frac{2 \\kappa_{011 post}^{2}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa022_post, C022_post + kappa002_post*kappa020_post/rho + 2*kappa011_post**2/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{202 post} = C_{202 post} + \\frac{\\kappa_{002 post} \\kappa_{200 post}}{\\rho} + \\frac{2 \\kappa_{101 post}^{2}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa202_post, C202_post + kappa002_post*kappa200_post/rho + 2*kappa101_post**2/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{220 post} = C_{220 post} + \\frac{\\kappa_{020 post} \\kappa_{200 post}}{\\rho} + \\frac{2 \\kappa_{110 post}^{2}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa220_post, C220_post + kappa020_post*kappa200_post/rho + 2*kappa110_post**2/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{211 post} = C_{211} \\left(1 - omega[8]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C211_post, C211*(1 - omega[8]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{211 post} = C_{211 post} + \\frac{\\kappa_{011 post} \\kappa_{200 post}}{\\rho} + \\frac{2 \\kappa_{101 post} \\kappa_{110 post}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa211_post, C211_post + kappa011_post*kappa200_post/rho + 2*kappa101_post*kappa110_post/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{112 post} = C_{112} \\left(1 - omega[8]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C112_post, C112*(1 - omega[8]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{112 post} = C_{112 post} + \\frac{\\kappa_{002 post} \\kappa_{110 post}}{\\rho} + \\frac{2 \\kappa_{011 post} \\kappa_{101 post}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa112_post, C112_post + kappa002_post*kappa110_post/rho + 2*kappa011_post*kappa101_post/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{121 post} = C_{121} \\left(1 - omega[8]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C121_post, C121*(1 - omega[8]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{121 post} = C_{121 post} + \\frac{2 \\kappa_{011 post} \\kappa_{110 post}}{\\rho} + \\frac{\\kappa_{020 post} \\kappa_{101 post}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa121_post, C121_post + 2*kappa011_post*kappa110_post/rho + kappa020_post*kappa101_post/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{212 post} = C_{212} \\left(1 - omega[9]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C212_post, C212*(1 - omega[9]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{212 post} = C_{212 post} + \\frac{\\kappa_{002 post} \\kappa_{210 post}}{\\rho} + \\frac{2 \\kappa_{011 post} \\kappa_{201 post}}{\\rho} + \\frac{\\kappa_{012 post} \\kappa_{200 post}}{\\rho} + \\frac{4 \\kappa_{101 post} \\kappa_{111 post}}{\\rho} + \\frac{2 \\kappa_{102 post} \\kappa_{110 post}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa212_post, C212_post + kappa002_post*kappa210_post/rho + 2*kappa011_post*kappa201_post/rho + kappa012_post*kappa200_post/rho + 4*kappa101_post*kappa111_post/rho + 2*kappa102_post*kappa110_post/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{221 post} = C_{221} \\left(1 - omega[9]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C221_post, C221*(1 - omega[9]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{221 post} = C_{221 post} + \\frac{2 \\kappa_{011 post} \\kappa_{210 post}}{\\rho} + \\frac{\\kappa_{020 post} \\kappa_{201 post}}{\\rho} + \\frac{\\kappa_{021 post} \\kappa_{200 post}}{\\rho} + \\frac{2 \\kappa_{101 post} \\kappa_{120 post}}{\\rho} + \\frac{4 \\kappa_{110 post} \\kappa_{111 post}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa221_post, C221_post + 2*kappa011_post*kappa210_post/rho + kappa020_post*kappa201_post/rho + kappa021_post*kappa200_post/rho + 2*kappa101_post*kappa120_post/rho + 4*kappa110_post*kappa111_post/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{122 post} = C_{122} \\left(1 - omega[9]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C122_post, C122*(1 - omega[9]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{122 post} = C_{122 post} + \\frac{\\kappa_{002 post} \\kappa_{120 post}}{\\rho} + \\frac{4 \\kappa_{011 post} \\kappa_{111 post}}{\\rho} + \\frac{2 \\kappa_{012 post} \\kappa_{110 post}}{\\rho} + \\frac{\\kappa_{020 post} \\kappa_{102 post}}{\\rho} + \\frac{2 \\kappa_{021 post} \\kappa_{101 post}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa122_post, C122_post + kappa002_post*kappa120_post/rho + 4*kappa011_post*kappa111_post/rho + 2*kappa012_post*kappa110_post/rho + kappa020_post*kappa102_post/rho + 2*kappa021_post*kappa101_post/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle C_{222 post} = C_{222} \\left(1 - omega[10]\\right)$"
+      ],
+      "text/plain": [
+       "Eq(C222_post, C222*(1 - omega[10]))"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/latex": [
+       "$\\displaystyle \\kappa_{222 post} = C_{222 post} - \\frac{2 \\kappa_{002 post} \\kappa_{020 post} \\kappa_{200 post}}{\\rho^{2}} - \\frac{4 \\kappa_{002 post} \\kappa_{110 post}^{2}}{\\rho^{2}} + \\frac{\\kappa_{002 post} \\kappa_{220 post}}{\\rho} - \\frac{4 \\kappa_{011 post}^{2} \\kappa_{200 post}}{\\rho^{2}} - \\frac{16 \\kappa_{011 post} \\kappa_{101 post} \\kappa_{110 post}}{\\rho^{2}} + \\frac{4 \\kappa_{011 post} \\kappa_{211 post}}{\\rho} + \\frac{2 \\kappa_{012 post} \\kappa_{210 post}}{\\rho} - \\frac{4 \\kappa_{020 post} \\kappa_{101 post}^{2}}{\\rho^{2}} + \\frac{\\kappa_{020 post} \\kappa_{202 post}}{\\rho} + \\frac{2 \\kappa_{021 post} \\kappa_{201 post}}{\\rho} + \\frac{\\kappa_{022 post} \\kappa_{200 post}}{\\rho} + \\frac{4 \\kappa_{101 post} \\kappa_{121 post}}{\\rho} + \\frac{2 \\kappa_{102 post} \\kappa_{120 post}}{\\rho} + \\frac{4 \\kappa_{110 post} \\kappa_{112 post}}{\\rho} + \\frac{4 \\kappa_{111 post}^{2}}{\\rho}$"
+      ],
+      "text/plain": [
+       "Eq(kappa222_post, C222_post - 2*kappa002_post*kappa020_post*kappa200_post/rho**2 - 4*kappa002_post*kappa110_post**2/rho**2 + kappa002_post*kappa220_post/rho - 4*kappa011_post**2*kappa200_post/rho**2 - 16*kappa011_post*kappa101_post*kappa110_post/rho**2 + 4*kappa011_post*kappa211_post/rho + 2*kappa012_post*kappa210_post/rho - 4*kappa020_post*kappa101_post**2/rho**2 + kappa020_post*kappa202_post/rho + 2*kappa021_post*kappa201_post/rho + kappa022_post*kappa200_post/rho + 4*kappa101_post*kappa121_post/rho + 2*kappa102_post*kappa120_post/rho + 4*kappa110_post*kappa112_post/rho + 4*kappa111_post**2/rho)"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "for key, expr in pipe_collision.items():\n",
+    "    display( Eq(key, expr) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1a09197d-0521-492a-8063-cc7a7b74307a",
+   "metadata": {},
+   "source": [
+    "## Backward transformation: $\\kappa_{\\alpha \\beta \\gamma} \\rightarrow m_{\\alpha \\beta \\gamma}$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2e46b046-552d-445c-a07c-99a744dde60f",
+   "metadata": {},
+   "source": [
+    "We have completed the collision operation and backward transformation from $C$ to $\\kappa$. The reminaing tasks are the backward transformation from $\\kappa$ to $m$ and $m$ to $f$. Here, we buid the former. The transformation is given by (see [Moment Transform](https://pycodegen.pages.i10git.cs.fau.de/lbmpy/sphinx/moment_transforms.html) in lbmpy API reference)\n",
+    "\n",
+    "\\begin{align}\n",
+    "&m^{*}_{ij|\\gamma} = \\sum_{k=0}^{\\gamma} \\left(\\begin{array}{c}\n",
+    "        \\gamma \\\\\n",
+    "        k \n",
+    "    \\end{array} \\right) w^{\\gamma-k} \\kappa^{*}_{ijk} \\\\\n",
+    "&m^{*}_{i|\\beta \\gamma} = \\sum_{j=0}^{\\beta} \\left(\\begin{array}{c}\n",
+    "        \\beta \\\\\n",
+    "        j \n",
+    "    \\end{array} \\right)  v^{\\beta-j} m^{*}_{ij|\\gamma} \\\\\n",
+    "&m^{*}_{\\alpha \\beta \\gamma}  = \\sum_{i=0}^{\\alpha} \\left(\\begin{array}{c}\n",
+    "        \\alpha \\\\\n",
+    "        i \n",
+    "    \\end{array} \\right) u^{\\alpha-i} m^{*}_{i|\\beta \\gamma} \n",
+    "\\end{align}\n",
+    "\n",
+    "where the binomial is defined by \n",
+    "\n",
+    "\\begin{equation}\n",
+    "\\left(\n",
+    "\\begin{array}{c}\n",
+    "    \\alpha \\\\\n",
+    "        i \n",
+    "\\end{array} \n",
+    "\\right)\n",
+    "    = \\frac{\\alpha!}{i! (\\alpha - i)!}\n",
+    "\\end{equation}\n",
+    "\n",
+    "The chimera transformation is implemented as follows. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bb62eb71-f925-4f0a-a2d1-d43a0b94badb",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f0f8ff; \n",
+    "    border-left: 5px solid #a2c4c9; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #2c4a5e;\n",
+    "\">\n",
+    "    <strong>Note:</strong> The implementation here differs from that in Geier et al., in which the post-collision central moments are directly transformed into the distribution.\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 55,
+   "id": "b0fd488f-cf79-4250-b082-875c5f7cf0f8",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def back_trans_kappa_to_raw(dim, moment_orders, vsym, K_post, M_post, pipe_exprs=None):\n",
+    "    if pipe_exprs == None:\n",
+    "        pipe_exprs = {}\n",
+    "    \n",
+    "    current_k = {o: K_post[o] for o in moment_orders}\n",
+    "\n",
+    "    if dim == 2:\n",
+    "        u_sym, v_sym = vsym\n",
+    "    else:\n",
+    "        u_sym, v_sym, w_sym = vsym\n",
+    "\n",
+    "    if dim == 3:\n",
+    "        m_ij_gamma = {} # m_{ij|gamma}\n",
+    "        for i in [0, 1, 2]:\n",
+    "            for j in [0, 1, 2]:\n",
+    "                for gamma in [0, 1, 2]:\n",
+    "                    expr = 0\n",
+    "                    for k in range(gamma + 1):\n",
+    "                        binom = math.comb(gamma, k) # binomial (gamma | k)\n",
+    "                        u_pow = w_sym**(gamma - k) if (gamma - k) > 0 else 1\n",
+    "                        expr += binom * u_pow * current_k[(i, j, k)] # m_{ij|gamma} = sum (gamma | k) w^{gamma - k} kappa_{ijk}\n",
+    "\n",
+    "                    var_sym = sp.Symbol(f\"m_post_idx_{i}_{j}_{chimera_delimiter}_{gamma}\")\n",
+    "                    m_ij_gamma[(i, j, gamma)] = var_sym\n",
+    "                    pipe_exprs[var_sym] = sp.simplify(expr)\n",
+    "                    \n",
+    "        m_i_beta_gamma = {} # m_{i|beta gamma}\n",
+    "        for i in [0, 1, 2]:\n",
+    "            for beta in [0, 1, 2]:\n",
+    "                for gamma in [0, 1, 2]:\n",
+    "                    expr = 0\n",
+    "                    for j in range(beta + 1):\n",
+    "                        binom = math.comb(beta, j) # binomial (beta | j)\n",
+    "                        u_pow = v_sym**(beta - j) if (beta - j) > 0 else 1\n",
+    "                        expr += binom * u_pow * m_ij_gamma[(i, j, gamma)] # m_{i|beta gamma} = sum (beta | j) v^{beta - j} m_{ij|gamma}\n",
+    "\n",
+    "                    var_sym = sp.Symbol(f\"m_post_idx_{i}_{chimera_delimiter}_{beta}_{gamma}\")\n",
+    "                    m_i_beta_gamma[(i, beta, gamma)] = var_sym\n",
+    "                    pipe_exprs[var_sym] = sp.simplify(expr)\n",
+    "                    \n",
+    "        m_post_dict = {} # m_{alpha beta gamma}\n",
+    "        for alpha in [0, 1, 2]:\n",
+    "            for beta in [0, 1, 2]:\n",
+    "                for gamma in [0, 1, 2]:\n",
+    "                    expr = 0\n",
+    "                    for i in range(alpha + 1):\n",
+    "                        binom = math.comb(alpha, i) # binomial (alpha | i)\n",
+    "                        u_pow = u_sym**(alpha - i) if (alpha - i) > 0 else 1\n",
+    "                        expr += binom * u_pow * m_i_beta_gamma[(i, beta, gamma)] # m_{alpha beta gamma} ~ sum (alpha | i) u^{alpha - i} m_{i|beta gamma}\n",
+    "\n",
+    "                    o = (alpha, beta, gamma)\n",
+    "                    pipe_exprs[M_post[o]] = sp.simplify(expr)\n",
+    "                    \n",
+    "    else: # dim == 2\n",
+    "        m_i_gamma = {}\n",
+    "        for i in [0, 1, 2]:\n",
+    "            for gamma in [0, 1, 2]:\n",
+    "                expr = 0\n",
+    "                for j in range(gamma + 1):\n",
+    "                    binom = math.comb(gamma, j)\n",
+    "                    u_pow = v_sym**(gamma - j) if (gamma - j) > 0 else 1\n",
+    "                    expr += binom * u_pow * current_k[(i, j)]\n",
+    "\n",
+    "                var_sym = sp.Symbol(f\"m_post_idx_{i}_{chimera_delimiter}_{gamma}\")\n",
+    "                m_i_gamma[(i, gamma)] = var_sym\n",
+    "                pipe_exprs[var_sym] = sp.simplify(expr)\n",
+    "                \n",
+    "        m_post_dict = {}\n",
+    "        for alpha in [0, 1, 2]:\n",
+    "            for beta in [0, 1, 2]:\n",
+    "                expr = 0\n",
+    "                for i in range(alpha + 1):\n",
+    "                    binom = math.comb(alpha, i)\n",
+    "                    u_pow = u_sym**(alpha - i) if (alpha - i) > 0 else 1\n",
+    "                    expr += binom * u_pow * m_i_gamma[(i, beta)]\n",
+    "\n",
+    "                o = (alpha, beta)\n",
+    "                pipe_exprs[M_post[o]] = sp.simplify(expr)\n",
+    "\n",
+    "    return pipe_exprs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 56,
+   "id": "0bb959a0-df41-4d33-9463-a19ab56bf011",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pipe_backward = back_trans_kappa_to_raw(dim, moment_orders, vel_syms, K_post, M_post) # backward transform: kappa to moment"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1713c8b7-7f48-4a33-a268-cbbd57192f70",
+   "metadata": {},
+   "source": [
+    "Quick check for the first several chimeras. Here, `m_post_idx_0_0_c_0` means $m_{00|0}^{*}$."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 57,
+   "id": "dcc4aefe-c536-4468-ad00-616a49f9819e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[(m_post_idx_0_0_c_0, kappa000_post), (m_post_idx_0_0_c_1, kappa000_post*w + kappa001_post), (m_post_idx_0_0_c_2, kappa000_post*w**2 + 2*kappa001_post*w + kappa002_post), (m_post_idx_0_1_c_0, kappa010_post), (m_post_idx_0_1_c_1, kappa010_post*w + kappa011_post)]\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(f\"{list(pipe_backward.items())[:5]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "53320b4c-e624-4525-95b6-2e62ca12d06b",
+   "metadata": {},
+   "source": [
+    "## Backward transformation: $m_{\\alpha \\beta \\gamma} \\rightarrow f_{i}$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c175fc07-b7f3-4cb7-b761-9bce2329f022",
+   "metadata": {},
+   "source": [
+    "<div style=\"\n",
+    "    background-color: #f8f9fa; \n",
+    "    border-left: 5px solid #ced4da; \n",
+    "    padding: 15px; \n",
+    "    margin: 10px 0; \n",
+    "    border-radius: 4px; \n",
+    "    color: #495057;\n",
+    "\">\n",
+    "    <strong>Reference:</strong> See Sec 4.3 in Geier et al. (2015): from Eq. (89)-(97).\n",
+    "</div>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "826a5c93-277a-4522-b86f-6ad1d6659199",
+   "metadata": {},
+   "source": [
+    "\\begin{equation}\n",
+    "\\begin{array}{ll}\n",
+    "m_{0|\\beta\\gamma} = m_{0\\beta\\gamma} - m_{2\\beta\\gamma} &\\text{(I)} \\\\\n",
+    "m_{\\bar{1}|\\beta\\gamma} = (-m_{1\\beta\\gamma} + m_{2\\beta\\gamma}) / 2 &\\text{(II)} \\\\\n",
+    "m_{1|\\beta\\gamma} = (m_{1\\beta\\gamma} + m_{2\\beta\\gamma}) / 2 &\\text{(III)} \\\\\n",
+    "m_{i0|\\gamma} = m_{i0\\gamma} - m_{i2\\gamma} &\\text{(IV)} \\\\\n",
+    "m_{i\\bar{1}|\\gamma} = (-m_{i1\\gamma} + m_{i2\\gamma}) / 2 &\\text{(V)} \\\\\n",
+    "m_{i1|\\gamma} = (m_{i1\\gamma} + m_{i2\\gamma}) / 2 &\\text{(VI)} \\\\\n",
+    "f_{ i j 0} = m_{ij|0} - m_{ij|2} &\\text{(VII)} \\\\\n",
+    "f_{ i j-1} = \\frac{ -m_{ij|1} + m_{ij|2} }{2} &\\text{(VIII)} \\\\\n",
+    "f_{ i j 1} = \\frac{  m_{ij|1} + m_{ij|2} }{2} &\\text{(IX)}\n",
+    "\\end{array}\n",
+    "\\end{equation}\n",
+    "\n",
+    "These equations are implemented in `back_trans_raw_to_f` below. See the equation labels (I)-(IX) attached to the code for comparison with the definitions.  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 58,
+   "id": "bccc0662-cadf-4910-a24d-62bed42a0a04",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def back_trans_raw_to_f(dim, v_map, M_post, pipe_exprs=None):\n",
+    "    if pipe_exprs == None:\n",
+    "        pipe_exprs = {}\n",
+    "\n",
+    "    f_post_exprs = {}\n",
+    "\n",
+    "    if dim == 3:\n",
+    "        pm_a_b_e_g = {}\n",
+    "        for beta in [0, 1, 2]:\n",
+    "            for gamma in [0, 1, 2]:\n",
+    "                m0 = M_post[(0, beta, gamma)]\n",
+    "                m1 = M_post[(1, beta, gamma)]\n",
+    "                m2 = M_post[(2, beta, gamma)]\n",
+    "                pm0  = sp.simplify(  m0 - m2) # - * - (I) - * - #\n",
+    "                pmm1 = sp.simplify((-m1 + m2) / 2) # - * - (II) - * - #\n",
+    "                pm1  = sp.simplify(( m1 + m2) / 2) # - * - (III) - * - #\n",
+    "                for i, expr in [(0, pm0), (-1, pmm1), (1, pm1)]:\n",
+    "                    var_sym = sp.Symbol(f\"{chimera_name}_m_post_{v_map[i]}_{beta}_{chimera_delimiter}_{gamma}\")\n",
+    "                    pm_a_b_e_g[(i, beta, gamma)] = var_sym # - * - m_{i|beta gamma} - * - #\n",
+    "                    pipe_exprs[var_sym] = expr\n",
+    "                    \n",
+    "        pm_a_e_b_g = {}\n",
+    "        for i in [-1, 0, 1]:\n",
+    "            for gamma in [0, 1, 2]:\n",
+    "                pm_b0 = pm_a_b_e_g[(i, 0, gamma)]\n",
+    "                pm_b1 = pm_a_b_e_g[(i, 1, gamma)]\n",
+    "                pm_b2 = pm_a_b_e_g[(i, 2, gamma)]\n",
+    "                pm0  = sp.simplify(  pm_b0 - pm_b2) # - * - (IV) - * - #\n",
+    "                pmm1 = sp.simplify((-pm_b1 + pm_b2) / 2) # - * - (V) - * - #\n",
+    "                pm1  = sp.simplify(( pm_b1 + pm_b2) / 2) # - * - (VI) - * - #\n",
+    "                for j, expr in [(0, pm0), (-1, pmm1), (1, pm1)]:\n",
+    "                    var_sym = sp.Symbol(f\"{chimera_name}_m_post_{v_map[i]}_{chimera_delimiter}_{v_map[j]}_{gamma}\")\n",
+    "                    pm_a_e_b_g[(i, j, gamma)] = var_sym # - * - m_{ij|gamma} - * - #\n",
+    "                    pipe_exprs[var_sym] = expr\n",
+    "                    \n",
+    "        for i in [-1, 0, 1]:\n",
+    "            for j in [-1, 0, 1]:\n",
+    "                pm_g0 = pm_a_e_b_g[(i, j, 0)]\n",
+    "                pm_g1 = pm_a_e_b_g[(i, j, 1)]\n",
+    "                pm_g2 = pm_a_e_b_g[(i, j, 2)]\n",
+    "                f0  = sp.simplify(  pm_g0 - pm_g2) # - * - (VII) - * - #\n",
+    "                fm1 = sp.simplify((-pm_g1 + pm_g2) / 2) # - * - (VIII) - * - #\n",
+    "                f1  = sp.simplify(( pm_g1 + pm_g2) / 2) # - * - (IX) - * - # !Goal!\n",
+    "                for k, expr in [(0, f0), (-1, fm1), (1, f1)]:\n",
+    "                    f_post_sym = sp.Symbol(f\"f_post_idx_{v_map[i]}_{v_map[j]}_{v_map[k]}\")\n",
+    "                    f_post_exprs[(i, j, k)] = f_post_sym # - * - f_{ijk} - * - #\n",
+    "                    pipe_exprs[f_post_sym] = expr\n",
+    "                    \n",
+    "    else: # dim == 2\n",
+    "        pm_a_e_g = {}\n",
+    "        for beta in [0, 1, 2]:\n",
+    "            m0 = sp.Symbol(f\"m0{beta}_post\")\n",
+    "            m1 = sp.Symbol(f\"m1{beta}_post\")\n",
+    "            m2 = sp.Symbol(f\"m2{beta}_post\")\n",
+    "            pm0  = sp.simplify(  m0 - m2)\n",
+    "            pmm1 = sp.simplify((-m1 + m2) / 2)\n",
+    "            pm1  = sp.simplify(( m1 + m2) / 2)\n",
+    "            for i, expr in [(0, pm0), (-1, pmm1), (1, pm1)]:\n",
+    "                var_sym = sp.Symbol(f\"{chimera_name}_m_post_{v_map[i]}_{beta}\")\n",
+    "                pm_a_e_g[(i, beta)] = var_sym\n",
+    "                pipe_exprs[var_sym] = expr\n",
+    "                \n",
+    "        for i in [-1, 0, 1]:\n",
+    "            pm_b0 = pm_a_e_g[(i, 0)]\n",
+    "            pm_b1 = pm_a_e_g[(i, 1)]\n",
+    "            pm_b2 = pm_a_e_g[(i, 2)]\n",
+    "            f0  = sp.simplify(  pm_b0 - pm_b2)\n",
+    "            fm1 = sp.simplify((-pm_b1 + pm_b2) / 2)\n",
+    "            f1  = sp.simplify(( pm_b1 + pm_b2) / 2)\n",
+    "            for j, expr in [(0, f0), (-1, fm1), (1, f1)]:\n",
+    "                f_post_sym = sp.Symbol(f\"f_post_idx_{v_map[i]}_{v_map[j]}\")\n",
+    "                f_post_exprs[(i, j)] = f_post_sym\n",
+    "                pipe_exprs[f_post_sym] = expr\n",
+    "\n",
+    "    return pipe_exprs, f_post_exprs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 59,
+   "id": "2b00f63f-3f1d-4f04-a4fe-334c599297d3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pipe_mtof, f_post_exprs = back_trans_raw_to_f(dim, v_map, M_post) # backward transform: moment to f"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 60,
+   "id": "da0de405-10c1-41a8-9b79-de02fe3efd1d",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[((-1, -1, 0), f_post_idx_m1_m1_0), ((-1, -1, -1), f_post_idx_m1_m1_m1), ((-1, -1, 1), f_post_idx_m1_m1_1), ((-1, 0, 0), f_post_idx_m1_0_0), ((-1, 0, -1), f_post_idx_m1_0_m1)]\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(list(f_post_exprs.items())[:5])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "id": "51a7e89f-999f-4883-80ee-4b726a23a28f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "f0_post = chimera_m_post_0_c_0_0 - chimera_m_post_0_c_0_2\n",
+      "f1_post = chimera_m_post_1_c_0_0 - chimera_m_post_1_c_0_2\n",
+      "f2_post = chimera_m_post_m1_c_0_0 - chimera_m_post_m1_c_0_2\n",
+      "f3_post = chimera_m_post_0_c_1_0 - chimera_m_post_0_c_1_2\n",
+      "f4_post = chimera_m_post_0_c_m1_0 - chimera_m_post_0_c_m1_2\n"
+     ]
+    }
+   ],
+   "source": [
+    "# re-order allsignments as \n",
+    "# from macro to post moment, (stored in asignments_other)\n",
+    "# then, post f in oder of 0, 1, 2, ... (stored in f_post)\n",
+    "\n",
+    "pipe_mtof_ordered = {}\n",
+    "\n",
+    "f_post_map = {}\n",
+    "\n",
+    "assignments_other = []\n",
+    "\n",
+    "# mapping f_{ijk} -> f_{i}\n",
+    "def convert_direction_to_idx(dim, var_name): \n",
+    "    parts = var_name.split(\"_\")\n",
+    "    def parse_v(s):\n",
+    "        if s == \"m1\": return -1\n",
+    "        return int(s)\n",
+    "    if dim == 2:\n",
+    "        return (parse_v(parts[3]), parse_v(parts[4])) # (i, j)\n",
+    "    else:\n",
+    "        return (parse_v(parts[3]), parse_v(parts[4]), parse_v(parts[5])) # (i, j, k)\n",
+    "\n",
+    "for var_sym, expr in zip(pipe_mtof.keys(), pipe_mtof.values()):\n",
+    "    var_name = var_sym.name\n",
+    "    if var_name.startswith(\"f_post_idx_\"):\n",
+    "        f_idx = vectors.index(convert_direction_to_idx(dim, var_name))\n",
+    "        f_post_map[f_idx] = expr # write f_new last. for this, we escape them into f_post_map\n",
+    "    else:\n",
+    "        assignments_other.append((var_name, expr))\n",
+    "\n",
+    "pipe_mtof_chimera = {}\n",
+    "\n",
+    "for var_name, expr in assignments_other:\n",
+    "    pipe_mtof_chimera[sp.Symbol(var_name)] = expr\n",
+    "\n",
+    "pipe_mtof_f_post = {}\n",
+    "\n",
+    "for f_idx in sorted(f_post_map.keys()):\n",
+    "    expr = f_post_map[f_idx]\n",
+    "    f_name = f\"f{f_idx}_post\"\n",
+    "    pipe_mtof_f_post[sp.Symbol(f_name)] = expr\n",
+    "\n",
+    "    if f_idx < 5:\n",
+    "        print(f\"{f_name} = {expr}\")\n",
+    "\n",
+    "    # print some examples of sorted f\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "277d6eaa-353f-4714-aba4-db5c1caf184b",
+   "metadata": {},
+   "source": [
+    "Concatenete pipelines."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 62,
+   "id": "c897dfd4-6b64-417b-83b6-78e141ff9f29",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pipe_exprs = pipe_forward | pipe_collision | pipe_backward | pipe_mtof_chimera | pipe_mtof_f_post"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "24bc871d-8ab1-4387-b579-bfdba57a9fab",
+   "metadata": {},
+   "source": [
+    "## CSE in forward transformation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "79cb771e-6e9b-4450-9d4c-c7334d079f16",
+   "metadata": {},
+   "source": [
+    "We apply Sympy CSE to the first moment chimera, and the forward transformation from $\\kappa$ to $C$. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 63,
+   "id": "f0b992e7-34b1-48b5-bccf-9251361cf6fe",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "chimera1st_targets = {}\n",
+    "for suffix, chimera_sym in zip(first_chimera.keys(), first_chimera.values()):\n",
+    "    chimera1st_targets[chimera_sym] = pipe_exprs_m_chimera[chimera_sym]\n",
+    "\n",
+    "cse_targets_mc = ( list(chimera1st_targets.values()) )\n",
+    "replacements_mc, reduced_exprs_mc = sp.cse(cse_targets_mc, symbols=sp.symbols('xm0:500'))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 64,
+   "id": "35855173-e939-4c26-a5bd-9e318f36622f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for i in range(len(moment_orders)):\n",
+    "    o, name = moment_orders[i], mom_names[i]\n",
+    "    C_cum_expr[o] = sp.expand( C_cum_expr[o] )\n",
+    "\n",
+    "cse_targets_cl = []\n",
+    "for i in range(len(moment_orders)):\n",
+    "    o, name = moment_orders[i], mom_names[i]\n",
+    "    cse_targets_cl.append( C_cum_expr[o] )\n",
+    "\n",
+    "replacements_cl, reduced_exprs_cl = sp.cse(cse_targets_cl, symbols=sp.symbols('xc0:500'))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8b5a8b09-75b3-4b4a-bcea-45b45e232cf2",
+   "metadata": {},
+   "source": [
+    "Finalize the pipeline."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 65,
+   "id": "61950547-faf1-4870-9bb7-b733ac8db544",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pipe_all = {}\n",
+    "\n",
+    "# [forward] raw moment\n",
+    "for var, expr in replacements_mc:\n",
+    "    pipe_all[var] = expr\n",
+    "\n",
+    "for i, chimera_sym in enumerate(first_chimera.values()):\n",
+    "    pipe_all[chimera_sym] = reduced_exprs_mc[i]\n",
+    "\n",
+    "for suffix, key in zip(second_chimera.keys(), second_chimera.values()):\n",
+    "    pipe_all[key] = pipe_exprs_m_chimera[key]\n",
+    "\n",
+    "for i in range(len(moment_orders)):\n",
+    "    o, name = moment_orders[i], mom_names[i]\n",
+    "    pipe_all[M_raw[o]] = M_raw_expr[o]\n",
+    "\n",
+    "# [macroscopic variables]\n",
+    "# \"rho = m000\", \"u = m100/m000\", \"inv_rho = 1.0/rho\" are required in the following transformation\n",
+    "pipe_all[rho] = M_raw[(0,0,0)[:dim]]\n",
+    "\n",
+    "vel_orders = [(1,0,0)[:dim], (0,1,0)[:dim], (0,0,1)[:dim]][:dim]\n",
+    "for d in range(dim):\n",
+    "    pipe_all[vel_syms[d]] = M_raw[vel_orders[d]]/rho\n",
+    "\n",
+    "# [forward] central moment # non CSE for kappa reconstruction\n",
+    "kappa_subs_map = {}\n",
+    "for o in moment_orders:\n",
+    "    if sum(o) > 1:\n",
+    "        order = ''.join(str(x) for x in o)\n",
+    "        k_name = \"\\kappa_{\" + order + \"}\"\n",
+    "        kappa_subs_map.update({k_name: K_cen[o]})\n",
+    "\n",
+    "for o in moment_orders:\n",
+    "    if sum(o) > 1:\n",
+    "        pipe_all[K_cen[o]] = K_cen_expr[o].subs(kappa_subs_map)\n",
+    "\n",
+    "# [forward] cumulant\n",
+    "for var, expr in replacements_cl:\n",
+    "    pipe_all[var] = expr\n",
+    "\n",
+    "for i in range(len(moment_orders)):\n",
+    "    o, name = moment_orders[i], mom_names[i]\n",
+    "    if sum(o) > 3:\n",
+    "        pipe_all[C_cum[o]] = reduced_exprs_cl[i]\n",
+    "\n",
+    "# [collision]\n",
+    "for key, expr in zip(pipe_collision.keys(), pipe_collision.values()):\n",
+    "    pipe_all[key] = expr\n",
+    "\n",
+    "# [backward] kappa to m\n",
+    "for key, expr in zip(pipe_backward.keys(), pipe_backward.values()):\n",
+    "    k_post_subs_map = {K_post[(0,0,0)[:dim]]: rho, K_post[(1,0,0)[:dim]]: 0, K_post[(0,1,0)[:dim]]: 0}\n",
+    "    if dim == 3:\n",
+    "        k_post_subs_map.update({K_post[(0,0,1)[:dim]]: 0})\n",
+    "    expr = expr.subs(k_post_subs_map)\n",
+    "    pipe_all[key] = expr\n",
+    "\n",
+    "# [backward] m to f\n",
+    "for key, expr in zip(pipe_mtof_chimera.keys(), pipe_mtof_chimera.values()):\n",
+    "    pipe_all[key] = expr"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 66,
+   "id": "8132e461-d057-40ea-a0ac-a0a29166a3c7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#pipe_all | pipe_mtof_f_post # remove comment '#' to check the result"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dba782d7-b26c-47a4-ae37-f6c59d6372d4",
+   "metadata": {},
+   "source": [
+    "## Export pipeline as Taichi kernel"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 67,
+   "id": "e70c6433-05c0-4bed-a769-be3fec73904d",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "@ti.kernel\n",
+      "def col_stream_core(rho: ti.template(), vel: ti.template(), f_pre: ti.template(), f_post: ti.template()):\n",
+      "    for I in ti.grouped(rho):\n",
+      "        f0 = f_pre[I-c[0]][0]\n",
+      "        f1 = f_pre[I-c[1]][1]\n",
+      "        f2 = f_pre[I-c[2]][2]\n",
+      "        f3 = f_pre[I-c[3]][3]\n",
+      "        f4 = f_pre[I-c[4]][4]\n",
+      "        f5 = f_pre[I-c[5]][5]\n",
+      "        f6 = f_pre[I-c[6]][6]\n",
+      "        f7 = f_pre[I-c[7]][7]\n",
+      "        f8 = f_pre[I-c[8]][8]\n",
+      "        f9 = f_pre[I-c[9]][9]\n",
+      "        f10 = f_pre[I-c[10]][10]\n",
+      "        f11 = f_pre[I-c[11]][11]\n",
+      "        f12 = f_pre[I-c[12]][12]\n",
+      "        f13 = f_pre[I-c[13]][13]\n",
+      "        f14 = f_pre[I-c[14]][14]\n",
+      "        f15 = f_pre[I-c[15]][15]\n",
+      "        f16 = f_pre[I-c[16]][16]\n",
+      "        f17 = f_pre[I-c[17]][17]\n",
+      "        f18 = f_pre[I-c[18]][18]\n",
+      "        f19 = f_pre[I-c[19]][19]\n",
+      "        f20 = f_pre[I-c[20]][20]\n",
+      "        f21 = f_pre[I-c[21]][21]\n",
+      "        f22 = f_pre[I-c[22]][22]\n",
+      "        f23 = f_pre[I-c[23]][23]\n",
+      "        f24 = f_pre[I-c[24]][24]\n",
+      "        f25 = f_pre[I-c[25]][25]\n",
+      "        f26 = f_pre[I-c[26]][26]\n",
+      "        xm0 = f20 + f22\n",
+      "        xm1 = f12 + f14\n",
+      "        xm2 = f24 + f26\n",
+      "        xm3 = f16 + f18\n",
+      "        xm4 = f5 + f6\n",
+      "        xm5 = f15 + f17\n",
+      "        xm6 = f23 + f25\n",
+      "        xm7 = f11 + f13\n",
+      "        xm8 = f19 + f21\n",
+      "        chimera_m_m1_m1_c_0 = f8 + xm0\n",
+      "        chimera_m_m1_m1_c_1 = -f20 + f22\n",
+      "        chimera_m_m1_m1_c_2 = xm0\n",
+      "        chimera_m_m1_0_c_0 = f2 + xm1\n",
+      "        chimera_m_m1_0_c_1 = -f12 + f14\n",
+      "        chimera_m_m1_0_c_2 = xm1\n",
+      "        chimera_m_m1_1_c_0 = f10 + xm2\n",
+      "        chimera_m_m1_1_c_1 = -f24 + f26\n",
+      "        chimera_m_m1_1_c_2 = xm2\n",
+      "        chimera_m_0_m1_c_0 = f4 + xm3\n",
+      "        chimera_m_0_m1_c_1 = -f16 + f18\n",
+      "        chimera_m_0_m1_c_2 = xm3\n",
+      "        chimera_m_0_0_c_0 = f0 + xm4\n",
+      "        chimera_m_0_0_c_1 = f5 - f6\n",
+      "        chimera_m_0_0_c_2 = xm4\n",
+      "        chimera_m_0_1_c_0 = f3 + xm5\n",
+      "        chimera_m_0_1_c_1 = f15 - f17\n",
+      "        chimera_m_0_1_c_2 = xm5\n",
+      "        chimera_m_1_m1_c_0 = f9 + xm6\n",
+      "        chimera_m_1_m1_c_1 = f23 - f25\n",
+      "        chimera_m_1_m1_c_2 = xm6\n",
+      "        chimera_m_1_0_c_0 = f1 + xm7\n",
+      "        chimera_m_1_0_c_1 = f11 - f13\n",
+      "        chimera_m_1_0_c_2 = xm7\n",
+      "        chimera_m_1_1_c_0 = f7 + xm8\n",
+      "        chimera_m_1_1_c_1 = f19 - f21\n",
+      "        chimera_m_1_1_c_2 = xm8\n",
+      "        chimera_m_m1_c_0_0 = chimera_m_m1_0_c_0 + chimera_m_m1_1_c_0 + chimera_m_m1_m1_c_0\n",
+      "        chimera_m_m1_c_0_1 = chimera_m_m1_0_c_1 + chimera_m_m1_1_c_1 + chimera_m_m1_m1_c_1\n",
+      "        chimera_m_m1_c_0_2 = chimera_m_m1_0_c_2 + chimera_m_m1_1_c_2 + chimera_m_m1_m1_c_2\n",
+      "        chimera_m_m1_c_1_0 = chimera_m_m1_1_c_0 - chimera_m_m1_m1_c_0\n",
+      "        chimera_m_m1_c_1_1 = chimera_m_m1_1_c_1 - chimera_m_m1_m1_c_1\n",
+      "        chimera_m_m1_c_1_2 = chimera_m_m1_1_c_2 - chimera_m_m1_m1_c_2\n",
+      "        chimera_m_m1_c_2_0 = chimera_m_m1_1_c_0 + chimera_m_m1_m1_c_0\n",
+      "        chimera_m_m1_c_2_1 = chimera_m_m1_1_c_1 + chimera_m_m1_m1_c_1\n",
+      "        chimera_m_m1_c_2_2 = chimera_m_m1_1_c_2 + chimera_m_m1_m1_c_2\n",
+      "        chimera_m_0_c_0_0 = chimera_m_0_0_c_0 + chimera_m_0_1_c_0 + chimera_m_0_m1_c_0\n",
+      "        chimera_m_0_c_0_1 = chimera_m_0_0_c_1 + chimera_m_0_1_c_1 + chimera_m_0_m1_c_1\n",
+      "        chimera_m_0_c_0_2 = chimera_m_0_0_c_2 + chimera_m_0_1_c_2 + chimera_m_0_m1_c_2\n",
+      "        chimera_m_0_c_1_0 = chimera_m_0_1_c_0 - chimera_m_0_m1_c_0\n",
+      "        chimera_m_0_c_1_1 = chimera_m_0_1_c_1 - chimera_m_0_m1_c_1\n",
+      "        chimera_m_0_c_1_2 = chimera_m_0_1_c_2 - chimera_m_0_m1_c_2\n",
+      "        chimera_m_0_c_2_0 = chimera_m_0_1_c_0 + chimera_m_0_m1_c_0\n",
+      "        chimera_m_0_c_2_1 = chimera_m_0_1_c_1 + chimera_m_0_m1_c_1\n",
+      "        chimera_m_0_c_2_2 = chimera_m_0_1_c_2 + chimera_m_0_m1_c_2\n",
+      "        chimera_m_1_c_0_0 = chimera_m_1_0_c_0 + chimera_m_1_1_c_0 + chimera_m_1_m1_c_0\n",
+      "        chimera_m_1_c_0_1 = chimera_m_1_0_c_1 + chimera_m_1_1_c_1 + chimera_m_1_m1_c_1\n",
+      "        chimera_m_1_c_0_2 = chimera_m_1_0_c_2 + chimera_m_1_1_c_2 + chimera_m_1_m1_c_2\n",
+      "        chimera_m_1_c_1_0 = chimera_m_1_1_c_0 - chimera_m_1_m1_c_0\n",
+      "        chimera_m_1_c_1_1 = chimera_m_1_1_c_1 - chimera_m_1_m1_c_1\n",
+      "        chimera_m_1_c_1_2 = chimera_m_1_1_c_2 - chimera_m_1_m1_c_2\n",
+      "        chimera_m_1_c_2_0 = chimera_m_1_1_c_0 + chimera_m_1_m1_c_0\n",
+      "        chimera_m_1_c_2_1 = chimera_m_1_1_c_1 + chimera_m_1_m1_c_1\n",
+      "        chimera_m_1_c_2_2 = chimera_m_1_1_c_2 + chimera_m_1_m1_c_2\n",
+      "        m000 = chimera_m_0_c_0_0 + chimera_m_1_c_0_0 + chimera_m_m1_c_0_0\n",
+      "        m100 = chimera_m_1_c_0_0 - chimera_m_m1_c_0_0\n",
+      "        m001 = chimera_m_0_c_0_1 + chimera_m_1_c_0_1 + chimera_m_m1_c_0_1\n",
+      "        m010 = chimera_m_0_c_1_0 + chimera_m_1_c_1_0 + chimera_m_m1_c_1_0\n",
+      "        m200 = chimera_m_1_c_0_0 + chimera_m_m1_c_0_0\n",
+      "        m101 = chimera_m_1_c_0_1 - chimera_m_m1_c_0_1\n",
+      "        m110 = chimera_m_1_c_1_0 - chimera_m_m1_c_1_0\n",
+      "        m002 = chimera_m_0_c_0_2 + chimera_m_1_c_0_2 + chimera_m_m1_c_0_2\n",
+      "        m011 = chimera_m_0_c_1_1 + chimera_m_1_c_1_1 + chimera_m_m1_c_1_1\n",
+      "        m020 = chimera_m_0_c_2_0 + chimera_m_1_c_2_0 + chimera_m_m1_c_2_0\n",
+      "        m201 = chimera_m_1_c_0_1 + chimera_m_m1_c_0_1\n",
+      "        m210 = chimera_m_1_c_1_0 + chimera_m_m1_c_1_0\n",
+      "        m102 = chimera_m_1_c_0_2 - chimera_m_m1_c_0_2\n",
+      "        m111 = chimera_m_1_c_1_1 - chimera_m_m1_c_1_1\n",
+      "        m120 = chimera_m_1_c_2_0 - chimera_m_m1_c_2_0\n",
+      "        m012 = chimera_m_0_c_1_2 + chimera_m_1_c_1_2 + chimera_m_m1_c_1_2\n",
+      "        m021 = chimera_m_0_c_2_1 + chimera_m_1_c_2_1 + chimera_m_m1_c_2_1\n",
+      "        m202 = chimera_m_1_c_0_2 + chimera_m_m1_c_0_2\n",
+      "        m211 = chimera_m_1_c_1_1 + chimera_m_m1_c_1_1\n",
+      "        m220 = chimera_m_1_c_2_0 + chimera_m_m1_c_2_0\n",
+      "        m112 = chimera_m_1_c_1_2 - chimera_m_m1_c_1_2\n",
+      "        m121 = chimera_m_1_c_2_1 - chimera_m_m1_c_2_1\n",
+      "        m022 = chimera_m_0_c_2_2 + chimera_m_1_c_2_2 + chimera_m_m1_c_2_2\n",
+      "        m212 = chimera_m_1_c_1_2 + chimera_m_m1_c_1_2\n",
+      "        m221 = chimera_m_1_c_2_1 + chimera_m_m1_c_2_1\n",
+      "        m122 = chimera_m_1_c_2_2 - chimera_m_m1_c_2_2\n",
+      "        m222 = chimera_m_1_c_2_2 + chimera_m_m1_c_2_2\n",
+      "        rho = m000\n",
+      "        u = m100/rho\n",
+      "        v = m010/rho\n",
+      "        w = m001/rho\n",
+      "        kappa200 = m200 - rho*u**2\n",
+      "        kappa101 = m101 - rho*u*w\n",
+      "        kappa110 = m110 - rho*u*v\n",
+      "        kappa002 = m002 - rho*w**2\n",
+      "        kappa011 = m011 - rho*v*w\n",
+      "        kappa020 = m020 - rho*v**2\n",
+      "        kappa201 = -2*kappa101*u - kappa200*w + m201 - rho*u**2*w\n",
+      "        kappa210 = -2*kappa110*u - kappa200*v + m210 - rho*u**2*v\n",
+      "        kappa102 = -kappa002*u - 2*kappa101*w + m102 - rho*u*w**2\n",
+      "        kappa111 = -kappa011*u - kappa101*v - kappa110*w + m111 - rho*u*v*w\n",
+      "        kappa120 = -kappa020*u - 2*kappa110*v + m120 - rho*u*v**2\n",
+      "        kappa012 = -kappa002*v - 2*kappa011*w + m012 - rho*v*w**2\n",
+      "        kappa021 = -2*kappa011*v - kappa020*w + m021 - rho*v**2*w\n",
+      "        kappa202 = -kappa002*u**2 - 4*kappa101*u*w - 2*kappa102*u - kappa200*w**2 - 2*kappa201*w + m202 - rho*u**2*w**2\n",
+      "        kappa211 = -kappa011*u**2 - 2*kappa101*u*v - 2*kappa110*u*w - 2*kappa111*u - kappa200*v*w - kappa201*v - kappa210*w + m211 - rho*u**2*v*w\n",
+      "        kappa220 = -kappa020*u**2 - 4*kappa110*u*v - 2*kappa120*u - kappa200*v**2 - 2*kappa210*v + m220 - rho*u**2*v**2\n",
+      "        kappa112 = -kappa002*u*v - 2*kappa011*u*w - kappa012*u - 2*kappa101*v*w - kappa102*v - kappa110*w**2 - 2*kappa111*w + m112 - rho*u*v*w**2\n",
+      "        kappa121 = -2*kappa011*u*v - kappa020*u*w - kappa021*u - kappa101*v**2 - 2*kappa110*v*w - 2*kappa111*v - kappa120*w + m121 - rho*u*v**2*w\n",
+      "        kappa022 = -kappa002*v**2 - 4*kappa011*v*w - 2*kappa012*v - kappa020*w**2 - 2*kappa021*w + m022 - rho*v**2*w**2\n",
+      "        kappa212 = -kappa002*u**2*v - 2*kappa011*u**2*w - kappa012*u**2 - 4*kappa101*u*v*w - 2*kappa102*u*v - 2*kappa110*u*w**2 - 4*kappa111*u*w - 2*kappa112*u - kappa200*v*w**2 - 2*kappa201*v*w - kappa202*v - kappa210*w**2 - 2*kappa211*w + m212 - rho*u**2*v*w**2\n",
+      "        kappa221 = -2*kappa011*u**2*v - kappa020*u**2*w - kappa021*u**2 - 2*kappa101*u*v**2 - 4*kappa110*u*v*w - 4*kappa111*u*v - 2*kappa120*u*w - 2*kappa121*u - kappa200*v**2*w - kappa201*v**2 - 2*kappa210*v*w - 2*kappa211*v - kappa220*w + m221 - rho*u**2*v**2*w\n",
+      "        kappa122 = -kappa002*u*v**2 - 4*kappa011*u*v*w - 2*kappa012*u*v - kappa020*u*w**2 - 2*kappa021*u*w - kappa022*u - 2*kappa101*v**2*w - kappa102*v**2 - 2*kappa110*v*w**2 - 4*kappa111*v*w - 2*kappa112*v - kappa120*w**2 - 2*kappa121*w + m122 - rho*u*v**2*w**2\n",
+      "        kappa222 = -kappa002*u**2*v**2 - 4*kappa011*u**2*v*w - 2*kappa012*u**2*v - kappa020*u**2*w**2 - 2*kappa021*u**2*w - kappa022*u**2 - 4*kappa101*u*v**2*w - 2*kappa102*u*v**2 - 4*kappa110*u*v*w**2 - 8*kappa111*u*v*w - 4*kappa112*u*v - 2*kappa120*u*w**2 - 4*kappa121*u*w - 2*kappa122*u - kappa200*v**2*w**2 - 2*kappa201*v**2*w - kappa202*v**2 - 2*kappa210*v*w**2 - 4*kappa211*v*w - 2*kappa212*v - kappa220*w**2 - 2*kappa221*w + m222 - rho*u**2*v**2*w**2\n",
+      "        xc0 = 1/rho\n",
+      "        xc1 = kappa200*xc0\n",
+      "        xc2 = kappa101**2\n",
+      "        xc3 = 2*xc0\n",
+      "        xc4 = kappa101*xc3\n",
+      "        xc5 = kappa110**2\n",
+      "        xc6 = kappa002*xc0\n",
+      "        xc7 = kappa020*xc0\n",
+      "        xc8 = kappa011*xc3\n",
+      "        xc9 = kappa011**2\n",
+      "        xc10 = 4*xc0\n",
+      "        xc11 = kappa111*xc10\n",
+      "        xc12 = kappa110*xc3\n",
+      "        xc13 = rho**(-2)\n",
+      "        C202 = -kappa002*xc1 + kappa202 - xc2*xc3\n",
+      "        C211 = -kappa011*xc1 - kappa110*xc4 + kappa211\n",
+      "        C220 = -kappa020*xc1 + kappa220 - xc3*xc5\n",
+      "        C112 = -kappa011*xc4 - kappa110*xc6 + kappa112\n",
+      "        C121 = -kappa101*xc7 - kappa110*xc8 + kappa121\n",
+      "        C022 = -kappa020*xc6 + kappa022 - xc3*xc9\n",
+      "        C212 = -kappa012*xc1 - kappa101*xc11 - kappa102*xc12 - kappa201*xc8 - kappa210*xc6 + kappa212\n",
+      "        C221 = -kappa021*xc1 - kappa110*xc11 - kappa120*xc4 - kappa201*xc7 - kappa210*xc8 + kappa221\n",
+      "        C122 = -kappa011*xc11 - kappa012*xc12 - kappa021*xc4 - kappa102*xc7 - kappa120*xc6 + kappa122\n",
+      "        C222 = 2*kappa002*kappa020*kappa200*xc13 + 4*kappa002*xc13*xc5 + 16*kappa011*kappa101*kappa110*xc13 - kappa011*kappa211*xc10 - kappa012*kappa210*xc3 + 4*kappa020*xc13*xc2 - kappa021*kappa201*xc3 - kappa022*xc1 - kappa101*kappa121*xc10 - kappa102*kappa120*xc3 - kappa110*kappa112*xc10 - kappa111**2*xc10 + 4*kappa200*xc13*xc9 - kappa202*xc7 - kappa220*xc6 + kappa222\n",
+      "        kappa101_post = kappa101*(1 - omega[1])\n",
+      "        kappa110_post = kappa110*(1 - omega[1])\n",
+      "        kappa011_post = kappa011*(1 - omega[1])\n",
+      "        kappa200_post = kappa200 + omega[1]*(kappa020 - kappa200)/2 - omega[1]*(-2*kappa002 + kappa020 + kappa200)/6 - omega[2]*(kappa002 + kappa020 + kappa200 - rho)/3\n",
+      "        kappa020_post = kappa020 - omega[1]*(kappa020 - kappa200)/2 - omega[1]*(-2*kappa002 + kappa020 + kappa200)/6 - omega[2]*(kappa002 + kappa020 + kappa200 - rho)/3\n",
+      "        kappa002_post = kappa002 + omega[1]*(-2*kappa002 + kappa020 + kappa200)/3 - omega[2]*(kappa002 + kappa020 + kappa200 - rho)/3\n",
+      "        kappa120_post = (kappa102 - kappa120)*(omega[4] - 1)/2 - (kappa102 + kappa120)*(omega[3] - 1)/2\n",
+      "        kappa210_post = (kappa012 - kappa210)*(omega[4] - 1)/2 - (kappa012 + kappa210)*(omega[3] - 1)/2\n",
+      "        kappa201_post = (kappa021 - kappa201)*(omega[4] - 1)/2 - (kappa021 + kappa201)*(omega[3] - 1)/2\n",
+      "        kappa102_post = -(kappa102 - kappa120)*(omega[4] - 1)/2 - (kappa102 + kappa120)*(omega[3] - 1)/2\n",
+      "        kappa012_post = -(kappa012 - kappa210)*(omega[4] - 1)/2 - (kappa012 + kappa210)*(omega[3] - 1)/2\n",
+      "        kappa021_post = -(kappa021 - kappa201)*(omega[4] - 1)/2 - (kappa021 + kappa201)*(omega[3] - 1)/2\n",
+      "        kappa111_post = kappa111*(1 - omega[5])\n",
+      "        C220_post = C022*omega[6]/3 - C022*omega[7]/3 + C202*omega[6]/3 - C202*omega[7]/3 - 2*C220*omega[6]/3 - C220*omega[7]/3 + C220\n",
+      "        C202_post = (omega[6] - 1)*(C022 - 2*C202 + C220)/3 - (omega[7] - 1)*(C022 + C202 + C220)/3\n",
+      "        C022_post = (omega[6] - 1)*(-2*C022 + C202 + C220)/3 - (omega[7] - 1)*(C022 + C202 + C220)/3\n",
+      "        kappa022_post = C022_post + kappa002_post*kappa020_post/rho + 2*kappa011_post**2/rho\n",
+      "        kappa202_post = C202_post + kappa002_post*kappa200_post/rho + 2*kappa101_post**2/rho\n",
+      "        kappa220_post = C220_post + kappa020_post*kappa200_post/rho + 2*kappa110_post**2/rho\n",
+      "        C211_post = C211*(1 - omega[8])\n",
+      "        kappa211_post = C211_post + kappa011_post*kappa200_post/rho + 2*kappa101_post*kappa110_post/rho\n",
+      "        C112_post = C112*(1 - omega[8])\n",
+      "        kappa112_post = C112_post + kappa002_post*kappa110_post/rho + 2*kappa011_post*kappa101_post/rho\n",
+      "        C121_post = C121*(1 - omega[8])\n",
+      "        kappa121_post = C121_post + 2*kappa011_post*kappa110_post/rho + kappa020_post*kappa101_post/rho\n",
+      "        C212_post = C212*(1 - omega[9])\n",
+      "        kappa212_post = C212_post + kappa002_post*kappa210_post/rho + 2*kappa011_post*kappa201_post/rho + kappa012_post*kappa200_post/rho + 4*kappa101_post*kappa111_post/rho + 2*kappa102_post*kappa110_post/rho\n",
+      "        C221_post = C221*(1 - omega[9])\n",
+      "        kappa221_post = C221_post + 2*kappa011_post*kappa210_post/rho + kappa020_post*kappa201_post/rho + kappa021_post*kappa200_post/rho + 2*kappa101_post*kappa120_post/rho + 4*kappa110_post*kappa111_post/rho\n",
+      "        C122_post = C122*(1 - omega[9])\n",
+      "        kappa122_post = C122_post + kappa002_post*kappa120_post/rho + 4*kappa011_post*kappa111_post/rho + 2*kappa012_post*kappa110_post/rho + kappa020_post*kappa102_post/rho + 2*kappa021_post*kappa101_post/rho\n",
+      "        C222_post = C222*(1 - omega[10])\n",
+      "        kappa222_post = C222_post - 2*kappa002_post*kappa020_post*kappa200_post/rho**2 - 4*kappa002_post*kappa110_post**2/rho**2 + kappa002_post*kappa220_post/rho - 4*kappa011_post**2*kappa200_post/rho**2 - 16*kappa011_post*kappa101_post*kappa110_post/rho**2 + 4*kappa011_post*kappa211_post/rho + 2*kappa012_post*kappa210_post/rho - 4*kappa020_post*kappa101_post**2/rho**2 + kappa020_post*kappa202_post/rho + 2*kappa021_post*kappa201_post/rho + kappa022_post*kappa200_post/rho + 4*kappa101_post*kappa121_post/rho + 2*kappa102_post*kappa120_post/rho + 4*kappa110_post*kappa112_post/rho + 4*kappa111_post**2/rho\n",
+      "        m_post_idx_0_0_c_0 = rho\n",
+      "        m_post_idx_0_0_c_1 = rho*w\n",
+      "        m_post_idx_0_0_c_2 = kappa002_post + rho*w**2\n",
+      "        m_post_idx_0_1_c_0 = 0\n",
+      "        m_post_idx_0_1_c_1 = kappa011_post\n",
+      "        m_post_idx_0_1_c_2 = 2*kappa011_post*w + kappa012_post\n",
+      "        m_post_idx_0_2_c_0 = kappa020_post\n",
+      "        m_post_idx_0_2_c_1 = kappa020_post*w + kappa021_post\n",
+      "        m_post_idx_0_2_c_2 = kappa020_post*w**2 + 2*kappa021_post*w + kappa022_post\n",
+      "        m_post_idx_1_0_c_0 = 0\n",
+      "        m_post_idx_1_0_c_1 = kappa101_post\n",
+      "        m_post_idx_1_0_c_2 = 2*kappa101_post*w + kappa102_post\n",
+      "        m_post_idx_1_1_c_0 = kappa110_post\n",
+      "        m_post_idx_1_1_c_1 = kappa110_post*w + kappa111_post\n",
+      "        m_post_idx_1_1_c_2 = kappa110_post*w**2 + 2*kappa111_post*w + kappa112_post\n",
+      "        m_post_idx_1_2_c_0 = kappa120_post\n",
+      "        m_post_idx_1_2_c_1 = kappa120_post*w + kappa121_post\n",
+      "        m_post_idx_1_2_c_2 = kappa120_post*w**2 + 2*kappa121_post*w + kappa122_post\n",
+      "        m_post_idx_2_0_c_0 = kappa200_post\n",
+      "        m_post_idx_2_0_c_1 = kappa200_post*w + kappa201_post\n",
+      "        m_post_idx_2_0_c_2 = kappa200_post*w**2 + 2*kappa201_post*w + kappa202_post\n",
+      "        m_post_idx_2_1_c_0 = kappa210_post\n",
+      "        m_post_idx_2_1_c_1 = kappa210_post*w + kappa211_post\n",
+      "        m_post_idx_2_1_c_2 = kappa210_post*w**2 + 2*kappa211_post*w + kappa212_post\n",
+      "        m_post_idx_2_2_c_0 = kappa220_post\n",
+      "        m_post_idx_2_2_c_1 = kappa220_post*w + kappa221_post\n",
+      "        m_post_idx_2_2_c_2 = kappa220_post*w**2 + 2*kappa221_post*w + kappa222_post\n",
+      "        m_post_idx_0_c_0_0 = m_post_idx_0_0_c_0\n",
+      "        m_post_idx_0_c_0_1 = m_post_idx_0_0_c_1\n",
+      "        m_post_idx_0_c_0_2 = m_post_idx_0_0_c_2\n",
+      "        m_post_idx_0_c_1_0 = m_post_idx_0_0_c_0*v + m_post_idx_0_1_c_0\n",
+      "        m_post_idx_0_c_1_1 = m_post_idx_0_0_c_1*v + m_post_idx_0_1_c_1\n",
+      "        m_post_idx_0_c_1_2 = m_post_idx_0_0_c_2*v + m_post_idx_0_1_c_2\n",
+      "        m_post_idx_0_c_2_0 = m_post_idx_0_0_c_0*v**2 + 2*m_post_idx_0_1_c_0*v + m_post_idx_0_2_c_0\n",
+      "        m_post_idx_0_c_2_1 = m_post_idx_0_0_c_1*v**2 + 2*m_post_idx_0_1_c_1*v + m_post_idx_0_2_c_1\n",
+      "        m_post_idx_0_c_2_2 = m_post_idx_0_0_c_2*v**2 + 2*m_post_idx_0_1_c_2*v + m_post_idx_0_2_c_2\n",
+      "        m_post_idx_1_c_0_0 = m_post_idx_1_0_c_0\n",
+      "        m_post_idx_1_c_0_1 = m_post_idx_1_0_c_1\n",
+      "        m_post_idx_1_c_0_2 = m_post_idx_1_0_c_2\n",
+      "        m_post_idx_1_c_1_0 = m_post_idx_1_0_c_0*v + m_post_idx_1_1_c_0\n",
+      "        m_post_idx_1_c_1_1 = m_post_idx_1_0_c_1*v + m_post_idx_1_1_c_1\n",
+      "        m_post_idx_1_c_1_2 = m_post_idx_1_0_c_2*v + m_post_idx_1_1_c_2\n",
+      "        m_post_idx_1_c_2_0 = m_post_idx_1_0_c_0*v**2 + 2*m_post_idx_1_1_c_0*v + m_post_idx_1_2_c_0\n",
+      "        m_post_idx_1_c_2_1 = m_post_idx_1_0_c_1*v**2 + 2*m_post_idx_1_1_c_1*v + m_post_idx_1_2_c_1\n",
+      "        m_post_idx_1_c_2_2 = m_post_idx_1_0_c_2*v**2 + 2*m_post_idx_1_1_c_2*v + m_post_idx_1_2_c_2\n",
+      "        m_post_idx_2_c_0_0 = m_post_idx_2_0_c_0\n",
+      "        m_post_idx_2_c_0_1 = m_post_idx_2_0_c_1\n",
+      "        m_post_idx_2_c_0_2 = m_post_idx_2_0_c_2\n",
+      "        m_post_idx_2_c_1_0 = m_post_idx_2_0_c_0*v + m_post_idx_2_1_c_0\n",
+      "        m_post_idx_2_c_1_1 = m_post_idx_2_0_c_1*v + m_post_idx_2_1_c_1\n",
+      "        m_post_idx_2_c_1_2 = m_post_idx_2_0_c_2*v + m_post_idx_2_1_c_2\n",
+      "        m_post_idx_2_c_2_0 = m_post_idx_2_0_c_0*v**2 + 2*m_post_idx_2_1_c_0*v + m_post_idx_2_2_c_0\n",
+      "        m_post_idx_2_c_2_1 = m_post_idx_2_0_c_1*v**2 + 2*m_post_idx_2_1_c_1*v + m_post_idx_2_2_c_1\n",
+      "        m_post_idx_2_c_2_2 = m_post_idx_2_0_c_2*v**2 + 2*m_post_idx_2_1_c_2*v + m_post_idx_2_2_c_2\n",
+      "        m000_post = m_post_idx_0_c_0_0\n",
+      "        m001_post = m_post_idx_0_c_0_1\n",
+      "        m002_post = m_post_idx_0_c_0_2\n",
+      "        m010_post = m_post_idx_0_c_1_0\n",
+      "        m011_post = m_post_idx_0_c_1_1\n",
+      "        m012_post = m_post_idx_0_c_1_2\n",
+      "        m020_post = m_post_idx_0_c_2_0\n",
+      "        m021_post = m_post_idx_0_c_2_1\n",
+      "        m022_post = m_post_idx_0_c_2_2\n",
+      "        m100_post = m_post_idx_0_c_0_0*u + m_post_idx_1_c_0_0\n",
+      "        m101_post = m_post_idx_0_c_0_1*u + m_post_idx_1_c_0_1\n",
+      "        m102_post = m_post_idx_0_c_0_2*u + m_post_idx_1_c_0_2\n",
+      "        m110_post = m_post_idx_0_c_1_0*u + m_post_idx_1_c_1_0\n",
+      "        m111_post = m_post_idx_0_c_1_1*u + m_post_idx_1_c_1_1\n",
+      "        m112_post = m_post_idx_0_c_1_2*u + m_post_idx_1_c_1_2\n",
+      "        m120_post = m_post_idx_0_c_2_0*u + m_post_idx_1_c_2_0\n",
+      "        m121_post = m_post_idx_0_c_2_1*u + m_post_idx_1_c_2_1\n",
+      "        m122_post = m_post_idx_0_c_2_2*u + m_post_idx_1_c_2_2\n",
+      "        m200_post = m_post_idx_0_c_0_0*u**2 + 2*m_post_idx_1_c_0_0*u + m_post_idx_2_c_0_0\n",
+      "        m201_post = m_post_idx_0_c_0_1*u**2 + 2*m_post_idx_1_c_0_1*u + m_post_idx_2_c_0_1\n",
+      "        m202_post = m_post_idx_0_c_0_2*u**2 + 2*m_post_idx_1_c_0_2*u + m_post_idx_2_c_0_2\n",
+      "        m210_post = m_post_idx_0_c_1_0*u**2 + 2*m_post_idx_1_c_1_0*u + m_post_idx_2_c_1_0\n",
+      "        m211_post = m_post_idx_0_c_1_1*u**2 + 2*m_post_idx_1_c_1_1*u + m_post_idx_2_c_1_1\n",
+      "        m212_post = m_post_idx_0_c_1_2*u**2 + 2*m_post_idx_1_c_1_2*u + m_post_idx_2_c_1_2\n",
+      "        m220_post = m_post_idx_0_c_2_0*u**2 + 2*m_post_idx_1_c_2_0*u + m_post_idx_2_c_2_0\n",
+      "        m221_post = m_post_idx_0_c_2_1*u**2 + 2*m_post_idx_1_c_2_1*u + m_post_idx_2_c_2_1\n",
+      "        m222_post = m_post_idx_0_c_2_2*u**2 + 2*m_post_idx_1_c_2_2*u + m_post_idx_2_c_2_2\n",
+      "        chimera_m_post_0_0_c_0 = m000_post - m200_post\n",
+      "        chimera_m_post_m1_0_c_0 = -m100_post/2 + m200_post/2\n",
+      "        chimera_m_post_1_0_c_0 = m100_post/2 + m200_post/2\n",
+      "        chimera_m_post_0_0_c_1 = m001_post - m201_post\n",
+      "        chimera_m_post_m1_0_c_1 = -m101_post/2 + m201_post/2\n",
+      "        chimera_m_post_1_0_c_1 = m101_post/2 + m201_post/2\n",
+      "        chimera_m_post_0_0_c_2 = m002_post - m202_post\n",
+      "        chimera_m_post_m1_0_c_2 = -m102_post/2 + m202_post/2\n",
+      "        chimera_m_post_1_0_c_2 = m102_post/2 + m202_post/2\n",
+      "        chimera_m_post_0_1_c_0 = m010_post - m210_post\n",
+      "        chimera_m_post_m1_1_c_0 = -m110_post/2 + m210_post/2\n",
+      "        chimera_m_post_1_1_c_0 = m110_post/2 + m210_post/2\n",
+      "        chimera_m_post_0_1_c_1 = m011_post - m211_post\n",
+      "        chimera_m_post_m1_1_c_1 = -m111_post/2 + m211_post/2\n",
+      "        chimera_m_post_1_1_c_1 = m111_post/2 + m211_post/2\n",
+      "        chimera_m_post_0_1_c_2 = m012_post - m212_post\n",
+      "        chimera_m_post_m1_1_c_2 = -m112_post/2 + m212_post/2\n",
+      "        chimera_m_post_1_1_c_2 = m112_post/2 + m212_post/2\n",
+      "        chimera_m_post_0_2_c_0 = m020_post - m220_post\n",
+      "        chimera_m_post_m1_2_c_0 = -m120_post/2 + m220_post/2\n",
+      "        chimera_m_post_1_2_c_0 = m120_post/2 + m220_post/2\n",
+      "        chimera_m_post_0_2_c_1 = m021_post - m221_post\n",
+      "        chimera_m_post_m1_2_c_1 = -m121_post/2 + m221_post/2\n",
+      "        chimera_m_post_1_2_c_1 = m121_post/2 + m221_post/2\n",
+      "        chimera_m_post_0_2_c_2 = m022_post - m222_post\n",
+      "        chimera_m_post_m1_2_c_2 = -m122_post/2 + m222_post/2\n",
+      "        chimera_m_post_1_2_c_2 = m122_post/2 + m222_post/2\n",
+      "        chimera_m_post_m1_c_0_0 = chimera_m_post_m1_0_c_0 - chimera_m_post_m1_2_c_0\n",
+      "        chimera_m_post_m1_c_m1_0 = -chimera_m_post_m1_1_c_0/2 + chimera_m_post_m1_2_c_0/2\n",
+      "        chimera_m_post_m1_c_1_0 = chimera_m_post_m1_1_c_0/2 + chimera_m_post_m1_2_c_0/2\n",
+      "        chimera_m_post_m1_c_0_1 = chimera_m_post_m1_0_c_1 - chimera_m_post_m1_2_c_1\n",
+      "        chimera_m_post_m1_c_m1_1 = -chimera_m_post_m1_1_c_1/2 + chimera_m_post_m1_2_c_1/2\n",
+      "        chimera_m_post_m1_c_1_1 = chimera_m_post_m1_1_c_1/2 + chimera_m_post_m1_2_c_1/2\n",
+      "        chimera_m_post_m1_c_0_2 = chimera_m_post_m1_0_c_2 - chimera_m_post_m1_2_c_2\n",
+      "        chimera_m_post_m1_c_m1_2 = -chimera_m_post_m1_1_c_2/2 + chimera_m_post_m1_2_c_2/2\n",
+      "        chimera_m_post_m1_c_1_2 = chimera_m_post_m1_1_c_2/2 + chimera_m_post_m1_2_c_2/2\n",
+      "        chimera_m_post_0_c_0_0 = chimera_m_post_0_0_c_0 - chimera_m_post_0_2_c_0\n",
+      "        chimera_m_post_0_c_m1_0 = -chimera_m_post_0_1_c_0/2 + chimera_m_post_0_2_c_0/2\n",
+      "        chimera_m_post_0_c_1_0 = chimera_m_post_0_1_c_0/2 + chimera_m_post_0_2_c_0/2\n",
+      "        chimera_m_post_0_c_0_1 = chimera_m_post_0_0_c_1 - chimera_m_post_0_2_c_1\n",
+      "        chimera_m_post_0_c_m1_1 = -chimera_m_post_0_1_c_1/2 + chimera_m_post_0_2_c_1/2\n",
+      "        chimera_m_post_0_c_1_1 = chimera_m_post_0_1_c_1/2 + chimera_m_post_0_2_c_1/2\n",
+      "        chimera_m_post_0_c_0_2 = chimera_m_post_0_0_c_2 - chimera_m_post_0_2_c_2\n",
+      "        chimera_m_post_0_c_m1_2 = -chimera_m_post_0_1_c_2/2 + chimera_m_post_0_2_c_2/2\n",
+      "        chimera_m_post_0_c_1_2 = chimera_m_post_0_1_c_2/2 + chimera_m_post_0_2_c_2/2\n",
+      "        chimera_m_post_1_c_0_0 = chimera_m_post_1_0_c_0 - chimera_m_post_1_2_c_0\n",
+      "        chimera_m_post_1_c_m1_0 = -chimera_m_post_1_1_c_0/2 + chimera_m_post_1_2_c_0/2\n",
+      "        chimera_m_post_1_c_1_0 = chimera_m_post_1_1_c_0/2 + chimera_m_post_1_2_c_0/2\n",
+      "        chimera_m_post_1_c_0_1 = chimera_m_post_1_0_c_1 - chimera_m_post_1_2_c_1\n",
+      "        chimera_m_post_1_c_m1_1 = -chimera_m_post_1_1_c_1/2 + chimera_m_post_1_2_c_1/2\n",
+      "        chimera_m_post_1_c_1_1 = chimera_m_post_1_1_c_1/2 + chimera_m_post_1_2_c_1/2\n",
+      "        chimera_m_post_1_c_0_2 = chimera_m_post_1_0_c_2 - chimera_m_post_1_2_c_2\n",
+      "        chimera_m_post_1_c_m1_2 = -chimera_m_post_1_1_c_2/2 + chimera_m_post_1_2_c_2/2\n",
+      "        chimera_m_post_1_c_1_2 = chimera_m_post_1_1_c_2/2 + chimera_m_post_1_2_c_2/2\n",
+      "        f_post[I][0] = chimera_m_post_0_c_0_0 - chimera_m_post_0_c_0_2\n",
+      "        f_post[I][1] = chimera_m_post_1_c_0_0 - chimera_m_post_1_c_0_2\n",
+      "        f_post[I][2] = chimera_m_post_m1_c_0_0 - chimera_m_post_m1_c_0_2\n",
+      "        f_post[I][3] = chimera_m_post_0_c_1_0 - chimera_m_post_0_c_1_2\n",
+      "        f_post[I][4] = chimera_m_post_0_c_m1_0 - chimera_m_post_0_c_m1_2\n",
+      "        f_post[I][5] = chimera_m_post_0_c_0_1/2 + chimera_m_post_0_c_0_2/2\n",
+      "        f_post[I][6] = -chimera_m_post_0_c_0_1/2 + chimera_m_post_0_c_0_2/2\n",
+      "        f_post[I][7] = chimera_m_post_1_c_1_0 - chimera_m_post_1_c_1_2\n",
+      "        f_post[I][8] = chimera_m_post_m1_c_m1_0 - chimera_m_post_m1_c_m1_2\n",
+      "        f_post[I][9] = chimera_m_post_1_c_m1_0 - chimera_m_post_1_c_m1_2\n",
+      "        f_post[I][10] = chimera_m_post_m1_c_1_0 - chimera_m_post_m1_c_1_2\n",
+      "        f_post[I][11] = chimera_m_post_1_c_0_1/2 + chimera_m_post_1_c_0_2/2\n",
+      "        f_post[I][12] = -chimera_m_post_m1_c_0_1/2 + chimera_m_post_m1_c_0_2/2\n",
+      "        f_post[I][13] = -chimera_m_post_1_c_0_1/2 + chimera_m_post_1_c_0_2/2\n",
+      "        f_post[I][14] = chimera_m_post_m1_c_0_1/2 + chimera_m_post_m1_c_0_2/2\n",
+      "        f_post[I][15] = chimera_m_post_0_c_1_1/2 + chimera_m_post_0_c_1_2/2\n",
+      "        f_post[I][16] = -chimera_m_post_0_c_m1_1/2 + chimera_m_post_0_c_m1_2/2\n",
+      "        f_post[I][17] = -chimera_m_post_0_c_1_1/2 + chimera_m_post_0_c_1_2/2\n",
+      "        f_post[I][18] = chimera_m_post_0_c_m1_1/2 + chimera_m_post_0_c_m1_2/2\n",
+      "        f_post[I][19] = chimera_m_post_1_c_1_1/2 + chimera_m_post_1_c_1_2/2\n",
+      "        f_post[I][20] = -chimera_m_post_m1_c_m1_1/2 + chimera_m_post_m1_c_m1_2/2\n",
+      "        f_post[I][21] = -chimera_m_post_1_c_1_1/2 + chimera_m_post_1_c_1_2/2\n",
+      "        f_post[I][22] = chimera_m_post_m1_c_m1_1/2 + chimera_m_post_m1_c_m1_2/2\n",
+      "        f_post[I][23] = chimera_m_post_1_c_m1_1/2 + chimera_m_post_1_c_m1_2/2\n",
+      "        f_post[I][24] = -chimera_m_post_m1_c_1_1/2 + chimera_m_post_m1_c_1_2/2\n",
+      "        f_post[I][25] = -chimera_m_post_1_c_m1_1/2 + chimera_m_post_1_c_m1_2/2\n",
+      "        f_post[I][26] = chimera_m_post_m1_c_1_1/2 + chimera_m_post_m1_c_1_2/2\n",
+      "        rho[I] = rho\n",
+      "        vel[I][0] = u\n",
+      "        vel[I][1] = v\n",
+      "        vel[I][2] = w\n"
+     ]
+    }
+   ],
+   "source": [
+    "idt = ['', '    ', '        ']\n",
+    "\n",
+    "print(f\"{idt[0]}@ti.kernel\")\n",
+    "print(f\"{idt[0]}def col_stream_core(rho: ti.template(), vel: ti.template(), f_pre: ti.template(), f_post: ti.template()):\")\n",
+    "\n",
+    "print(f\"{idt[1]}for I in ti.grouped(rho):\")\n",
+    "\n",
+    "for i in range(num_pops):\n",
+    "    print(f\"{idt[2]}{f_syms[i]} = f_pre[I-c[{i}]][{i}]\")\n",
+    "\n",
+    "for var, expr in pipe_all.items():\n",
+    "    print(f\"{idt[2]}{var} = {expr}\")\n",
+    "\n",
+    "for i, key in enumerate(pipe_mtof_f_post):\n",
+    "    \n",
+    "    print(f\"{idt[2]}f_post[I][{i}] = {pipe_mtof_f_post[key]}\")\n",
+    "\n",
+    "print(f\"{idt[2]}{rho}[I] = {rho}\")\n",
+    "\n",
+    "for d_idx in range(dim):\n",
+    "    print(f\"{idt[2]}vel[I][{d_idx}] = {vel_syms[d_idx]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "424dca14-b3ce-43f0-9c1b-1739847d4e7b",
+   "metadata": {},
+   "source": [
+    "Great!\n",
+    "\n",
+    "You can derive D2Q9 kernel just by setting `dim = 2`."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c4903972-31d4-458a-b815-acf45899b139",
+   "metadata": {},
+   "source": [
+    "Additional things not discussed here, but considered in `lb_solver/`:\n",
+    "\n",
+    "- replace `1/rho` with `inv_rho`\n",
+    "- replace rational numbers, e.g., replace `1/2` with `* 0.5`, `1/6` with `INV_6`, and so on.\n",
+    "- pull/push streaming\n",
+    "- $\\delta \\rho$ mode\n",
+    "- CSE $f^{eq}$ (may be used in initial and boundary conditions)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2e05a110-4e38-4c75-9ea1-6a0118a8395f",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.20"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

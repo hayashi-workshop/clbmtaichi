@@ -1,0 +1,1246 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Hands-on: Cumulant kernel with Sympy" href="handson_derivation_cumulant.html"><link rel="prev" title="Coding tips" href="tips.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Hands-on: Sympy CSE application to BGK LBE - clbmtaichi documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2c019caf" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">clbmtaichi  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">clbmtaichi  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="models/index.html">LB models</a><input aria-label="Toggle navigation of LB models" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="models/velocity.html">Discrete velocity model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/streaming.html">Streaming step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/bgk.html">BGK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/trt.html">TRT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/mrt.html">MRT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/cumulant.html">Cumulant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/omega.html">Relaxation rates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/bc.html">Boundary condition</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kernels.html">Collision-streaming kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nested.html">Nested grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Coding tips</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Hands-on: Sympy CSE application to BGK LBE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handson_derivation_cumulant.html">Hands-on: Cumulant kernel with Sympy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/handson_derivation.ipynb.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="hands-on-sympy-cse-application-to-bgk-lbe">
+<h1>Hands-on: Sympy CSE application to BGK LBE<a class="headerlink" href="#hands-on-sympy-cse-application-to-bgk-lbe" title="Link to this heading">¶</a></h1>
+<div style="
+    background-color: #f8f9fa; 
+    border-left: 5px solid #ced4da; 
+    padding: 15px; 
+    margin: 10px 0; 
+    border-radius: 4px; 
+    color: #495057;
+">
+    <strong>Reference:</strong> Notebook can be found at <a href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/handson_derivation.ipynb">generator/handson_derivation.ipynb</a>
+</div><p>This hands-on notebook is designed to learn how we can use <code class="docutils literal notranslate"><span class="pre">sympy</span></code> to derive CSE-optimized collision kernel in <code class="docutils literal notranslate"><span class="pre">clbmtaichi</span></code>. Enjoy!</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="kn">import</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">Eq</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="weights">
+<h2>Weights<a class="headerlink" href="#weights" title="Link to this heading">¶</a></h2>
+<p>The weight vector <span class="math notranslate nohighlight">\(w_{i}\)</span> has its intrinsic feature. If we label <span class="math notranslate nohighlight">\(w_{i}\)</span> as <span class="math notranslate nohighlight">\(w_{\alpha \beta}\)</span> = <span class="math notranslate nohighlight">\(w_{00}\)</span>, <span class="math notranslate nohighlight">\(w_{10}\)</span>, <span class="math notranslate nohighlight">\(w_{01}\)</span>, <span class="math notranslate nohighlight">\(\cdots\)</span> for <span class="math notranslate nohighlight">\(\mathbf{c}=(0,0)\)</span>, <span class="math notranslate nohighlight">\(\mathbf{c}=(1,0)\)</span>, <span class="math notranslate nohighlight">\(\mathbf{c}=(0,1)\)</span>, <span class="math notranslate nohighlight">\(\cdots\)</span>, the velocity components <span class="math notranslate nohighlight">\(0\)</span> and <span class="math notranslate nohighlight">\(\pm 1\)</span> have their base weights as <span class="math notranslate nohighlight">\(2/3\)</span> and <span class="math notranslate nohighlight">\(1/6\)</span>, respectively; for example, <span class="math notranslate nohighlight">\(w_{00} = \frac{2}{3} \times \frac{2}{3} = \frac{4}{9}\)</span> and <span class="math notranslate nohighlight">\(w_{22} = \frac{1}{6} \times \frac{1}{6} = \frac{1}{36}\)</span>. Therefore, the weight vector is constructed by the following function.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculate_weight</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
+    <span class="n">w_base</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">1</span><span class="p">:</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">)}</span> <span class="c1"># sp.Rational defines rational numbers</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">vec</span><span class="p">:</span>
+        <span class="n">weight</span> <span class="o">*=</span> <span class="n">w_base</span><span class="p">[</span><span class="n">component</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">weight</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s check wether the function correctly work.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">w0</span> <span class="o">=</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">w1</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> <span class="n">w3</span><span class="p">,</span> <span class="n">w4</span> <span class="o">=</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="p">),</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">),</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="p">),</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span> <span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">w5</span><span class="p">,</span> <span class="n">w6</span><span class="p">,</span> <span class="n">w7</span><span class="p">,</span> <span class="n">w8</span> <span class="o">=</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">),</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">),</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">),</span> <span class="n">calculate_weight</span><span class="p">(</span> <span class="p">(</span> <span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;w0, w1, w2, w3, w4, w5, w6, w7, w8 = </span><span class="si">{</span><span class="n">w0</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w1</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w2</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w3</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w4</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w5</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w6</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w7</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">w8</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sum w = </span><span class="si">{</span><span class="n">w0</span><span class="o">+</span><span class="n">w1</span><span class="o">+</span><span class="n">w2</span><span class="o">+</span><span class="n">w3</span><span class="o">+</span><span class="n">w4</span><span class="o">+</span><span class="n">w5</span><span class="o">+</span><span class="n">w6</span><span class="o">+</span><span class="n">w7</span><span class="o">+</span><span class="n">w8</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>w0, w1, w2, w3, w4, w5, w6, w7, w8 = 4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36
+sum w = 1
+</pre></div>
+</div>
+</div>
+</div>
+<p>Good!</p>
+</section>
+<section id="velocity-sets">
+<h2>Velocity sets<a class="headerlink" href="#velocity-sets" title="Link to this heading">¶</a></h2>
+<p>First, import required libraries before creating lattice velocity vectors.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The components of the D2Q9 velocity vectors take either <span class="math notranslate nohighlight">\(-1\)</span>, <span class="math notranslate nohighlight">\(0\)</span> or <span class="math notranslate nohighlight">\(1\)</span>. D2Q9 consists of all possible combinations of them, and <code class="docutils literal notranslate"><span class="pre">itertools</span></code> easily produces such combinations, that is,</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="c1"># dimension</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">repeat</span><span class="o">=</span><span class="n">dim</span><span class="p">))</span> <span class="c1"># result: [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)]
+</pre></div>
+</div>
+</div>
+</div>
+<p>These are <span class="math notranslate nohighlight">\(\mathbf{c}\)</span> we need! However, we expect the order <span class="math notranslate nohighlight">\(\mathbf{c}_{0} = (0,0)\)</span>, <span class="math notranslate nohighlight">\(\mathbf{c}_{1} = (1,0)\)</span>, <span class="math notranslate nohighlight">\(\cdots\)</span>, but the order of the velocities above does not follow this. The following function solves this by sorting the components:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Here we develop 2D version only, so dim=2 is not mandatory. However, we shall leave dim for later convinience. </span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
+    <span class="n">all_vectors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">repeat</span><span class="o">=</span><span class="n">dim</span><span class="p">))</span>
+
+    <span class="n">vectors</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">lbm_2d_sort_key</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
+        <span class="n">length_sq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">vec</span><span class="p">)</span> <span class="c1"># cx^2 + cy^2 </span>
+        
+        <span class="k">if</span> <span class="n">length_sq</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">)</span> <span class="c1"># c0</span>
+            
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">vec</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># angle between c and x-axis</span>
+        <span class="k">if</span> <span class="n">angle</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">angle</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="c1"># quadrant correction</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">length_sq</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span>
+
+    <span class="c1"># sort for (length_sq, angle). (0,0) is placed first since its length is 0. Next, four components of length_sq = 1 are sorted for angle. Then, ..</span>
+    <span class="n">sorted_pairs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([(</span><span class="n">v</span><span class="p">,</span> <span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">all_vectors</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">lbm_2d_sort_key</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="c1"># pick sorted vector from the result and list them. </span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">sorted_pairs</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">vectors</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span> <span class="c1"># result : [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Thus, we are ready to create the weight vector:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="macroscopic-variables">
+<h2>Macroscopic variables<a class="headerlink" href="#macroscopic-variables" title="Link to this heading">¶</a></h2>
+<p>We shall start using sympy to construct LBE!</p>
+<p>sympy <em>symbol</em> is a symbol variable to handle symbolic calculation. Deine <em>name</em> of symbol; then create the <em>symbol</em> for it by <code class="docutils literal notranslate"><span class="pre">sp.Symbol</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rho_name</span> <span class="o">=</span> <span class="s1">&#39;rho&#39;</span>
+<span class="n">rho</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="n">rho_name</span><span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span> <span class="c1"># display renders symbols with LaTeX drawing</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \rho\]</div>
+</div>
+</div>
+</div>
+<p>Multiple symbols can be defined simultaneously from <code class="docutils literal notranslate"><span class="pre">List</span></code> using <code class="docutils literal notranslate"><span class="pre">sp.symbols</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">vel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">][:</span><span class="n">dim</span><span class="p">]</span> <span class="c1"># slicing eliminate &#39;w&#39; when dim=2. </span>
+<span class="n">vel_syms</span>  <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">(</span><span class="n">vel_names</span><span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span><span class="n">vel_syms</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="c1"># trick to display in LaTeX form. Not mandatory.</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \left[\begin{matrix}u &amp; v\end{matrix}\right]\]</div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">=</span> <span class="pre">sp.Symbol('rho')</span></code>, of course, works. However, defining <em>name</em> sparately is sometimes useful.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_pops</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span> <span class="c1"># number of populations</span>
+
+<span class="n">f_syms</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;f</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">)])</span> <span class="c1"># sympy symbol of f</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span><span class="n">f_syms</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \left[\begin{matrix}f_{0} &amp; f_{1} &amp; f_{2} &amp; f_{3} &amp; f_{4} &amp; f_{5} &amp; f_{6} &amp; f_{7} &amp; f_{8}\end{matrix}\right]\]</div>
+</div>
+</div>
+</div>
+<p>What is the density in LBM? It is <span class="math notranslate nohighlight">\(\rho = \sum_{i=0}^{Q-1} f_{i}\)</span>. Get it!</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rho_expr</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">f_syms</span><span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">rho_expr</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\]</div>
+</div>
+</div>
+</div>
+<p>We’ve gotten into the discrete LB world.</p>
+<p>The term <code class="docutils literal notranslate"><span class="pre">expr</span></code> in <code class="docutils literal notranslate"><span class="pre">rho_expr</span></code> is an abbreviation of <em>expression</em>. The symbol <span class="math notranslate nohighlight">\(\rho\)</span> is a symbol. <code class="docutils literal notranslate"><span class="pre">rho_expr</span></code> is a concrete <em>expression</em> of <span class="math notranslate nohighlight">\(\rho\)</span>. The name is arbitrary and you can use another one as you like. However, it would be better to have your own ruling for the variable names (my own ruling is sometimes broken in the actual code. sorry!). Let’s have velocity expressions <span class="math notranslate nohighlight">\(\mathbf{u} = \sum \mathbf{c}_{i} f_{i} / \rho\)</span> as well:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">vel_exprs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">d_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span> 
+    <span class="n">momentum_expr</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">vec</span><span class="p">[</span><span class="n">d_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">f_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">))</span>
+    <span class="n">vel_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">momentum_expr</span> <span class="o">/</span> <span class="p">(</span> <span class="n">rho_expr</span> <span class="p">)</span> <span class="p">)</span> 
+
+<span class="n">display</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span><span class="n">vel_exprs</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \left[\begin{matrix}\frac{f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}} &amp; \frac{f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}\end{matrix}\right]\]</div>
+</div>
+</div>
+</div>
+</section>
+<section id="equilibrium-distribution-function">
+<h2>Equilibrium distribution function<a class="headerlink" href="#equilibrium-distribution-function" title="Link to this heading">¶</a></h2>
+<p>Same as <code class="docutils literal notranslate"><span class="pre">f_syms</span></code>, we prepare <code class="docutils literal notranslate"><span class="pre">feq_syms</span></code> for <span class="math notranslate nohighlight">\(f_{i}^{eq}\)</span>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">feq_syms</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;feq</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">)])</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span><span class="n">feq_syms</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \left[\begin{matrix}feq_{0} &amp; feq_{1} &amp; feq_{2} &amp; feq_{3} &amp; feq_{4} &amp; feq_{5} &amp; feq_{6} &amp; feq_{7} &amp; feq_{8}\end{matrix}\right]\]</div>
+</div>
+</div>
+</div>
+<p>The most elaborative part in BGK is reconstruction of <span class="math notranslate nohighlight">\(f_{i}^{eq} = w_{i} \rho \left[ 1 + \frac{\mathbf{c}_{i} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{(\mathbf{c}_{i} \cdot \mathbf{u})^{2}}{2 c_{s}^{4}} - \frac{\mathbf{u} \cdot \mathbf{u}}{2 c_{s}^{2}} \right]\)</span>. However, sympy enables us to quickly implement this as follows.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cs2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="c1"># cs^2 = 1/3</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_feq_list</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">vectors</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="n">u_sq_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u_i</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="n">u</span><span class="p">)</span> <span class="c1"># u^2 + v^2</span>
+    
+    <span class="n">feq_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">):</span>
+        <span class="n">c_dot_u</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cx</span> <span class="o">*</span> <span class="n">u_i</span> <span class="k">for</span> <span class="n">cx</span><span class="p">,</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span> <span class="c1"># c_{i} dot u</span>
+    
+        <span class="n">feq_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">weights</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">c_dot_u</span><span class="o">/</span><span class="n">cs2</span> <span class="o">+</span> <span class="p">(</span><span class="n">c_dot_u</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">u_sq_sum</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="p">))</span> <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">feq_list</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><span class="math notranslate nohighlight">\(f^{eq}\)</span> in <em>symbolic form</em>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">feq_raw_list</span> <span class="o">=</span> <span class="n">create_feq_list</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">vel_syms</span><span class="p">,</span> <span class="n">vectors</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span> <span class="n">feq_raw_list</span> <span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \left[\begin{matrix}\frac{4 \rho \left(- \frac{3 u^{2}}{2} - \frac{3 v^{2}}{2} + 1\right)}{9} &amp; \frac{\rho \left(3 u^{2} + 3 u - \frac{3 v^{2}}{2} + 1\right)}{9} &amp; \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 v^{2} + 3 v + 1\right)}{9} &amp; \frac{\rho \left(3 u^{2} - 3 u - \frac{3 v^{2}}{2} + 1\right)}{9} &amp; \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 v^{2} - 3 v + 1\right)}{9} &amp; \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 u - \frac{3 v^{2}}{2} + 3 v + \frac{9 \left(u + v\right)^{2}}{2} + 1\right)}{36} &amp; \frac{\rho \left(- \frac{3 u^{2}}{2} - 3 u - \frac{3 v^{2}}{2} + 3 v + \frac{9 \left(- u + v\right)^{2}}{2} + 1\right)}{36} &amp; \frac{\rho \left(- \frac{3 u^{2}}{2} - 3 u - \frac{3 v^{2}}{2} - 3 v + \frac{9 \left(- u - v\right)^{2}}{2} + 1\right)}{36} &amp; \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 u - \frac{3 v^{2}}{2} - 3 v + \frac{9 \left(u - v\right)^{2}}{2} + 1\right)}{36}\end{matrix}\right]\]</div>
+</div>
+</div>
+</div>
+<p>Good; this is <span class="math notranslate nohighlight">\(f^{eq}\)</span> that we know. However, <span class="math notranslate nohighlight">\(\rho\)</span> and <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> are actually functions of <span class="math notranslate nohighlight">\(f\)</span> in the discrete sense. So, by sending <code class="docutils literal notranslate"><span class="pre">expr</span></code> to the <span class="math notranslate nohighlight">\(f^{eq}\)</span> create function, we obtain</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">feq_exprs</span> <span class="o">=</span> <span class="n">create_feq_list</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">rho_expr</span><span class="p">,</span> <span class="n">vel_exprs</span><span class="p">,</span> <span class="n">vectors</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">feq_exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \left(- \frac{3 \left(f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}\right)^{2}}{2 \left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\right)^{2}} - \frac{3 \left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\right)^{2}}{2 \left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\right)^{2}} + 1\right) \left(\frac{4 f_{0}}{9} + \frac{4 f_{1}}{9} + \frac{4 f_{2}}{9} + \frac{4 f_{3}}{9} + \frac{4 f_{4}}{9} + \frac{4 f_{5}}{9} + \frac{4 f_{6}}{9} + \frac{4 f_{7}}{9} + \frac{4 f_{8}}{9}\right)\]</div>
+</div>
+</div>
+</div>
+<p>Too complex! Don’t worry, <code class="docutils literal notranslate"><span class="pre">sympy</span></code> is human friendly. <code class="docutils literal notranslate"><span class="pre">sp.simplify</span></code> helps us to grasp the structure of equation.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sp</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">feq_exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \frac{- \frac{2 \left(f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}\right)^{2}}{3} - \frac{2 \left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\right)^{2}}{3} + \frac{4 \left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\right)^{2}}{9}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}\]</div>
+</div>
+</div>
+</div>
+</section>
+<section id="lattice-boltzmann-equation">
+<h2>Lattice Boltzmann Equation<a class="headerlink" href="#lattice-boltzmann-equation" title="Link to this heading">¶</a></h2>
+<p>Prepare the relaxation rate.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">omega</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;omega&#39;</span><span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">omega</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \omega\]</div>
+</div>
+</div>
+</div>
+<section id="symbolic-lbe-post-collision-distribution">
+<h3>Symbolic LBE: <em>post-collision</em> distribution<a class="headerlink" href="#symbolic-lbe-post-collision-distribution" title="Link to this heading">¶</a></h3>
+<p>We construct LBE and register them in Python <em>dict</em>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f_new_map</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="sa">f</span><span class="s2">&quot;f</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">f_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">omega</span> <span class="o">*</span> <span class="p">(</span><span class="n">f_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">feq_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f_new_map</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;f0&#39;: f0 - omega*(f0 - feq0),
+ &#39;f1&#39;: f1 - omega*(f1 - feq1),
+ &#39;f2&#39;: f2 - omega*(f2 - feq2),
+ &#39;f3&#39;: f3 - omega*(f3 - feq3),
+ &#39;f4&#39;: f4 - omega*(f4 - feq4),
+ &#39;f5&#39;: f5 - omega*(f5 - feq5),
+ &#39;f6&#39;: f6 - omega*(f6 - feq6),
+ &#39;f7&#39;: f7 - omega*(f7 - feq7),
+ &#39;f8&#39;: f8 - omega*(f8 - feq8)}
+</pre></div>
+</div>
+</div>
+</div>
+<p>Each equation can be accessed via <em>key</em> of the dict, e.g.,</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f_new_map</span><span class="p">[</span><span class="s1">&#39;f0&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{0} - \omega \left(f_{0} - feq_{0}\right)\]</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="lbe-standard-pipeline">
+<h2>LBE: <em>standard</em> pipeline<a class="headerlink" href="#lbe-standard-pipeline" title="Link to this heading">¶</a></h2>
+<p>We have, thus, constructed the <span class="math notranslate nohighlight">\(\rho\)</span> equation, the <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> equations, the symbolic <span class="math notranslate nohighlight">\(f^{eq}\)</span> equation, and the LBE. The pipeline of BGK can thus be</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">Eq</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_expr</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \rho = f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\]</div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">d_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">Eq</span><span class="p">(</span><span class="n">vel_syms</span><span class="p">[</span><span class="n">d_idx</span><span class="p">],</span> <span class="n">vel_exprs</span><span class="p">[</span><span class="n">d_idx</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle u = \frac{f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle v = \frac{f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}}\]</div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">):</span>
+    <span class="n">display</span><span class="p">(</span> <span class="n">Eq</span><span class="p">(</span><span class="n">feq_syms</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">feq_raw_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{0} = \frac{4 \rho \left(- \frac{3 u^{2}}{2} - \frac{3 v^{2}}{2} + 1\right)}{9}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{1} = \frac{\rho \left(3 u^{2} + 3 u - \frac{3 v^{2}}{2} + 1\right)}{9}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{2} = \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 v^{2} + 3 v + 1\right)}{9}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{3} = \frac{\rho \left(3 u^{2} - 3 u - \frac{3 v^{2}}{2} + 1\right)}{9}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{4} = \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 v^{2} - 3 v + 1\right)}{9}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{5} = \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 u - \frac{3 v^{2}}{2} + 3 v + \frac{9 \left(u + v\right)^{2}}{2} + 1\right)}{36}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{6} = \frac{\rho \left(- \frac{3 u^{2}}{2} - 3 u - \frac{3 v^{2}}{2} + 3 v + \frac{9 \left(- u + v\right)^{2}}{2} + 1\right)}{36}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{7} = \frac{\rho \left(- \frac{3 u^{2}}{2} - 3 u - \frac{3 v^{2}}{2} - 3 v + \frac{9 \left(- u - v\right)^{2}}{2} + 1\right)}{36}\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle feq_{8} = \frac{\rho \left(- \frac{3 u^{2}}{2} + 3 u - \frac{3 v^{2}}{2} - 3 v + \frac{9 \left(u - v\right)^{2}}{2} + 1\right)}{36}\]</div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">f_new_map</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">f_new_map</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+    <span class="n">display</span><span class="p">(</span> <span class="n">Eq</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">expr</span><span class="p">)</span> <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{0} = f_{0} - \omega \left(f_{0} - feq_{0}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{1} = f_{1} - \omega \left(f_{1} - feq_{1}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{2} = f_{2} - \omega \left(f_{2} - feq_{2}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{3} = f_{3} - \omega \left(f_{3} - feq_{3}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{4} = f_{4} - \omega \left(f_{4} - feq_{4}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{5} = f_{5} - \omega \left(f_{5} - feq_{5}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{6} = f_{6} - \omega \left(f_{6} - feq_{6}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{7} = f_{7} - \omega \left(f_{7} - feq_{7}\right)\]</div>
+</div>
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{8} = f_{8} - \omega \left(f_{8} - feq_{8}\right)\]</div>
+</div>
+</div>
+</div>
+<p>Compute the density and viscosites, compute the equilibrium distributions from those macro vars, and then do collision… There are no differences from the standard implementaion of BGK-LBE. We can obtain a BGK code by exporting this story. But, this is not our goal; our remaining task is to apply CSE to the LBE!</p>
+</section>
+<section id="sympy-common-subexpression-elimination-cse-application-to-lbe-pipeline">
+<h2>Sympy Common Subexpression Elimination (CSE): application to LBE pipeline<a class="headerlink" href="#sympy-common-subexpression-elimination-cse-application-to-lbe-pipeline" title="Link to this heading">¶</a></h2>
+<p>Bundle the macroscopic variables.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">macro_keys</span>   <span class="o">=</span> <span class="p">[</span><span class="n">rho_name</span><span class="p">]</span> <span class="o">+</span> <span class="n">vel_names</span>       <span class="c1"># [&#39;rho&#39;, &#39;u&#39;, &#39;v&#39;]</span>
+<span class="n">macro_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">rho_expr</span><span class="p">]</span> <span class="o">+</span> <span class="n">vel_exprs</span><span class="p">[:</span><span class="n">dim</span><span class="p">]</span> <span class="c1"># [ f0 + f1 + ..., (f1 - f3 + ...)/(f0 + f1 + ...), (f2 - f4 + ...)/(f0 + f1 + ...)]</span>
+
+<span class="n">macro_exprs</span>  <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">macro_keys</span><span class="p">,</span> <span class="n">macro_values</span><span class="p">))</span> <span class="c1"># combine name and expressions as dict</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">macro_exprs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;rho&#39;: f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8, &#39;u&#39;: (f1 - f3 + f5 - f6 - f7 + f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8), &#39;v&#39;: (f2 - f4 + f5 + f6 - f7 - f8)/(f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8)}
+</pre></div>
+</div>
+</div>
+</div>
+<p>We list all expressions to be injected to CSE. <code class="docutils literal notranslate"><span class="pre">cse_targets</span></code> is a <code class="docutils literal notranslate"><span class="pre">list</span></code> of <code class="docutils literal notranslate"><span class="pre">sympy</span></code> expressions. We extract <code class="docutils literal notranslate"><span class="pre">expr</span></code> from <code class="docutils literal notranslate"><span class="pre">macro_exprs</span></code> and <code class="docutils literal notranslate"><span class="pre">f_new_map</span></code>. It should be noted that <code class="docutils literal notranslate"><span class="pre">f_new_map</span></code> itself is <em>symbolic</em> expression, therefore the symbols are <em>substituted</em> with the concrete expressions <code class="docutils literal notranslate"><span class="pre">feq_exprs</span></code> via <code class="docutils literal notranslate"><span class="pre">subs_map</span></code>. Actually, <code class="docutils literal notranslate"><span class="pre">list(f_new_map.values())</span></code> can be replaced with <code class="docutils literal notranslate"><span class="pre">feq_exprs</span></code>, but it may be convenient to handle them as <em>dict</em>, in order to memory the meaning of equations.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># mapping feq0 -&gt; (rho + 3*u...) for CSE</span>
+<span class="n">subs_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">feq_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">feq_exprs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">)}</span> 
+
+<span class="c1"># replacement of equations with feq_exprs</span>
+<span class="n">cse_targets</span> <span class="o">=</span> <span class="p">[</span> 
+    <span class="n">expr</span><span class="o">.</span><span class="n">xreplace</span><span class="p">(</span><span class="n">subs_map</span><span class="p">)</span> <span class="k">for</span> <span class="n">expr</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">macro_exprs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">f_new_map</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">cse_targets</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="c1"># confirm LBE of f2 </span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle f_{2} - \omega \left(f_{2} - \left(- \frac{3 \left(f_{1} - f_{3} + f_{5} - f_{6} - f_{7} + f_{8}\right)^{2}}{2 \left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\right)^{2}} + \frac{3 \left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\right)^{2}}{\left(f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}\right)^{2}} + \frac{3 \left(f_{2} - f_{4} + f_{5} + f_{6} - f_{7} - f_{8}\right)}{f_{0} + f_{1} + f_{2} + f_{3} + f_{4} + f_{5} + f_{6} + f_{7} + f_{8}} + 1\right) \left(\frac{f_{0}}{9} + \frac{f_{1}}{9} + \frac{f_{2}}{9} + \frac{f_{3}}{9} + \frac{f_{4}}{9} + \frac{f_{5}}{9} + \frac{f_{6}}{9} + \frac{f_{7}}{9} + \frac{f_{8}}{9}\right)\right)\]</div>
+</div>
+</div>
+</div>
+<p>CSE’s turn!</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">replacements</span><span class="p">,</span> <span class="n">reduced_exprs</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">cse</span><span class="p">(</span><span class="n">cse_targets</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">replacements</span> 
+<span class="c1"># this is a list of 2-component touples</span>
+<span class="c1"># (intermediate variables like x0, expr: expressions of intermediate variables like f1 + f8)</span>
+<span class="c1"># </span>
+<span class="c1"># Eq(replacements[0][0], replacements[0][1]) -&gt; x0 = f1 + f8</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[(x0, f1 + f8),
+ (x1, f2 + f6),
+ (x2, f0 + f3 + f4 + f5 + f7 + x0 + x1),
+ (x3, 1/x2),
+ (x4, f5 - f7),
+ (x5, -f3 - f6 + x0 + x4),
+ (x6, x3*x5),
+ (x7, -f4 - f8 + x1 + x4),
+ (x8, x3*x7),
+ (x9, x7**2),
+ (x10, x2**(-2)),
+ (x11, 3*x10/2),
+ (x12, x11*x9),
+ (x13, x5**2),
+ (x14, x11*x13),
+ (x15, x14 - 1),
+ (x16, x12 + x15),
+ (x17, f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9),
+ (x18, 3*x6),
+ (x19, 3*x10),
+ (x20, 1 - x12),
+ (x21, x13*x19 + x20),
+ (x22, 3*x8),
+ (x23, -x14),
+ (x24, x22 + x23),
+ (x25, -x18),
+ (x26, f0/36 + f1/36 + f2/36 + f3/36 + f4/36 + f5/36 + f6/36 + f7/36 + f8/36),
+ (x27, x6 + x8),
+ (x28, x20 + x24),
+ (x29, x6 - x8)]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reduced_exprs</span> 
+<span class="c1"># this is a list of reduces expression of *given expressions*</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[x2,
+ x6,
+ x8,
+ f0 - omega*(f0 + x16*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9)),
+ f1 - omega*(f1 - x17*(x18 + x21)),
+ f2 - omega*(f2 - x17*(x19*x9 + x24 + 1)),
+ f3 - omega*(f3 - x17*(x21 + x25)),
+ f4 - omega*(f4 - x17*(3*x10*x9 - x15 - x22)),
+ f5 - omega*(f5 - x26*(x18 + 9*x27**2/2 + x28)),
+ f6 - omega*(f6 - x26*(x25 + x28 + 9*x29**2/2)),
+ f7 - omega*(f7 - x26*(-x16 - x18 - x22 + 9*x27**2/2)),
+ f8 - omega*(f8 - x26*(x18 + x20 - x22 + x23 + 9*x29**2/2))]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note that the order of the components in <code class="docutils literal notranslate"><span class="pre">reduced_exprs</span></code> is the same as in <code class="docutils literal notranslate"><span class="pre">cse_targets</span></code>. Therefore,</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Eq</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">reduced_exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle \rho = x_{2}\]</div>
+</div>
+</div>
+</div>
+<p>Validity check!</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x0</span> <span class="o">=</span> <span class="n">replacements</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">x1</span> <span class="o">=</span> <span class="n">replacements</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="n">replacements</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">x2</span><span class="o">.</span><span class="n">subs</span><span class="p">({</span><span class="s1">&#39;x1&#39;</span><span class="p">:</span> <span class="n">x1</span><span class="p">}))</span><span class="o">.</span><span class="n">subs</span><span class="p">({</span><span class="s1">&#39;x0&#39;</span><span class="p">:</span> <span class="n">x0</span><span class="p">})</span> <span class="o">-</span> <span class="n">rho_expr</span> <span class="c1"># x2 - rho = 0?</span>
+<span class="c1"># subs is substitution operation</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="math-wrapper output text_latex docutils container">
+<div class="output text_latex math notranslate nohighlight">
+\[\displaystyle 0\]</div>
+</div>
+</div>
+</div>
+</section>
+<section id="export-as-kernel">
+<h2>Export as kernel<a class="headerlink" href="#export-as-kernel" title="Link to this heading">¶</a></h2>
+<p>Finaly, we export the result as <em>collision-streaming kernel</em>.</p>
+<section id="pull-type-streaming">
+<h3>Pull-type streaming<a class="headerlink" href="#pull-type-streaming" title="Link to this heading">¶</a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">f_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> = f_pre[I-c[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]][</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>f0 = f_pre[I-c[0]][0]
+f1 = f_pre[I-c[1]][1]
+f2 = f_pre[I-c[2]][2]
+f3 = f_pre[I-c[3]][3]
+f4 = f_pre[I-c[4]][4]
+f5 = f_pre[I-c[5]][5]
+f6 = f_pre[I-c[6]][6]
+f7 = f_pre[I-c[7]][7]
+f8 = f_pre[I-c[8]][8]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="construction-of-f-eq">
+<h3>Construction of <span class="math notranslate nohighlight">\(f^{eq}\)</span><a class="headerlink" href="#construction-of-f-eq" title="Link to this heading">¶</a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">replacements</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">expr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>x0 = f1 + f8
+x1 = f2 + f6
+x2 = f0 + f3 + f4 + f5 + f7 + x0 + x1
+x3 = 1/x2
+x4 = f5 - f7
+x5 = -f3 - f6 + x0 + x4
+x6 = x3*x5
+x7 = -f4 - f8 + x1 + x4
+x8 = x3*x7
+x9 = x7**2
+x10 = x2**(-2)
+x11 = 3*x10/2
+x12 = x11*x9
+x13 = x5**2
+x14 = x11*x13
+x15 = x14 - 1
+x16 = x12 + x15
+x17 = f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9
+x18 = 3*x6
+x19 = 3*x10
+x20 = 1 - x12
+x21 = x13*x19 + x20
+x22 = 3*x8
+x23 = -x14
+x24 = x22 + x23
+x25 = -x18
+x26 = f0/36 + f1/36 + f2/36 + f3/36 + f4/36 + f5/36 + f6/36 + f7/36 + f8/36
+x27 = x6 + x8
+x28 = x20 + x24
+x29 = x6 - x8
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="collision-and-writing">
+<h3>Collision and writing<a class="headerlink" href="#collision-and-writing" title="Link to this heading">¶</a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">dim</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;f_post[I][</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] = </span><span class="si">{</span><span class="n">reduced_exprs</span><span class="p">[</span><span class="n">q</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>f_post[I][0] = f0 - omega*(f0 + x16*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9))
+f_post[I][1] = f1 - omega*(f1 - x17*(x18 + x21))
+f_post[I][2] = f2 - omega*(f2 - x17*(x19*x9 + x24 + 1))
+f_post[I][3] = f3 - omega*(f3 - x17*(x21 + x25))
+f_post[I][4] = f4 - omega*(f4 - x17*(3*x10*x9 - x15 - x22))
+f_post[I][5] = f5 - omega*(f5 - x26*(x18 + 9*x27**2/2 + x28))
+f_post[I][6] = f6 - omega*(f6 - x26*(x25 + x28 + 9*x29**2/2))
+f_post[I][7] = f7 - omega*(f7 - x26*(-x16 - x18 - x22 + 9*x27**2/2))
+f_post[I][8] = f8 - omega*(f8 - x26*(x18 + x20 - x22 + x23 + 9*x29**2/2))
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="id1">
+<h3>Macroscopic variables<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rho</span><span class="si">}</span><span class="s2">[I] = </span><span class="si">{</span><span class="n">reduced_exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">d_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;vel[I][</span><span class="si">{</span><span class="n">d_idx</span><span class="si">}</span><span class="s2">] = </span><span class="si">{</span><span class="n">reduced_exprs</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">d_idx</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>rho[I] = x2
+vel[I][0] = x6
+vel[I][1] = x8
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="functionalize-expressions">
+<h2>Functionalize expressions<a class="headerlink" href="#functionalize-expressions" title="Link to this heading">¶</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">idt</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;    &#39;</span><span class="p">,</span> <span class="s1">&#39;        &#39;</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">@ti.kernel&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">def col_stream_core(rho: ti.template(), vel: ti.template(), f_pre: ti.template(), f_post: ti.template()):&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">for I in ti.grouped(rho):&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}{</span><span class="n">f_syms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> = f_pre[I-c[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]][</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">replacements</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}{</span><span class="n">var</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">expr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pops</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">dim</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">f_post[I][</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] = </span><span class="si">{</span><span class="n">reduced_exprs</span><span class="p">[</span><span class="n">q</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}{</span><span class="n">rho</span><span class="si">}</span><span class="s2">[I] = </span><span class="si">{</span><span class="n">reduced_exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">d_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">vel[I][</span><span class="si">{</span><span class="n">d_idx</span><span class="si">}</span><span class="s2">] = </span><span class="si">{</span><span class="n">reduced_exprs</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">d_idx</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>@ti.kernel
+def col_stream_core(rho: ti.template(), vel: ti.template(), f_pre: ti.template(), f_post: ti.template()):
+    for I in ti.grouped(rho):
+        f0 = f_pre[I-c[0]][0]
+        f1 = f_pre[I-c[1]][1]
+        f2 = f_pre[I-c[2]][2]
+        f3 = f_pre[I-c[3]][3]
+        f4 = f_pre[I-c[4]][4]
+        f5 = f_pre[I-c[5]][5]
+        f6 = f_pre[I-c[6]][6]
+        f7 = f_pre[I-c[7]][7]
+        f8 = f_pre[I-c[8]][8]
+        x0 = f1 + f8
+        x1 = f2 + f6
+        x2 = f0 + f3 + f4 + f5 + f7 + x0 + x1
+        x3 = 1/x2
+        x4 = f5 - f7
+        x5 = -f3 - f6 + x0 + x4
+        x6 = x3*x5
+        x7 = -f4 - f8 + x1 + x4
+        x8 = x3*x7
+        x9 = x7**2
+        x10 = x2**(-2)
+        x11 = 3*x10/2
+        x12 = x11*x9
+        x13 = x5**2
+        x14 = x11*x13
+        x15 = x14 - 1
+        x16 = x12 + x15
+        x17 = f0/9 + f1/9 + f2/9 + f3/9 + f4/9 + f5/9 + f6/9 + f7/9 + f8/9
+        x18 = 3*x6
+        x19 = 3*x10
+        x20 = 1 - x12
+        x21 = x13*x19 + x20
+        x22 = 3*x8
+        x23 = -x14
+        x24 = x22 + x23
+        x25 = -x18
+        x26 = f0/36 + f1/36 + f2/36 + f3/36 + f4/36 + f5/36 + f6/36 + f7/36 + f8/36
+        x27 = x6 + x8
+        x28 = x20 + x24
+        x29 = x6 - x8
+        f_post[I][0] = f0 - omega*(f0 + x16*(4*f0/9 + 4*f1/9 + 4*f2/9 + 4*f3/9 + 4*f4/9 + 4*f5/9 + 4*f6/9 + 4*f7/9 + 4*f8/9))
+        f_post[I][1] = f1 - omega*(f1 - x17*(x18 + x21))
+        f_post[I][2] = f2 - omega*(f2 - x17*(x19*x9 + x24 + 1))
+        f_post[I][3] = f3 - omega*(f3 - x17*(x21 + x25))
+        f_post[I][4] = f4 - omega*(f4 - x17*(3*x10*x9 - x15 - x22))
+        f_post[I][5] = f5 - omega*(f5 - x26*(x18 + 9*x27**2/2 + x28))
+        f_post[I][6] = f6 - omega*(f6 - x26*(x25 + x28 + 9*x29**2/2))
+        f_post[I][7] = f7 - omega*(f7 - x26*(-x16 - x18 - x22 + 9*x27**2/2))
+        f_post[I][8] = f8 - omega*(f8 - x26*(x18 + x20 - x22 + x23 + 9*x29**2/2))
+        rho[I] = x2
+        vel[I][0] = x6
+        vel[I][1] = x8
+</pre></div>
+</div>
+</div>
+</div>
+<p>Congratulation! Compare this result with <code class="docutils literal notranslate"><span class="pre">lb_solver/d2q9_BGK_kernel.py</span></code>. Except some additional functions in the latter, the derived kernels are the same.</p>
+<p>Sympy CSE is now under control in your hands.</p>
+<p>Good news. Just by extending the <code class="docutils literal notranslate"><span class="pre">vectors</span></code> to D3Q29, we would immediately derive 3D kernerl as well!</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="handson_derivation_cumulant.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Hands-on: Cumulant kernel with Sympy</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="tips.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Coding tips</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Kosuke Hayashi@Kobe University
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/hayashi-workshop/clbmtaichi" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+            </a>
+              <a class="muted-link " href="https://www.lab.kobe-u.ac.jp/eng-mfd/" aria-label="Home">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Hands-on: Sympy CSE application to BGK LBE</a><ul>
+<li><a class="reference internal" href="#weights">Weights</a></li>
+<li><a class="reference internal" href="#velocity-sets">Velocity sets</a></li>
+<li><a class="reference internal" href="#macroscopic-variables">Macroscopic variables</a></li>
+<li><a class="reference internal" href="#equilibrium-distribution-function">Equilibrium distribution function</a></li>
+<li><a class="reference internal" href="#lattice-boltzmann-equation">Lattice Boltzmann Equation</a><ul>
+<li><a class="reference internal" href="#symbolic-lbe-post-collision-distribution">Symbolic LBE: <em>post-collision</em> distribution</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#lbe-standard-pipeline">LBE: <em>standard</em> pipeline</a></li>
+<li><a class="reference internal" href="#sympy-common-subexpression-elimination-cse-application-to-lbe-pipeline">Sympy Common Subexpression Elimination (CSE): application to LBE pipeline</a></li>
+<li><a class="reference internal" href="#export-as-kernel">Export as kernel</a><ul>
+<li><a class="reference internal" href="#pull-type-streaming">Pull-type streaming</a></li>
+<li><a class="reference internal" href="#construction-of-f-eq">Construction of <span class="math notranslate nohighlight">\(f^{eq}\)</span></a></li>
+<li><a class="reference internal" href="#collision-and-writing">Collision and writing</a></li>
+<li><a class="reference internal" href="#id1">Macroscopic variables</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#functionalize-expressions">Functionalize expressions</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script>let toggleHintShow = 'open footnote';</script>
+    <script>let toggleHintHide = 'hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

@@ -1,0 +1,616 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="TRT" href="trt.html"><link rel="prev" title="Streaming step" href="streaming.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>BGK - clbmtaichi documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=2c019caf" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">clbmtaichi  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">clbmtaichi  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">LB models</a><input aria-label="Toggle navigation of LB models" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="velocity.html">Discrete velocity model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="streaming.html">Streaming step</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BGK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trt.html">TRT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mrt.html">MRT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cumulant.html">Cumulant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="omega.html">Relaxation rates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bc.html">Boundary condition</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../kernels.html">Collision-streaming kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nested.html">Nested grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Coding tips</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../handson_derivation.html">Hands-on: Sympy CSE application to BGK LBE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../handson_derivation_cumulant.html">Hands-on: Cumulant kernel with Sympy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/models/bgk.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="bgk">
+<h1>BGK<a class="headerlink" href="#bgk" title="Link to this heading">¶</a></h1>
+<div class="admonition-github admonition">
+<p class="admonition-title">&#64;github</p>
+<p><a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_BGK_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d2q9_BGK_kernel.py</span></code></a>
+<a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d2q9_BGK_drho_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d2q9_BGK_drho_kernel.py</span></code></a>
+<a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_BGK_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d3q27_BGK_kernel.py</span></code></a>
+<a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/lb_solver/d3q27_BGK_drho_kernel.py"><code class="docutils literal notranslate"><span class="pre">lb_solver/d3q27_BGK_drho_kernel.py</span></code></a></p>
+</div>
+<section id="single-relaxation-time-model">
+<h2>Single-relaxation time model<a class="headerlink" href="#single-relaxation-time-model" title="Link to this heading">¶</a></h2>
+<p>BGK is abbreviation of the authors’ names, Bhatnagar, Gross and Krook <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../reference.html#id9" title="P. L. Bhatnagar, E. P. Gross, and M. Krook. A model for collision processes in gases. I: small amplitude processes in charged and neutral one-component system. Physical Review, 94:511–525, 1954.">BGK54</a>]</span>. <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/cumulant_generator.py#L158">This model assumes that all <span class="math notranslate nohighlight">\(f\)</span> relaxes toward equilibrium at the same rate denoted by <span class="math notranslate nohighlight">\(\omega\)</span>.</a> Therefore,</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-lbe-bgk">
+<div class="math notranslate nohighlight" id="equation-eq-eq-lbe-bgk">
+<span class="eqno">(10)<a class="headerlink" href="#equation-eq-eq-lbe-bgk" title="Link to this equation">¶</a></span>\[f_{q} (t + \Delta t, \mathbf{x} + \mathbf{c}_{q} \Delta t) = f_{q} (t, \mathbf{x}) - \omega ( f_{q} - f_{q}^{eq} )\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\omega\)</span> is defined by</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-omega-definition">
+<div class="math notranslate nohighlight" id="equation-eq-eq-omega-definition">
+<span class="eqno">(11)<a class="headerlink" href="#equation-eq-eq-omega-definition" title="Link to this equation">¶</a></span>\[\omega = 1 / \tau\]</div>
+</div>
+<p>and <span class="math notranslate nohighlight">\(\tau\)</span> is the relaxation time. The kinematic viscosity is given as a function of <span class="math notranslate nohighlight">\(\tau\)</span> as</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-viscosity-definition">
+<div class="math notranslate nohighlight" id="equation-eq-eq-viscosity-definition">
+<span class="eqno">(12)<a class="headerlink" href="#equation-eq-eq-viscosity-definition" title="Link to this equation">¶</a></span>\[\nu = c_{s}^{2} \left( \tau - \frac{1}{2} \right)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(c_{s}\)</span> is the speed of sound, and <span class="math notranslate nohighlight">\(c_{s}^{2} = 1/3\)</span> for D2Q9 and D3Q27 velocity models.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Chapman-Enskog expansion derives that the pressure in LBM is <span class="math notranslate nohighlight">\(p = c_{s}^{2} \rho\)</span> which is consistent with the definition of speed of sound <span class="math notranslate nohighlight">\(c_{s}^{2} = \left. \partial p / \partial \rho \right|_{s}\)</span> for idela gas.</p>
+</div>
+</section>
+<section id="equilibrium-distribution-function">
+<h2>Equilibrium distribution function<a class="headerlink" href="#equilibrium-distribution-function" title="Link to this heading">¶</a></h2>
+<p><a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/c9e6d53609b93901daaef06c0d13dccf0fb81319/generator/generator_utils/common_utils.py#L59">The equilibrium distribution function</a> in LBM is given by</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-f-eq">
+<div class="math notranslate nohighlight" id="equation-eq-eq-f-eq">
+<span class="eqno">(13)<a class="headerlink" href="#equation-eq-eq-f-eq" title="Link to this equation">¶</a></span>\[f_{i}^{eq} = w_{i} \rho \left( 1 + \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ \mathbf{u} \cdot \mathbf{u} }{2 c_{s}^{2}} \right)\]</div>
+</div>
+<p>This is a discrete expression of Maxwelian <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../reference.html#id14" title="T. Seta. Lattice Boltzmann Method (in Japanese). Morikita Publishing, 2021.">Set21</a>]</span> and can be derived from the Hermite generating function <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../reference.html#id13" title="T. Kruger, H. Kusumaatmaja, A. Kuzmin, O. Shardt, G. Silva, and E. M. Viggen. The Lattice Boltzmann Method. Principles and Practice. Springer, 2017.">KKK+17</a>]</span>.</p>
+<p>The values of <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/0f27d15c04fe9697c33d4774e892adc08ce0ca10/generator/generator_utils/common_utils.py#L7">weights <span class="math notranslate nohighlight">\(w_{i}\)</span></a> are determined by the parity symmetry (the Hermite generating function is symmetric) and constrains required to recover the Navier-Stokes equation. For example, the condition <span class="math notranslate nohighlight">\(\sum f^{eq} = \rho\)</span> imposes</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-sum-w">
+<div class="math notranslate nohighlight" id="equation-eq-eq-sum-w">
+<span class="eqno">(14)<a class="headerlink" href="#equation-eq-eq-sum-w" title="Link to this equation">¶</a></span>\[\sum_{i=0}^{Q-1} w_{i} = 1\]</div>
+</div>
+<div class="math-wrapper docutils container" id="equation-eq-eq-sum-cw">
+<div class="math notranslate nohighlight" id="equation-eq-eq-sum-cw">
+<span class="eqno">(15)<a class="headerlink" href="#equation-eq-eq-sum-cw" title="Link to this equation">¶</a></span>\[\sum_{i=0}^{Q-1} c_{i\alpha} w_{i} = 0\]</div>
+</div>
+<div class="math-wrapper docutils container" id="equation-eq-eq-sum-ccw">
+<div class="math notranslate nohighlight" id="equation-eq-eq-sum-ccw">
+<span class="eqno">(16)<a class="headerlink" href="#equation-eq-eq-sum-ccw" title="Link to this equation">¶</a></span>\[\sum_{i=0}^{Q-1} c_{i\alpha} c_{i\beta} w_{i} = c_{s}^{2} \delta_{\alpha \beta}\]</div>
+</div>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="c1"># set dimension</span>
+<span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+<span class="n">display</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition-example-with-cumulant-moment-exprs-ipynb-https-github-com-hayashi-workshop-clbmtaichi-blob-main-generator-cumulant-moment-exprs-ipynb admonition">
+<p class="admonition-title">Example with <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
+
+<span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> 
+<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+
+<span class="n">rho</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;rho&#39;</span><span class="p">)</span>
+<span class="n">u</span>   <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">([</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">][:</span><span class="n">dim</span><span class="p">])</span> 
+
+<span class="n">cs2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">u_sq_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u_i</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="n">u</span><span class="p">)</span>
+    
+<span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">):</span>
+    <span class="n">c_dot_u</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cx</span> <span class="o">*</span> <span class="n">u_i</span> <span class="k">for</span> <span class="n">cx</span><span class="p">,</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+    <span class="n">display</span><span class="p">(</span> <span class="n">Eq</span><span class="p">(</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;f_eq</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span> <span class="n">weights</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">c_dot_u</span><span class="o">/</span><span class="n">cs2</span> <span class="o">+</span> <span class="p">(</span><span class="n">c_dot_u</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">u_sq_sum</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="p">))</span> <span class="p">)</span> <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="density-fluctuation-mode">
+<h2>Density-fluctuation mode<a class="headerlink" href="#density-fluctuation-mode" title="Link to this heading">¶</a></h2>
+<p>In LBM, the density at <span class="math notranslate nohighlight">\(\mathbf{u} = 0\)</span> is scaled as <span class="math notranslate nohighlight">\(\rho_{0} = 1\)</span>. The density fluctuation is expected to be small in incompressible flows, so that the density fluctuation <span class="math notranslate nohighlight">\(\delta \rho = \rho - \rho_{0}\)</span> around <span class="math notranslate nohighlight">\(\rho_{0}\)</span> may be small. It is therefore reasonable to <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/c9e6d53609b93901daaef06c0d13dccf0fb81319/generator/cumulant_generator.py#L75">shift distribution</a> as</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-shifted-f">
+<div class="math notranslate nohighlight" id="equation-eq-eq-shifted-f">
+<span class="eqno">(17)<a class="headerlink" href="#equation-eq-eq-shifted-f" title="Link to this equation">¶</a></span>\[\widetilde{f}_{i} = f_{i} - w_{i}\]</div>
+</div>
+<p>to capture <span class="math notranslate nohighlight">\(\delta \rho\)</span>. With <span class="math notranslate nohighlight">\(\widetilde{f}_{i}\)</span>,</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-density-fluctuation">
+<div class="math notranslate nohighlight" id="equation-eq-eq-density-fluctuation">
+<span class="eqno">(18)<a class="headerlink" href="#equation-eq-eq-density-fluctuation" title="Link to this equation">¶</a></span>\[\delta \rho = \sum_{i=0}^{Q-1} \widetilde{f}_{i}\]</div>
+</div>
+<p>The density-fluctuation mode may also advantageous from a point of view of preventing round-off errors in single-precision computing on gpu (this statement needs validation).</p>
+<p>The momentum is unchanged under the density shift due to the parity symmetry of the lattice velocity:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-momentum-shifted">
+<div class="math notranslate nohighlight" id="equation-eq-eq-momentum-shifted">
+<span class="eqno">(19)<a class="headerlink" href="#equation-eq-eq-momentum-shifted" title="Link to this equation">¶</a></span>\[\rho \mathbf{u} = \sum_{i=0}^{Q-1} \mathbf{c}_{i} f_{i} = \sum_{i=0}^{Q-1} \mathbf{c}_{i} \widetilde{f}_{i}\]</div>
+</div>
+<p>The shifted equilibrium disribution function is also defined as</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-shifted-f-eq">
+<div class="math notranslate nohighlight" id="equation-eq-eq-shifted-f-eq">
+<span class="eqno">(20)<a class="headerlink" href="#equation-eq-eq-shifted-f-eq" title="Link to this equation">¶</a></span>\[\widetilde{f}_{i}^{eq} = f_{i}^{eq} - w_{i} = w_{i} \left( \delta \rho + \rho \left[ \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ \mathbf{u} \cdot \mathbf{u} }{2 c_{s}^{2}} \right] \right)\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[
+\sum_{i=0}^{Q-1} \widetilde{f}_{i}^{eq} = \sum_{i=0}^{Q-1} \left( {f}_{i}^{eq} - w_{i} \right) = \rho - \rho_{0} = \delta \rho
+\]</div>
+</div>
+<p>The LB functional form is unchangd under the density shift:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-lbe-bgk-shifted">
+<div class="math notranslate nohighlight" id="equation-eq-eq-lbe-bgk-shifted">
+<span class="eqno">(21)<a class="headerlink" href="#equation-eq-eq-lbe-bgk-shifted" title="Link to this equation">¶</a></span>\[\widetilde{f}_{i} (t + \Delta t, \mathbf{x} + \mathbf{c}_{i} \Delta t) = \widetilde{f}_{i} (t, \mathbf{x}) - \omega ( \widetilde{f}_{i} - \widetilde{f}_{i}^{eq} )\]</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Further approximation? <span class="math notranslate nohighlight">\(\rho = \rho_{0} + \delta \rho\)</span>. Products of <span class="math notranslate nohighlight">\(\delta \rho\)</span> and <span class="math notranslate nohighlight">\(u\)</span> are expected to be small, and therefore <span class="math notranslate nohighlight">\(\rho \rightarrow \rho_{0}\)</span> in the second term. This approximation however made simulations unstable in our experience.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\widetilde{f}_{i}^{eq} = w_{i} \left( \delta \rho + \rho_{0} \left[ \frac{\mathbf{c} \cdot \mathbf{u}}{c_{s}^{2}} + \frac{( \mathbf{c} \cdot \mathbf{u} )^{2}}{2 c_{s}^{4}} - \frac{ \mathbf{u} \cdot \mathbf{u} }{2 c_{s}^{2}} \right] \right)\]</div>
+</div>
+</div>
+</section>
+<section id="constraints-for-weights">
+<h2>Constraints for weights<a class="headerlink" href="#constraints-for-weights" title="Link to this heading">¶</a></h2>
+<p>In addition to Eqs. <a class="reference internal" href="#equation-eq-eq-sum-w">(14)</a>, <a class="reference internal" href="#equation-eq-eq-sum-cw">(15)</a> and <a class="reference internal" href="#equation-eq-eq-sum-ccw">(16)</a>, we have the following to recover the N-S equation:</p>
+<div class="math-wrapper docutils container" id="equation-eq-eq-eq-sum-cccw">
+<div class="math notranslate nohighlight" id="equation-eq-eq-eq-sum-cccw">
+<span class="eqno">(22)<a class="headerlink" href="#equation-eq-eq-eq-sum-cccw" title="Link to this equation">¶</a></span>\[\sum_{i=0}^{Q-1} c_{i\alpha} c_{i\beta} c_{i\gamma} w_{i} = 0\]</div>
+</div>
+<div class="math-wrapper docutils container" id="equation-eq-eq-eq-sum-ccccw">
+<div class="math notranslate nohighlight" id="equation-eq-eq-eq-sum-ccccw">
+<span class="eqno">(23)<a class="headerlink" href="#equation-eq-eq-eq-sum-ccccw" title="Link to this equation">¶</a></span>\[\sum_{i=0}^{Q-1} c_{i\alpha} c_{i\beta} c_{i\gamma} c_{i\delta} w_{i} = c_{s}^{4} ( 
+    \delta_{\alpha\beta} \delta_{\gamma\delta}
+    +\delta_{\alpha\gamma} \delta_{\beta\delta}
+    +\delta_{\alpha\delta} \delta_{\beta\gamma}
+    )\]</div>
+</div>
+<div class="math-wrapper docutils container" id="equation-eq-eq-eq-sum-cccccw">
+<div class="math notranslate nohighlight" id="equation-eq-eq-eq-sum-cccccw">
+<span class="eqno">(24)<a class="headerlink" href="#equation-eq-eq-eq-sum-cccccw" title="Link to this equation">¶</a></span>\[\sum_{i=0}^{Q-1} c_{i\alpha} c_{i\beta} c_{i\gamma} c_{i\delta} c_{i\sigma} w_{i} = 0\]</div>
+</div>
+<p>We shall check the constraints are fullfilled with our weights. First, we define the following function in <a class="reference external" href="https://github.com/hayashi-workshop/clbmtaichi/blob/main/generator/cumulant_moment_exprs.ipynb">cumulant_moment_exprs.ipynb</a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_weight_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span> <span class="c1"># suffix is tuple</span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="c1"># create lattice velocity</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="p">(</span><span class="n">suffix</span><span class="p">,)</span>
+
+    <span class="n">w_tensor_expr</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># sum ( w_{i} * c_{i alpha} * c_{i beta} * c_{i gamma} ...)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">):</span>
+        <span class="n">cprod</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="c1"># set w_{i}</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">suffix</span><span class="p">:</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1"># shift: physics uses x=1, but code uses x=0</span>
+            <span class="n">cprod</span> <span class="o">*=</span> <span class="n">v</span><span class="p">[</span><span class="n">ss</span><span class="p">]</span> <span class="c1"># multiply w_{i} * c_{i alpha} * c_{i beta} * c_{i gamma} ...</span>
+        <span class="n">w_tensor_expr</span> <span class="o">+=</span> <span class="n">cprod</span>
+
+    <span class="k">return</span> <span class="n">w_tensor_expr</span>
+</pre></div>
+</div>
+<p>Then, for the 0th-order (scalar),</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">W0</span> <span class="o">=</span> <span class="n">compute_weight_tensor</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">W0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The 1st-order (vector),</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">wt</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)[:</span><span class="n">dim</span><span class="p">]:</span>
+    <span class="n">wt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compute_weight_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">))</span>
+<span class="n">W1</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">W1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The 2nd-order tensor,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">wt</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)[:</span><span class="n">dim</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)[:</span><span class="n">dim</span><span class="p">]:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+        <span class="n">wt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">compute_weight_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">W2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">W2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For the higher orders, let me leave an example,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">compute_weight_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">))</span> <span class="c1"># 4th-order (result: 1/9)</span>
+</pre></div>
+</div>
+</section>
+<section id="macroscopic-variable-construction-from-f-eq">
+<h2>Macroscopic variable construction from <span class="math notranslate nohighlight">\(f^{eq}\)</span><a class="headerlink" href="#macroscopic-variable-construction-from-f-eq" title="Link to this heading">¶</a></h2>
+<p>Confirm the following relationships between the macroscopic variables and the equilibirum distribution functions by extending the weight tensor calculation function.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{split}
+&amp;\sum_{i=0}^{Q-1} f^{eq}_{i} = \rho \\
+&amp;\sum_{i=0}^{Q-1} c_{i \alpha} f^{eq}_{i} = \rho u_{\alpha} \\
+&amp;\sum_{i=0}^{Q-1} c_{i \alpha} c_{i \beta} f^{eq}_{i} = \rho u_{\alpha} u_{\beta} + \frac{\rho}{3} \delta_{\alpha \beta}
+\end{split}\end{split}\]</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_feq_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span> <span class="c1"># suffix is tuple</span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="n">create_vectors</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="c1"># create lattice velocity</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">calculate_weight</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vectors</span><span class="p">]</span>
+
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;rho&#39;</span><span class="p">)</span>
+    <span class="n">u</span>   <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbols</span><span class="p">([</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">][:</span><span class="n">dim</span><span class="p">])</span> 
+    
+    <span class="n">cs2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">u_sq_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u_i</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="n">u</span><span class="p">)</span>
+    
+    <span class="n">feq_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">):</span>
+        <span class="n">c_dot_u</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cx</span> <span class="o">*</span> <span class="n">u_i</span> <span class="k">for</span> <span class="n">cx</span><span class="p">,</span> <span class="n">u_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+        <span class="n">feq</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">c_dot_u</span><span class="o">/</span><span class="n">cs2</span> <span class="o">+</span> <span class="p">(</span><span class="n">c_dot_u</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">u_sq_sum</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cs2</span><span class="p">))</span>
+        <span class="n">feq_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">feq</span> <span class="p">)</span> 
+    
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">feq_list</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="p">(</span><span class="n">suffix</span><span class="p">,)</span>
+
+    <span class="n">feq_tensor_expr</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># sum ( f_{i}^{eq} * c_{i alpha} * c_{i beta} * c_{i gamma} ...)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vectors</span><span class="p">):</span>
+        <span class="n">cprod</span> <span class="o">=</span> <span class="n">feq_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="c1"># set f_{i}^{eq}</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">suffix</span><span class="p">:</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1"># shift: physics uses x=1, but code uses x=0</span>
+            <span class="n">cprod</span> <span class="o">*=</span> <span class="n">v</span><span class="p">[</span><span class="n">ss</span><span class="p">]</span> <span class="c1"># multiply f_{i}^{eq} * c_{i alpha} * c_{i beta} * c_{i gamma} ...</span>
+        <span class="n">feq_tensor_expr</span> <span class="o">+=</span> <span class="n">cprod</span>
+
+    <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">feq_tensor_expr</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">compute_feq_tensor</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ft</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)[:</span><span class="n">dim</span><span class="p">]:</span>
+    <span class="n">ft</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compute_feq_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">))</span>
+<span class="n">F1</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ft</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">F1</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ft</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)[:</span><span class="n">dim</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)[:</span><span class="n">dim</span><span class="p">]:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+        <span class="n">ft</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">compute_feq_tensor</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">F2</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ft</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">F2</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="trt.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">TRT</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="streaming.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Streaming step</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Kosuke Hayashi@Kobe University
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/hayashi-workshop/clbmtaichi" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+            </a>
+              <a class="muted-link " href="https://www.lab.kobe-u.ac.jp/eng-mfd/" aria-label="Home">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">BGK</a><ul>
+<li><a class="reference internal" href="#single-relaxation-time-model">Single-relaxation time model</a></li>
+<li><a class="reference internal" href="#equilibrium-distribution-function">Equilibrium distribution function</a></li>
+<li><a class="reference internal" href="#density-fluctuation-mode">Density-fluctuation mode</a></li>
+<li><a class="reference internal" href="#constraints-for-weights">Constraints for weights</a></li>
+<li><a class="reference internal" href="#macroscopic-variable-construction-from-f-eq">Macroscopic variable construction from <span class="math notranslate nohighlight">\(f^{eq}\)</span></a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script>let toggleHintShow = 'open footnote';</script>
+    <script>let toggleHintHide = 'hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>
