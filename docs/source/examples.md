@@ -372,7 +372,6 @@ files.download(zip_filename)
 
 Cloned and dumped files will be deleted when sessions are terminated. Consider to mount google drive to keep them. 
 
-
 ### MLUPS bench with Colab
 
 `examples/mlups_main.py` does not use GGUI; therefore it runs on Colab without any changes. 
@@ -390,4 +389,13 @@ CPU (EPYC 9B45 24cores/48threads) vs. G4 GPU (NVIDIA RTX Pro 6000 Blackwell Serv
   <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_G4.png" style="max-width: 50%; height: auto; object-fit: contain;">
   <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/benchmark_mlups_256_G4.png" style="max-width: 50%; height: auto; object-fit: contain;">
 </div>
+
+### Cavity flow example run on Colab
+
+`examples/cavity3d_513.py` is a demonstration of 3D lid-driven cavity flow run on Google Colab. 513x513x513 (135M) nodes for Re = 10,000. Cumulant collision kernel with pull-streaming + Guo's boundary condition. Recommended reducing the domain size for test. 
+
+<div style="max-width: 100%; display: flex; gap: 10px;">
+  <img src="https://www.lab.kobe-u.ac.jp/eng-mfd/clbmtaichi/cavity3d_513_500000.jpeg" style="max-width: 75%; height: auto; object-fit: contain;">
+</div>
+
 
